@@ -13,6 +13,7 @@ src-tauri/gen/
 *.sqlite-*
 *.sqlite3-*
 covers/
+platform-icons/
 backups/
 app-data/
 local-data/

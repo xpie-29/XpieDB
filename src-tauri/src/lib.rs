@@ -1,4 +1,9 @@
+mod assets;
+mod catalog;
+mod commands;
 mod storage;
+#[cfg(test)]
+mod tests;
 
 use serde::Serialize;
 
@@ -25,11 +30,28 @@ fn get_app_data_info(app: tauri::AppHandle) -> Result<AppDataInfo, String> {
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             storage::initialize(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_app_data_info])
+        .invoke_handler(tauri::generate_handler![
+            get_app_data_info,
+            commands::list_games,
+            commands::get_game,
+            commands::save_game,
+            commands::delete_game,
+            commands::list_platforms,
+            commands::save_platform,
+            commands::delete_platform,
+            commands::get_preferences,
+            commands::set_preference,
+            commands::select_image,
+            commands::image_data,
+            commands::discard_image,
+            commands::open_link
+        ])
         .run(tauri::generate_context!())
         .expect("failed to run GameVault");
 }

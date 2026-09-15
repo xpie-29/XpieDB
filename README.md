@@ -81,7 +81,10 @@ The SQLite database is a normal portable SQLite database. Personal databases, co
 
 ## Database
 
-Database migrations are created from the beginning. Milestone 1 creates the migration bookkeeping table and a small `app_meta` table only. The collection schema begins in Milestone 2.
+Migration 1 establishes migration bookkeeping and `app_meta`. Migration 2 adds
+`platforms`, `games`, `tags`, `game_tags`, and `preferences`, plus 20 built-in
+platforms. Each migration applies its SQL and completion record within one
+transaction. Failed migrations roll back; existing migration 1 data is preserved.
 
 `rusqlite` is configured with the `bundled` feature so GameVault does not depend on a separate SQLite installation.
 
@@ -109,15 +112,73 @@ npm run tauri build
 The migration test checks repeated initialization and preservation of existing data.
 The Windows release executable is `src-tauri/target/release/gamevault.exe`;
 the NSIS installer is produced under `src-tauri/target/release/bundle/nsis`.
-The current UI is a foundation shell; collection operations start in Milestone 2.
+The library supports offline manual game creation, editing, deletion, tags,
+rich-text notes, managed covers, and custom platforms.
 
 Milestone 1 verified on Windows on 2026-09-15: formatting, the migration test,
 Clippy with warnings denied, frontend build, native development launch, and
 production NSIS build all passed. The release executable was also launched
 and visually checked. Installer installation/uninstallation was not tested.
 
-## Decisions Before Milestone 2
+## Local Library
 
-- Confirm whether the first library experience should use a selected detail pane or a separate detail view.
-- Confirm whether notes should support plain text only for V1.
-- Confirm whether the initial manual add form should allow an arbitrary local cover path immediately or defer cover selection until after core CRUD is working.
+- Dedicated view-mode game detail with explicit Edit, Save, and Cancel.
+- Cover Grid and Compact List share the same records. View and four discrete
+  cover sizes persist in SQLite preferences. Card width stays fixed as the
+  window changes size; more space produces more columns.
+- Settings contains lightweight platform management. Built-in platforms use
+  original text marks rendered locally, not third-party logos or remote URLs.
+  Custom icons can replace those marks. Only unused custom platforms can be deleted.
+- Tags are trimmed and deduplicated using SQLite NOCASE (ASCII case folding).
+  Saving a game and replacing its tags is atomic. Deletion cascades junctions.
+
+## Notes And Images
+
+[Tiptap React](https://tiptap.dev/docs/editor/getting-started/install/react) 3.31.3
+was selected for its maintained React integration, explicit React 19 peer support,
+controlled HTML output, and established ProseMirror editing behavior. Its packages
+are one editor stack. Only paragraphs, bold, italic, underline, lists, and links
+are enabled. The editor is loaded on demand rather than in the initial library bundle.
+
+Rust sanitizes notes on both save and retrieval using
+[Ammonia](https://docs.rs/ammonia/latest/ammonia/). The allowlist excludes scripts,
+events, styles, images, embeds, and relative/unsafe URLs. HTTP/HTTPS links go through
+a Rust URL validator and Tauri's opener plugin to the default browser; there is no
+frontend shell access. A restrictive production content security policy adds defense
+in depth. Dialogs use the WebView's native dialog lifecycle with Fluent controls and
+theme tokens to avoid an observed Fluent modal unmount accessibility issue.
+
+Native image selection is owned by Rust. JPEG, PNG, and WebP are decoded and
+validated (20 MB file limit, 8192-pixel dimension limit, bounded decoder allocation).
+Original bytes are copied without conversion into `covers/<uuid>.<ext>` or
+`platform-icons/<uuid>.<ext>` under the Tauri app-data directory. Only relative
+managed paths are stored. Path validation rejects traversal and paths resolving
+outside the app-data directory. The frontend receives image data through a narrow
+command, not arbitrary filesystem access.
+
+After replacement or deletion, files are removed only when neither games nor
+platforms reference them. Cancel discards newly imported unused files. A process
+crash during editing can leave an unused image; automatic broad file deletion is
+deliberately avoided. Cleanup failures do not roll back an already committed record.
+Missing or unreadable images display the application-owned placeholder.
+
+## Milestone 2 Structure
+
+- `src-tauri/migrations/002_library.sql`: catalog schema and platform seed.
+- `src-tauri/src/catalog.rs`: validation, sanitization, CRUD, tags, and preferences.
+- `src-tauri/src/assets.rs`: image import, resolution, display, and reference-aware cleanup.
+- `src-tauri/src/commands.rs`: narrow IPC wrappers, native picker, and safe URL opening.
+- `src-tauri/src/tests.rs`: temporary-database and image regression tests.
+- `src/components/`: Library, GameForm, GameDetail, PlatformManager, Notes editor/view,
+  shared images, and confirmation dialogs. React state owns view and draft state.
+
+Commands: `list_games`, `get_game`, `save_game` (create or update), `delete_game`,
+`list_platforms`, `save_platform`, `delete_platform`, `get_preferences`,
+`set_preference`, `select_image`, `image_data`, `discard_image`, `open_link`, and
+the existing `get_app_data_info`. Tag assignment/removal happens through `save_game`.
+
+## Review Before Milestone 3
+
+No IGDB, export, backup/restore, advanced search/filtering, or general state library
+is implemented. Installer installation/uninstallation remains a separate packaging
+check. Consider broader Unicode tag case folding only if the library needs it.

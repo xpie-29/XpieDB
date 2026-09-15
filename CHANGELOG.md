@@ -1,5 +1,15 @@
 # Changelog
 
+## Milestone 2 - 2026-09-15
+
+- Added transactional local-library schema with games, platforms, tags, and preferences.
+- Added offline manual CRUD, dedicated detail view, and explicit edit cancellation.
+- Added Cover Grid, Compact List, and four persistent cover sizes.
+- Seeded 20 built-in platforms and added custom platform/icon management.
+- Added Tiptap rich-text notes, Rust HTML sanitization, and safe external hyperlinks.
+- Added validated managed JPEG/PNG/WebP imports and reference-aware image cleanup.
+- Added temporary-database tests for migrations, CRUD, relationships, notes, preferences, and images.
+
 ## 0.1.0 - 2026-09-15
 
 - Scaffolded the GameVault Tauri 2, React, TypeScript, Vite, and Fluent UI foundation.

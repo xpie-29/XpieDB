@@ -5,10 +5,11 @@ use rusqlite::{Connection, OptionalExtension, params};
 use tauri::Manager;
 use thiserror::Error;
 
-const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    name: "foundation",
-    sql: r#"
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        name: "foundation",
+        sql: r#"
         CREATE TABLE IF NOT EXISTS app_meta (
             key TEXT PRIMARY KEY NOT NULL,
             value TEXT NOT NULL
@@ -17,7 +18,13 @@ const MIGRATIONS: &[Migration] = &[Migration {
         INSERT OR IGNORE INTO app_meta (key, value)
         VALUES ('schema', 'foundation');
     "#,
-}];
+    },
+    Migration {
+        version: 2,
+        name: "local_library",
+        sql: include_str!("../migrations/002_library.sql"),
+    },
+];
 
 #[derive(Debug)]
 pub struct AppDataPaths {
@@ -71,7 +78,11 @@ fn app_data_paths(app: &tauri::AppHandle) -> Result<AppDataPaths, StorageError> 
     })
 }
 
-fn run_migrations(connection: &Connection) -> Result<(), StorageError> {
+pub(crate) fn run_migrations(connection: &Connection) -> Result<(), StorageError> {
+    apply_migrations(connection, MIGRATIONS)
+}
+
+fn apply_migrations(connection: &Connection, migrations: &[Migration]) -> Result<(), StorageError> {
     connection.execute_batch(
         r#"
         PRAGMA foreign_keys = ON;
@@ -84,8 +95,9 @@ fn run_migrations(connection: &Connection) -> Result<(), StorageError> {
         "#,
     )?;
 
-    for migration in MIGRATIONS {
-        let applied = connection
+    for migration in migrations {
+        let transaction = connection.unchecked_transaction()?;
+        let applied = transaction
             .query_row(
                 "SELECT version FROM schema_migrations WHERE version = ?1",
                 params![migration.version],
@@ -95,12 +107,13 @@ fn run_migrations(connection: &Connection) -> Result<(), StorageError> {
             .is_some();
 
         if !applied {
-            connection.execute_batch(migration.sql)?;
-            connection.execute(
+            transaction.execute_batch(migration.sql)?;
+            transaction.execute(
                 "INSERT INTO schema_migrations (version, name) VALUES (?1, ?2)",
                 params![migration.version, migration.name],
             )?;
         }
+        transaction.commit()?;
     }
 
     Ok(())
@@ -109,6 +122,34 @@ fn run_migrations(connection: &Connection) -> Result<(), StorageError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn failed_migration_rolls_back_schema_and_bookkeeping() {
+        let connection = Connection::open_in_memory().unwrap();
+        run_migrations(&connection).unwrap();
+        let bad = [Migration {
+            version: 3,
+            name: "broken",
+            sql: "CREATE TABLE should_rollback (id INTEGER); INSERT INTO missing_table VALUES (1);",
+        }];
+        assert!(apply_migrations(&connection, &bad).is_err());
+        let count: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE name='should_rollback'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 0);
+        let count: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM schema_migrations WHERE version=3",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 0);
+    }
 
     #[test]
     fn foundation_migration_is_repeatable_and_preserves_data() {
