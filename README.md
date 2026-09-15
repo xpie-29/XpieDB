@@ -64,6 +64,10 @@ npm run tauri build
 
 GameVault uses Tauri's application data directory rather than hardcoded user paths.
 
+On Windows, the current application identifier resolves this to
+`%APPDATA%\com.gamevault.desktop`. The database is `gamevault.db`, with
+`covers` and `backups` directories alongside it.
+
 The foundation currently prepares:
 
 ```text
@@ -90,6 +94,27 @@ Backup and restore are planned for Milestone 5. The intended behavior is to back
 IGDB integration is planned for Milestone 4 and has not been implemented in Milestone 1.
 
 Before implementation, GameVault should confirm the current official authentication model and avoid committing credentials or exposing private secrets in frontend JavaScript. A personal-use flow with user-supplied credentials stored by the desktop app may be acceptable if handled carefully.
+
+## Foundation Checks
+
+```powershell
+cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+cargo test --manifest-path src-tauri/Cargo.toml --locked
+cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
+npm run build
+npm run tauri dev
+npm run tauri build
+```
+
+The migration test checks repeated initialization and preservation of existing data.
+The Windows release executable is `src-tauri/target/release/gamevault.exe`;
+the NSIS installer is produced under `src-tauri/target/release/bundle/nsis`.
+The current UI is a foundation shell; collection operations start in Milestone 2.
+
+Milestone 1 verified on Windows on 2026-09-15: formatting, the migration test,
+Clippy with warnings denied, frontend build, native development launch, and
+production NSIS build all passed. The release executable was also launched
+and visually checked. Installer installation/uninstallation was not tested.
 
 ## Decisions Before Milestone 2
 

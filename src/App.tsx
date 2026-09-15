@@ -106,6 +106,8 @@ const useStyles = makeStyles({
     color: tokens.colorBrandForeground1,
   },
   footer: {
+    minWidth: 0,
+    overflowWrap: "anywhere",
     marginTop: "auto",
     display: "grid",
     rowGap: "8px",

@@ -105,3 +105,37 @@ fn run_migrations(connection: &Connection) -> Result<(), StorageError> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn foundation_migration_is_repeatable_and_preserves_data() {
+        let connection = Connection::open_in_memory().unwrap();
+        run_migrations(&connection).unwrap();
+        connection
+            .execute(
+                "INSERT INTO app_meta (key, value) VALUES ('test', 'preserved')",
+                [],
+            )
+            .unwrap();
+        run_migrations(&connection).unwrap();
+        let count: i64 = connection
+            .query_row("SELECT count(*) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(count, MIGRATIONS.len() as i64);
+        let value: String = connection
+            .query_row("SELECT value FROM app_meta WHERE key = 'test'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(value, "preserved");
+        let enabled: i64 = connection
+            .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(enabled, 1);
+    }
+}

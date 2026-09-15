@@ -7,13 +7,25 @@ src-tauri/gen/
 *.db
 *.db-shm
 *.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.sqlite3-*
 covers/
 backups/
+app-data/
+local-data/
 
 # Secrets and local environment
 .env
 .env.*
 !.env.example
+secrets/
+credentials.json
+*.pem
+*.key
+*.pfx
 
 # Logs and temporary files
 *.log
