@@ -1,0 +1,27 @@
+{
+  "name": "gamevault",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@fluentui/react-components": "^9.74.7",
+    "@fluentui/react-icons": "^2.0.309",
+    "@tauri-apps/api": "^2.8.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.2",
+    "typescript": "^7.0.2",
+    "vite": "^7.1.5"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "GameVault",
+  "version": "0.1.0",
+  "identifier": "com.gamevault.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "GameVault",
+        "width": 1180,
+        "height": 760,
+        "minWidth": 880,
+        "minHeight": 560
+      }
+    ],
+    "security": {
+      "capabilities": ["main"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "category": "Entertainment",
+    "shortDescription": "A local-first personal game collection catalog.",
+    "longDescription": "GameVault is a Windows desktop application for cataloging a personal video game collection while keeping collection data local and portable."
+  }
+}
