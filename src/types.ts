@@ -27,7 +27,11 @@ export type Platform = {
   sort_order: number;
   is_builtin: boolean;
 };
-export type Preferences = { library_view: string; cover_size: string };
+export type Preferences = {
+  library_view: string;
+  cover_size: string;
+  library_sort: string;
+};
 export const statuses = [
   "Not Started",
   "Playing",

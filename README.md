@@ -39,7 +39,7 @@ Prerequisites:
 - Windows 10 or newer
 - Microsoft Visual Studio 2022 Build Tools with MSVC
 - WebView2
-- Node.js and npm
+- Node.js 22.18+ and npm (frontend tests use built-in TypeScript type stripping)
 - Rust stable MSVC toolchain
 
 Install dependencies:
@@ -142,8 +142,21 @@ and visually checked. Installer installation/uninstallation was not tested.
   Custom icons can replace those marks. Only unused custom platforms can be deleted.
 - Built-in marks retain their neutral local text identities with consistent
   alignment and padding, without a surrounding frame. No external logos added.
-- An optional Library utility slot remains unrendered until future controls exist.
-  No Stats placeholder, search, filters, or sorting controls are implemented.
+- A dedicated Library utility bar provides immediate structured-field search,
+  six single-choice filters in a compact Fluent popover, nine sort orders, and
+  Clear All Filters. Active filter count and selected values identify narrowing.
+- Search matches all whitespace-separated terms across title, platform name,
+  Account, genre, developer, publisher, and tags, ignoring case and repeated
+  whitespace. Rich-text Notes are deliberately not searched.
+- Filters combine with AND. Account and genre choices come from the full catalog;
+  platform choices come from managed platforms; assigned tag names come from the
+  existing tags table through game records. Null/blank Accounts have a separate
+  No Account choice. Clear All preserves sort, view, and cover size.
+- Sorting is applied after narrowing, with title/ID tie-breaks and missing dates
+  or ratings last in both directions. Sort persists through the existing preferences
+  table; search and filters reset on restart. No schema migration is needed.
+- The inspector keeps its selection while visible, selects the first result if
+  filtered out, and disappears for no results. Ctrl+F focuses Library search.
 - Tags are trimmed and deduplicated using SQLite NOCASE (ASCII case folding).
   Saving a game and replacing its tags is atomic. Deletion cascades junctions.
 
@@ -200,3 +213,11 @@ Account migration, star-rating, and desktop regression checks.
 No IGDB, export, backup/restore, advanced search/filtering, or general state library
 is implemented. Installer installation/uninstallation remains a separate packaging
 check. Consider broader Unicode tag case folding only if the library needs it.
+
+## Milestone 3 Verification
+
+Run `npm test` for focused search/filter/sort and selection tests using Node's
+built-in test runner; no test framework dependency is required. See
+[Milestone 3 verification](docs/milestone-3-verification.md) for desktop and
+750-record performance checks. Stats, IGDB, saved searches, and query syntax
+remain out of scope.

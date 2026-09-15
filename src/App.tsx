@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button, Spinner } from "@fluentui/react-components";
 import type { Game, Platform, Preferences } from "./types";
@@ -7,6 +7,13 @@ import { GameDetail } from "./components/GameDetail";
 import { PlatformManager } from "./components/PlatformManager";
 import { Confirm } from "./components/Shared";
 import { PrimaryToolbar, type Destination } from "./components/PrimaryToolbar";
+import { LibraryUtilityBar } from "./components/LibraryUtilityBar";
+import {
+  emptyFilters,
+  hasFilters,
+  queryLibrary,
+  visibleSelection,
+} from "./libraryQuery";
 const GameForm = lazy(() =>
   import("./components/GameForm").then((m) => ({ default: m.GameForm })),
 );
@@ -17,7 +24,9 @@ export function App() {
   const [preferences, setPreferences] = useState<Preferences>({
     library_view: "grid",
     cover_size: "medium",
+    library_sort: "title_asc",
   });
+  const [filters, setFilters] = useState(emptyFilters);
   const [view, setView] = useState<Destination>("library");
   const [selected, setSelected] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -25,7 +34,26 @@ export function App() {
   const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dataPath, setDataPath] = useState("");
-  const game = games.find((g) => g.id === selected) ?? null;
+  const visible = useMemo(
+    () => queryLibrary(games, platforms, filters, preferences.library_sort),
+    [games, platforms, filters, preferences.library_sort],
+  );
+  const visibleId = visibleSelection(visible, selected);
+  const game =
+    games.find((g) => g.id === (view === "library" ? visibleId : selected)) ??
+    null;
+  useEffect(() => {
+    if (view === "library" && !loading && selected !== visibleId)
+      setSelected(visibleId);
+  }, [view, loading, selected, visibleId]);
+  const preference = async (key: string, value: string) => {
+    try {
+      await invoke("set_preference", { key, value });
+      setPreferences((p) => ({ ...p, [key]: value }));
+    } catch (e) {
+      setError(String(e));
+    }
+  };
   const refresh = async () => {
     const [g, p] = await Promise.all([
       invoke<Game[]>("list_games"),
@@ -33,9 +61,6 @@ export function App() {
     ]);
     setGames(g);
     setPlatforms(p);
-    setSelected((id) =>
-      g.some((game) => game.id === id) ? id : (g[0]?.id ?? null),
-    );
   };
   const load = async () => {
     setLoading(true);
@@ -66,14 +91,7 @@ export function App() {
         navigate={navigate}
         locked={editing || loading || busy}
         preferences={preferences}
-        preference={async (key, value) => {
-          try {
-            await invoke("set_preference", { key, value });
-            setPreferences((p) => ({ ...p, [key]: value }));
-          } catch (e) {
-            setError(String(e));
-          }
-        }}
+        preference={preference}
       />
       {error && (
         <div role="alert" className="shell-error error">
@@ -88,12 +106,26 @@ export function App() {
           <>
             {view === "library" && (
               <Library
-                games={games}
+                games={visible}
+                total={games.length}
+                filtered={hasFilters(filters)}
+                clear={() => setFilters(emptyFilters())}
                 platforms={platforms}
                 preferences={preferences}
-                selected={selected}
+                selected={visibleId}
                 select={setSelected}
                 add={() => navigate("add")}
+                utilityBar={
+                  <LibraryUtilityBar
+                    games={games}
+                    platforms={platforms}
+                    filters={filters}
+                    change={setFilters}
+                    clear={() => setFilters(emptyFilters())}
+                    sort={preferences.library_sort}
+                    setSort={(value) => void preference("library_sort", value)}
+                  />
+                }
                 details={
                   game ? (
                     <GameDetail
@@ -101,7 +133,10 @@ export function App() {
                       platform={platforms.find(
                         (p) => p.id === game.platform_id,
                       )}
-                      edit={() => navigate("edit")}
+                      edit={() => {
+                        setSelected(game.id);
+                        navigate("edit");
+                      }}
                       remove={() => setDeleting(true)}
                       error={setError}
                     />
@@ -158,8 +193,8 @@ export function App() {
           confirm={async () => {
             setBusy(true);
             try {
-              const index = games.findIndex((g) => g.id === game.id);
-              const next = games[index + 1] ?? games[index - 1];
+              const index = visible.findIndex((g) => g.id === game.id);
+              const next = visible[index + 1] ?? visible[index - 1];
               await invoke("delete_game", { id: game.id });
               setGames((current) => current.filter((g) => g.id !== game.id));
               setSelected(next?.id ?? null);

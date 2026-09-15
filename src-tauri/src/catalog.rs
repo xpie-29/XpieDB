@@ -271,24 +271,41 @@ pub fn delete_platform(c: &Connection, id: i64) -> Result<()> {
     Ok(())
 }
 pub fn preferences(c: &Connection) -> Result<HashMap<String, String>> {
-    c.prepare("SELECT key,value FROM preferences")
+    let mut values: HashMap<String, String> = c
+        .prepare("SELECT key,value FROM preferences")
         .map_err(db)?
         .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
         .map_err(db)?
         .collect::<std::result::Result<_, _>>()
-        .map_err(db)
+        .map_err(db)?;
+    values
+        .entry("library_sort".into())
+        .or_insert_with(|| "title_asc".into());
+    Ok(values)
 }
 pub fn set_preference(c: &Connection, key: &str, value: &str) -> Result<()> {
     let valid = match key {
         "library_view" => ["grid", "list"].contains(&value),
         "cover_size" => ["small", "medium", "large", "extra_large"].contains(&value),
+        "library_sort" => [
+            "title_asc",
+            "title_desc",
+            "release_desc",
+            "release_asc",
+            "rating_desc",
+            "rating_asc",
+            "added_desc",
+            "added_asc",
+            "platform_asc",
+        ]
+        .contains(&value),
         _ => false,
     };
     if !valid {
         return Err("Unknown view preference.".into());
     }
     c.execute(
-        "UPDATE preferences SET value=?1 WHERE key=?2",
+        "INSERT INTO preferences(value,key) VALUES (?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
         params![value, key],
     )
     .map_err(db)?;

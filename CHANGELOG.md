@@ -1,5 +1,14 @@
 # Changelog
 
+## Milestone 3 - 2026-09-15
+
+- Added a dedicated Library utility bar with immediate local structured-field search.
+- Added Platform, Account, Play Status, Genre, Tag, and Media Type filters with AND semantics.
+- Added nine persistent sort orders and Clear All Filters that preserves presentation settings.
+- Kept inspector selection synchronized with results and distinguished no results from an empty library.
+- Added Ctrl+F search focus, active-filter feedback, result counts, and 40 query regression tests.
+- Retained the existing shell, database schema, notes, covers, and dependency versions.
+
 ## Milestone 2.5 - 2026-09-15
 
 - Replaced the left rail with a compact primary toolbar and right-side presentation controls.

@@ -8,6 +8,9 @@ import { StarRating } from "./StarRating";
 
 export function Library({
   games,
+  total,
+  filtered,
+  clear,
   platforms,
   preferences,
   selected,
@@ -17,6 +20,9 @@ export function Library({
   details,
 }: {
   games: Game[];
+  total: number;
+  filtered: boolean;
+  clear: () => void;
   platforms: Platform[];
   preferences: Preferences;
   selected: number | null;
@@ -80,15 +86,24 @@ export function Library({
         >
           <div className="library-summary">
             <h1>Library</h1>
-            <span className="muted">
-              {games.length} {games.length === 1 ? "game" : "games"}
+            <span className="muted" role="status">
+              {filtered
+                ? `${games.length} of ${total} games`
+                : `${total} ${total === 1 ? "game" : "games"}`}
             </span>
           </div>
           {!games.length ? (
             <div className="empty">
-              <h2>No games yet</h2>
-              <Button icon={<Add20Regular />} onClick={add}>
-                Add Game
+              <h2>
+                {total
+                  ? "No games match the current search and filters."
+                  : "No games yet"}
+              </h2>
+              <Button
+                icon={total ? undefined : <Add20Regular />}
+                onClick={total ? clear : add}
+              >
+                {total ? "Clear All Filters" : "Add Game"}
               </Button>
             </div>
           ) : preferences.library_view === "grid" ? (

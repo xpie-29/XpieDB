@@ -158,6 +158,21 @@ fn sanitization_and_link_protocols() {
 #[test]
 fn preferences_survive_reopen() {
     let (dir, c) = database();
+    assert_eq!(preferences(&c).unwrap()["library_sort"], "title_asc");
+    for sort in [
+        "title_asc",
+        "title_desc",
+        "release_desc",
+        "release_asc",
+        "rating_desc",
+        "rating_asc",
+        "added_desc",
+        "added_asc",
+        "platform_asc",
+    ] {
+        set_preference(&c, "library_sort", sort).unwrap();
+    }
+    assert!(set_preference(&c, "library_sort", "invalid").is_err());
     set_preference(&c, "library_view", "list").unwrap();
     set_preference(&c, "cover_size", "extra_large").unwrap();
     assert!(set_preference(&c, "library_view", "invalid").is_err());
@@ -166,6 +181,7 @@ fn preferences_survive_reopen() {
     let p = preferences(&c).unwrap();
     assert_eq!(p["library_view"], "list");
     assert_eq!(p["cover_size"], "extra_large");
+    assert_eq!(p["library_sort"], "platform_asc");
 }
 #[test]
 fn image_import_validation_and_shared_cover_cleanup() {
