@@ -96,9 +96,21 @@ Backup and restore are planned for Milestone 5. The intended behavior is to back
 
 ## IGDB
 
-IGDB integration is planned for Milestone 4 and has not been implemented in Milestone 1.
+IGDB is optional: Add Game offers Search IGDB or Enter Manually. Search, choose a
+game/platform, review and personalize metadata, then save locally. Imported covers
+are managed local files; saved records never require IGDB for browsing or editing.
+Likely duplicates are warnings with an intentional additional-copy option.
 
-Before implementation, GameVault should confirm the current official authentication model and avoid committing credentials or exposing private secrets in frontend JavaScript. A personal-use flow with user-supplied credentials stored by the desktop app may be acceptable if handled carefully.
+Configure Twitch Client ID and Client Secret directly in Settings. Rust stores
+both in Windows Credential Manager and keeps access tokens only in memory. Saved
+secrets are never returned to React, logged, or stored in the catalog database.
+The release service is `com.gamevault.desktop.twitch` (user `igdb`). Normal dev
+uses the same identity; an isolated `com.gamevault.verification` configuration
+has separate data and credentials. Restart tests must use the same identity.
+
+No metadata refresh or synchronization is implemented. Local edits remain
+authoritative. See [Milestone 4 verification](docs/milestone-4-verification.md)
+for mappings, release-date rules, security decisions, and test results.
 
 ## Foundation Checks
 
@@ -107,6 +119,9 @@ cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo test --manifest-path src-tauri/Cargo.toml --locked
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
 npm run build
+npm test
+npm run test:ui
+npm audit --audit-level=moderate
 npm run tauri dev
 npm run tauri build
 ```
@@ -210,8 +225,8 @@ the existing `get_app_data_info`. Tag assignment/removal happens through `save_g
 See [Milestone 2.5 verification](docs/milestone-2.5-verification.md) for the shell,
 Account migration, star-rating, and desktop regression checks.
 
-No IGDB, export, backup/restore, advanced search/filtering, or general state library
-is implemented. Installer installation/uninstallation remains a separate packaging
+At the Milestone 2.5 checkpoint, IGDB, export, backup/restore, and advanced
+search/filtering were not implemented. Installer installation/uninstallation remains a separate packaging
 check. Consider broader Unicode tag case folding only if the library needs it.
 
 ## Milestone 3 Verification
@@ -220,4 +235,10 @@ Run `npm test` for focused search/filter/sort and selection tests using Node's
 built-in test runner; no test framework dependency is required. See
 [Milestone 3 verification](docs/milestone-3-verification.md) for desktop and
 750-record performance checks. Stats, IGDB, saved searches, and query syntax
-remain out of scope.
+were outside Milestone 3 scope. IGDB is now implemented in Milestone 4.
+
+`npm run test:ui` runs mocked interaction tests in installed Microsoft Edge using
+Playwright, with an isolated Vite server on port 1421. These tests use no real
+credentials or catalog. The ordinary Rust suite also needs no credentials;
+explicit Windows credential-store checks and their cleanup are documented in the
+Milestone 4 report.

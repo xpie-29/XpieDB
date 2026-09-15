@@ -54,10 +54,16 @@ pub fn import(root: &Path, source: &Path, kind: &str) -> Result<String> {
     file.take(MAX_BYTES + 1)
         .read_to_end(&mut bytes)
         .map_err(|e| e.to_string())?;
+    import_bytes(root, &bytes, kind)
+}
+pub fn import_bytes(root: &Path, bytes: &[u8], kind: &str) -> Result<String> {
+    if !["covers", "platform-icons"].contains(&kind) {
+        return Err("Invalid image destination.".into());
+    }
     if bytes.len() as u64 > MAX_BYTES {
         return Err("Choose an image smaller than 20 MB.".into());
     }
-    let mut reader = ImageReader::new(Cursor::new(&bytes))
+    let mut reader = ImageReader::new(Cursor::new(bytes))
         .with_guessed_format()
         .map_err(|e| e.to_string())?;
     let ext = match reader.format() {
@@ -82,7 +88,7 @@ pub fn import(root: &Path, source: &Path, kind: &str) -> Result<String> {
         .create_new(true)
         .open(&path)
         .map_err(|e| e.to_string())?;
-    if let Err(error) = output.write_all(&bytes) {
+    if let Err(error) = output.write_all(bytes) {
         drop(output);
         let _ = fs::remove_file(path);
         return Err(error.to_string());

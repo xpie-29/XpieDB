@@ -1,4 +1,5 @@
 export type GameInput = {
+  igdb_id: number | null;
   title: string;
   platform_id: number;
   account: string | null;
@@ -15,7 +16,6 @@ export type GameInput = {
 };
 export type Game = GameInput & {
   id: number;
-  igdb_id: number | null;
   date_added: string;
   date_modified: string;
 };
@@ -40,6 +40,7 @@ export const statuses = [
   "Dropped",
 ];
 export const emptyGame = (platform: number): GameInput => ({
+  igdb_id: null,
   title: "",
   platform_id: platform,
   account: null,

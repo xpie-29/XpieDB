@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Button, Field, Input, Select } from "@fluentui/react-components";
+import {
+  Button,
+  Checkbox,
+  Field,
+  Input,
+  Select,
+} from "@fluentui/react-components";
+import { duplicates } from "../igdbWorkflow";
 import {
   Save20Regular,
   Dismiss20Regular,
@@ -17,17 +24,31 @@ export function GameForm({
   platforms,
   saved,
   cancel,
+  initial,
+  warning,
+  games = [],
 }: {
   game?: Game;
+  initial?: GameInput;
+  warning?: string | null;
+  games?: Game[];
   platforms: Platform[];
   saved: (game: Game) => void;
   cancel: () => void;
 }) {
   const [draft, setDraft] = useState<GameInput>(() =>
-    game ? { ...game, tags: [...game.tags] } : emptyGame(platforms[0]?.id ?? 0),
+    game
+      ? { ...game, tags: [...game.tags] }
+      : initial
+        ? { ...initial, tags: [...initial.tags] }
+        : emptyGame(platforms[0]?.id ?? 0),
   );
   const [tags, setTags] = useState(draft.tags.join(", "));
-  const [imports, setImports] = useState<string[]>([]);
+  const [imports, setImports] = useState<string[]>(
+    initial?.cover_path ? [initial.cover_path] : [],
+  );
+  const [allowDuplicate, setAllowDuplicate] = useState(false);
+  const candidates = game ? [] : duplicates(draft, games);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const change = <K extends keyof GameInput>(key: K, value: GameInput[K]) =>
@@ -56,6 +77,7 @@ export function GameForm({
     <form
       onSubmit={async (e) => {
         e.preventDefault();
+        if (candidates.length && !allowDuplicate) return;
         setBusy(true);
         setError("");
         try {
@@ -105,7 +127,7 @@ export function GameForm({
           <Button
             appearance="primary"
             type="submit"
-            disabled={busy}
+            disabled={busy || (candidates.length > 0 && !allowDuplicate)}
             icon={<Save20Regular />}
           >
             Save
@@ -116,6 +138,27 @@ export function GameForm({
         <p role="alert" className="error">
           {error}
         </p>
+      )}
+      {warning && <p role="status">{warning}</p>}
+      {candidates.length > 0 && (
+        <section className="duplicate-warning">
+          <h2>This game may already exist in your Library.</h2>
+          <ul>
+            {candidates.map((g) => (
+              <li key={g.id}>
+                {g.title} ·{" "}
+                {platforms.find((p) => p.id === g.platform_id)?.name} ·{" "}
+                {g.account || "No Account"} · {g.media_type}
+                {g.igdb_id === draft.igdb_id ? " · Same IGDB ID" : ""}
+              </li>
+            ))}
+          </ul>
+          <Checkbox
+            checked={allowDuplicate}
+            onChange={(_, d) => setAllowDuplicate(d.checked === true)}
+            label="Save another copy"
+          />
+        </section>
       )}
       <fieldset disabled={busy} inert={busy} className="form-layout">
         <div className="cover-column">

@@ -33,3 +33,5 @@ credentials.json
 *.tmp
 .DS_Store
 Thumbs.db
+test-results/
+playwright-report/

@@ -8,6 +8,10 @@ import { PlatformManager } from "./components/PlatformManager";
 import { Confirm } from "./components/Shared";
 import { PrimaryToolbar, type Destination } from "./components/PrimaryToolbar";
 import { LibraryUtilityBar } from "./components/LibraryUtilityBar";
+import { IgdbSettings } from "./components/IgdbSettings";
+const AddGameFlow = lazy(() =>
+  import("./components/AddGameFlow").then((m) => ({ default: m.AddGameFlow })),
+);
 import {
   emptyFilters,
   hasFilters,
@@ -147,21 +151,35 @@ export function App() {
             {editing && (
               <section className="page-scroll">
                 <Suspense fallback={<Spinner label="Opening editor" />}>
-                  <GameForm
-                    key={view === "edit" ? game?.id : "new"}
-                    game={view === "edit" ? (game ?? undefined) : undefined}
-                    platforms={platforms}
-                    cancel={() => navigate("library")}
-                    saved={(saved) => {
-                      setGames((current) => [
-                        ...current.filter((g) => g.id !== saved.id),
-                        saved,
-                      ]);
-                      setSelected(saved.id);
-                      navigate("library");
-                      void refresh().catch((e) => setError(String(e)));
-                    }}
-                  />
+                  {view === "add" ? (
+                    <AddGameFlow
+                      platforms={platforms}
+                      games={games}
+                      cancel={() => navigate("library")}
+                      saved={(saved) => {
+                        setGames((current) => [...current, saved]);
+                        setSelected(saved.id);
+                        navigate("library");
+                        void refresh().catch((e) => setError(String(e)));
+                      }}
+                    />
+                  ) : (
+                    <GameForm
+                      key={view === "edit" ? game?.id : "new"}
+                      game={view === "edit" ? (game ?? undefined) : undefined}
+                      platforms={platforms}
+                      cancel={() => navigate("library")}
+                      saved={(saved) => {
+                        setGames((current) => [
+                          ...current.filter((g) => g.id !== saved.id),
+                          saved,
+                        ]);
+                        setSelected(saved.id);
+                        navigate("library");
+                        void refresh().catch((e) => setError(String(e)));
+                      }}
+                    />
+                  )}
                 </Suspense>
               </section>
             )}
@@ -175,6 +193,7 @@ export function App() {
                 <header className="page-header">
                   <h1>Settings</h1>
                 </header>
+                <IgdbSettings />
                 <section className="data-location">
                   <h2>Local data</h2>
                   <p>{dataPath}</p>

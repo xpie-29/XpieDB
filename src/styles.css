@@ -558,6 +558,81 @@ button:focus-visible,
 .data-location {
   overflow-wrap: anywhere;
 }
+.igdb-settings {
+  max-width: 700px;
+  margin-bottom: 32px;
+}
+.igdb-settings form {
+  display: grid;
+  gap: 16px;
+}
+.add-workflow {
+  max-width: 1100px;
+  margin: auto;
+}
+.add-paths {
+  margin-bottom: 24px;
+}
+.igdb-search {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.igdb-search > .fui-Input {
+  flex: 1;
+}
+.igdb-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.igdb-result {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  text-align: left;
+  color: inherit;
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: 4px;
+  min-width: 0;
+}
+.igdb-result[aria-pressed="true"] {
+  border-color: var(--colorBrandStroke1);
+  outline: 1px solid var(--colorBrandStroke1);
+}
+.igdb-result > span {
+  display: grid;
+  gap: 8px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.igdb-result strong {
+  font-size: 16px;
+}
+.igdb-result span {
+  font-size: 12px;
+}
+.igdb-thumbnail {
+  width: 72px;
+  height: 96px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.igdb-selection {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--colorNeutralStroke2);
+}
+.igdb-selection > .fui-Button {
+  margin-top: 16px;
+}
+.duplicate-warning {
+  padding: 16px;
+  margin-bottom: 20px;
+  border-left: 3px solid var(--colorPaletteMarigoldForeground2);
+}
 .modal {
   width: min(520px, calc(100vw - 40px));
   max-height: calc(100vh - 60px);

@@ -52,7 +52,7 @@ fn crud_null_fields_tags_notes_and_reopen() {
     value.notes_html="<p><strong>Bold</strong> <em>Italic</em> <u>Underline</u></p><ul><li>First</li></ul><ol><li>Second</li></ol><p><a href=\"https://example.com/\">Link</a></p>".into();
     let g = save_game(&c, None, value).unwrap();
     assert_eq!(g.data.tags.len(), 2);
-    assert_eq!(g.igdb_id, None);
+    assert_eq!(g.data.igdb_id, None);
     assert_eq!(g.data.release_date, None);
     assert_eq!(g.data.cover_path, None);
     assert_eq!(g.data.rating, None);

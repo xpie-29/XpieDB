@@ -1,5 +1,17 @@
 # Changelog
 
+## Milestone 4 - 2026-09-15
+
+- Added optional Rust-owned IGDB search, platform selection, and editable metadata review.
+- Added Windows Credential Manager storage and in-memory Twitch token renewal/retry.
+- Added local managed-cover downloads with nonfatal image failure and review cleanup.
+- Preserved local ownership and source IGDB IDs, with intentional duplicate-copy warnings.
+- Kept manual entry and local Library operations independent of IGDB availability.
+- Added mocked Rust/browser tests and Windows cross-process credential persistence checks.
+- Verified live release credential save/restart and IGDB functionality with the user.
+- Retained the existing schema and dependency versions; added focused HTTP/keyring
+  dependencies and development-only Playwright coverage. No metadata refresh or sync.
+
 ## Milestone 3 - 2026-09-15
 
 - Added a dedicated Library utility bar with immediate local structured-field search.

@@ -1,6 +1,7 @@
 mod assets;
 mod catalog;
 mod commands;
+mod igdb;
 mod storage;
 #[cfg(test)]
 mod tests;
@@ -30,9 +31,14 @@ fn get_app_data_info(app: tauri::AppHandle) -> Result<AppDataInfo, String> {
 
 pub fn run() {
     tauri::Builder::default()
+        .manage(igdb::Igdb::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            match windows_native_keyring_store::Store::new() {
+                Ok(store) => keyring_core::set_default_store(store),
+                Err(_) => eprintln!("Windows credential storage initialization failed; local Library remains available"),
+            }
             storage::initialize(app.handle())?;
             Ok(())
         })
@@ -50,7 +56,14 @@ pub fn run() {
             commands::select_image,
             commands::image_data,
             commands::discard_image,
-            commands::open_link
+            commands::open_link,
+            igdb::igdb_config,
+            igdb::igdb_save_credentials,
+            igdb::igdb_clear_credentials,
+            igdb::igdb_test,
+            igdb::igdb_search,
+            igdb::igdb_thumbnail,
+            igdb::igdb_import
         ])
         .run(tauri::generate_context!())
         .expect("failed to run GameVault");
