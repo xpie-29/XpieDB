@@ -24,6 +24,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "local_library",
         sql: include_str!("../migrations/002_library.sql"),
     },
+    Migration {
+        version: 3,
+        name: "game_account",
+        sql: include_str!("../migrations/003_account.sql"),
+    },
 ];
 
 #[derive(Debug)]
@@ -124,11 +129,60 @@ mod tests {
     use super::*;
 
     #[test]
+    fn account_migration_preserves_milestone_two_records() {
+        let connection = Connection::open_in_memory().unwrap();
+        apply_migrations(&connection, &MIGRATIONS[..2]).unwrap();
+        connection.execute("INSERT INTO games(title,platform_id,notes_html,rating) VALUES ('Existing game',1,'<p>Preserved notes</p>',4)", []).unwrap();
+        connection
+            .execute("INSERT INTO tags(name) VALUES ('Existing tag')", [])
+            .unwrap();
+        connection
+            .execute("INSERT INTO game_tags(game_id,tag_id) VALUES (1,1)", [])
+            .unwrap();
+        run_migrations(&connection).unwrap();
+        run_migrations(&connection).unwrap();
+        let game = crate::catalog::get_game(&connection, 1).unwrap();
+        assert_eq!(game.data.account, None);
+        assert_eq!(game.data.title, "Existing game");
+        assert_eq!(game.data.notes_html, "<p>Preserved notes</p>");
+        assert_eq!(game.data.rating, Some(4));
+        assert_eq!(game.data.tags, vec!["Existing tag"]);
+    }
+
+    #[test]
+    fn account_column_rolls_back_when_bookkeeping_fails() {
+        let connection = Connection::open_in_memory().unwrap();
+        apply_migrations(&connection, &MIGRATIONS[..2]).unwrap();
+        connection.execute_batch("CREATE TRIGGER reject_account BEFORE INSERT ON schema_migrations WHEN NEW.version=3 BEGIN SELECT RAISE(ABORT,'test failure'); END;").unwrap();
+        assert!(run_migrations(&connection).is_err());
+        let count: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM pragma_table_info('games') WHERE name='account'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 0);
+        connection
+            .execute_batch("DROP TRIGGER reject_account;")
+            .unwrap();
+        run_migrations(&connection).unwrap();
+        let count: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM schema_migrations WHERE version=3",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
     fn failed_migration_rolls_back_schema_and_bookkeeping() {
         let connection = Connection::open_in_memory().unwrap();
         run_migrations(&connection).unwrap();
         let bad = [Migration {
-            version: 3,
+            version: 4,
             name: "broken",
             sql: "CREATE TABLE should_rollback (id INTEGER); INSERT INTO missing_table VALUES (1);",
         }];
@@ -143,7 +197,7 @@ mod tests {
         assert_eq!(count, 0);
         let count: i64 = connection
             .query_row(
-                "SELECT count(*) FROM schema_migrations WHERE version=3",
+                "SELECT count(*) FROM schema_migrations WHERE version=4",
                 [],
                 |r| r.get(0),
             )

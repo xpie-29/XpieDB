@@ -84,7 +84,9 @@ The SQLite database is a normal portable SQLite database. Personal databases, co
 Migration 1 establishes migration bookkeeping and `app_meta`. Migration 2 adds
 `platforms`, `games`, `tags`, `game_tags`, and `preferences`, plus 20 built-in
 platforms. Each migration applies its SQL and completion record within one
-transaction. Failed migrations roll back; existing migration 1 data is preserved.
+transaction. Migration 3 adds nullable free-text `games.account`; existing games
+retain their data with Account unset. Failed migrations roll back both schema
+changes and bookkeeping.
 
 `rusqlite` is configured with the `bundled` feature so GameVault does not depend on a separate SQLite installation.
 
@@ -122,13 +124,26 @@ and visually checked. Installer installation/uninstallation was not tested.
 
 ## Local Library
 
-- Dedicated view-mode game detail with explicit Edit, Save, and Cancel.
+- A compact top toolbar replaces the left navigation rail. Library, Add Game,
+  Platforms, and Settings are primary destinations; presentation controls sit right.
+- Grid and List share selected-game state and a fixed 320px right inspector with
+  a 264px cover. The first game selects on launch; deletion selects the next entry
+  or previous final entry. Empty libraries have no inspector.
+- Library and inspector scroll independently below the stationary toolbar.
+  Inspector entrance motion respects reduced-motion preferences and does not
+  replay on selection changes. Minimum window width is 1040px.
+- Account follows Platform in the form and inspector. Explicit Edit, Save, and
+  Cancel remain; reusable stars support hover, keyboard navigation, and clearing.
 - Cover Grid and Compact List share the same records. View and four discrete
   cover sizes persist in SQLite preferences. Card width stays fixed as the
   window changes size; more space produces more columns.
-- Settings contains lightweight platform management. Built-in platforms use
+- Platforms contains lightweight platform management. Built-in platforms use
   original text marks rendered locally, not third-party logos or remote URLs.
   Custom icons can replace those marks. Only unused custom platforms can be deleted.
+- Built-in marks retain their neutral local text identities with consistent
+  alignment and padding, without a surrounding frame. No external logos added.
+- An optional Library utility slot remains unrendered until future controls exist.
+  No Stats placeholder, search, filters, or sorting controls are implemented.
 - Tags are trimmed and deduplicated using SQLite NOCASE (ASCII case folding).
   Saving a game and replacing its tags is atomic. Deletion cascades junctions.
 
@@ -178,6 +193,9 @@ Commands: `list_games`, `get_game`, `save_game` (create or update), `delete_game
 the existing `get_app_data_info`. Tag assignment/removal happens through `save_game`.
 
 ## Review Before Milestone 3
+
+See [Milestone 2.5 verification](docs/milestone-2.5-verification.md) for the shell,
+Account migration, star-rating, and desktop regression checks.
 
 No IGDB, export, backup/restore, advanced search/filtering, or general state library
 is implemented. Installer installation/uninstallation remains a separate packaging

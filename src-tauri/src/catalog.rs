@@ -11,6 +11,7 @@ fn db(error: rusqlite::Error) -> String {
 pub struct GameInput {
     pub title: String,
     pub platform_id: i64,
+    pub account: Option<String>,
     pub release_date: Option<String>,
     pub genre: Option<String>,
     pub developer: Option<String>,
@@ -85,6 +86,7 @@ fn validate(input: &mut GameInput) -> Result<()> {
         return Err("Rating must be between 1 and 5.".into());
     }
     for value in [
+        &mut input.account,
         &mut input.release_date,
         &mut input.genre,
         &mut input.developer,
@@ -132,8 +134,8 @@ fn validate(input: &mut GameInput) -> Result<()> {
 }
 
 pub fn get_game(c: &Connection, id: i64) -> Result<Game> {
-    let mut game = c.query_row("SELECT id,igdb_id,title,platform_id,release_date,genre,developer,publisher,cover_path,media_type,play_status,rating,notes_html,date_added,date_modified FROM games WHERE id=?1", [id], |r| Ok(Game {
-        id:r.get(0)?, igdb_id:r.get(1)?, data:GameInput { title:r.get(2)?, platform_id:r.get(3)?, release_date:r.get(4)?, genre:r.get(5)?, developer:r.get(6)?, publisher:r.get(7)?, cover_path:r.get(8)?, media_type:r.get(9)?, play_status:r.get(10)?, rating:r.get(11)?, notes_html:r.get(12)?, tags:vec![] }, date_added:r.get(13)?, date_modified:r.get(14)?
+    let mut game = c.query_row("SELECT id,igdb_id,title,platform_id,release_date,genre,developer,publisher,cover_path,media_type,play_status,rating,notes_html,date_added,date_modified,account FROM games WHERE id=?1", [id], |r| Ok(Game {
+        id:r.get(0)?, igdb_id:r.get(1)?, data:GameInput { title:r.get(2)?, platform_id:r.get(3)?, account:r.get(15)?, release_date:r.get(4)?, genre:r.get(5)?, developer:r.get(6)?, publisher:r.get(7)?, cover_path:r.get(8)?, media_type:r.get(9)?, play_status:r.get(10)?, rating:r.get(11)?, notes_html:r.get(12)?, tags:vec![] }, date_added:r.get(13)?, date_modified:r.get(14)?
     })).optional().map_err(db)?.ok_or("This game no longer exists.")?;
     game.data.notes_html = sanitize_notes(&game.data.notes_html);
     let mut statement = c.prepare("SELECT t.name FROM tags t JOIN game_tags gt ON gt.tag_id=t.id WHERE gt.game_id=? ORDER BY t.name COLLATE NOCASE").map_err(db)?;
@@ -179,14 +181,15 @@ pub fn save_game(c: &Connection, id: Option<i64>, mut input: GameInput) -> Resul
         input.media_type,
         input.play_status,
         input.rating,
-        input.notes_html
+        input.notes_html,
+        input.account
     ];
     let game_id = if let Some(id) = id {
         get_game(&tx, id)?;
-        tx.execute("UPDATE games SET title=?1,platform_id=?2,release_date=?3,genre=?4,developer=?5,publisher=?6,cover_path=?7,media_type=?8,play_status=?9,rating=?10,notes_html=?11,date_modified=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?12", params![input.title,input.platform_id,input.release_date,input.genre,input.developer,input.publisher,input.cover_path,input.media_type,input.play_status,input.rating,input.notes_html,id]).map_err(db)?;
+        tx.execute("UPDATE games SET title=?1,platform_id=?2,release_date=?3,genre=?4,developer=?5,publisher=?6,cover_path=?7,media_type=?8,play_status=?9,rating=?10,notes_html=?11,account=?12,date_modified=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?13", params![input.title,input.platform_id,input.release_date,input.genre,input.developer,input.publisher,input.cover_path,input.media_type,input.play_status,input.rating,input.notes_html,input.account,id]).map_err(db)?;
         id
     } else {
-        tx.execute("INSERT INTO games(title,platform_id,release_date,genre,developer,publisher,cover_path,media_type,play_status,rating,notes_html) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)", values).map_err(db)?;
+        tx.execute("INSERT INTO games(title,platform_id,release_date,genre,developer,publisher,cover_path,media_type,play_status,rating,notes_html,account) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)", values).map_err(db)?;
         tx.last_insert_rowid()
     };
     tx.execute("DELETE FROM game_tags WHERE game_id=?", [game_id])

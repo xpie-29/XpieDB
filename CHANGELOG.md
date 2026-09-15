@@ -1,5 +1,15 @@
 # Changelog
 
+## Milestone 2.5 - 2026-09-15
+
+- Replaced the left rail with a compact primary toolbar and right-side presentation controls.
+- Added shared Grid/List selection and a fixed independently scrolling detail inspector.
+- Added nullable free-text Account through transactional migration 3, preserving old records.
+- Added reusable accessible stars with hover, keyboard operation, clearing, and read-only display.
+- Removed platform-mark frames and normalized compact alignment without external assets.
+- Preserved editing, notes, covers, tags, and preferences; added Account migration/regression tests.
+- Prepared an optional utility-bar slot without adding search, filtering, Stats, or IGDB.
+
 ## Milestone 2 - 2026-09-15
 
 - Added transactional local-library schema with games, platforms, tags, and preferences.

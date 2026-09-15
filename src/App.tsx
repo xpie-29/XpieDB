@@ -1,19 +1,16 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button, Spinner } from "@fluentui/react-components";
-import {
-  Grid20Regular,
-  Add20Regular,
-  Settings20Regular,
-} from "@fluentui/react-icons";
 import type { Game, Platform, Preferences } from "./types";
 import { Library } from "./components/Library";
-const GameForm = lazy(() =>
-  import("./components/GameForm").then((m) => ({ default: m.GameForm })),
-);
 import { GameDetail } from "./components/GameDetail";
 import { PlatformManager } from "./components/PlatformManager";
 import { Confirm } from "./components/Shared";
+import { PrimaryToolbar, type Destination } from "./components/PrimaryToolbar";
+const GameForm = lazy(() =>
+  import("./components/GameForm").then((m) => ({ default: m.GameForm })),
+);
+
 export function App() {
   const [games, setGames] = useState<Game[]>([]);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -21,15 +18,14 @@ export function App() {
     library_view: "grid",
     cover_size: "medium",
   });
-  const [view, setView] = useState<
-    "library" | "detail" | "add" | "edit" | "settings"
-  >("library");
-  const [game, setGame] = useState<Game | null>(null);
+  const [view, setView] = useState<Destination>("library");
+  const [selected, setSelected] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dataPath, setDataPath] = useState("");
+  const game = games.find((g) => g.id === selected) ?? null;
   const refresh = async () => {
     const [g, p] = await Promise.all([
       invoke<Game[]>("list_games"),
@@ -37,6 +33,9 @@ export function App() {
     ]);
     setGames(g);
     setPlatforms(p);
+    setSelected((id) =>
+      g.some((game) => game.id === id) ? id : (g[0]?.id ?? null),
+    );
   };
   const load = async () => {
     setLoading(true);
@@ -44,8 +43,8 @@ export function App() {
     try {
       await refresh();
       setPreferences(await invoke<Preferences>("get_preferences"));
-      const data = await invoke<{ appDataDir: string }>("get_app_data_info");
-      setDataPath(data.appDataDir);
+      const info = await invoke<{ appDataDir: string }>("get_app_data_info");
+      setDataPath(info.appDataDir);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -55,66 +54,34 @@ export function App() {
   useEffect(() => {
     void load();
   }, []);
-  const open = async (id: number) => {
-    setError("");
-    try {
-      setGame(await invoke<Game>("get_game", { id }));
-      setView("detail");
-    } catch (e) {
-      setError(String(e));
-    }
-  };
   const editing = view === "add" || view === "edit";
+  const navigate = (next: Destination) => {
+    setError("");
+    setView(next);
+  };
   return (
     <main className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">GameVault</div>
-        <nav aria-label="Primary">
-          <Button
-            disabled={editing}
-            appearance={
-              view === "library" || view === "detail" ? "primary" : "subtle"
-            }
-            icon={<Grid20Regular />}
-            onClick={() => {
-              setView("library");
-              setError("");
-            }}
-          >
-            Library
-          </Button>
-          <Button
-            disabled={editing || loading}
-            appearance="subtle"
-            icon={<Add20Regular />}
-            onClick={() => {
-              setView("add");
-              setError("");
-            }}
-          >
-            Add Game
-          </Button>
-          <Button
-            disabled={editing}
-            appearance={view === "settings" ? "primary" : "subtle"}
-            icon={<Settings20Regular />}
-            onClick={() => {
-              setView("settings");
-              setError("");
-            }}
-          >
-            Settings
-          </Button>
-        </nav>
-        <span className="sidebar-footer">Local Library</span>
-      </aside>
-      <section className="workspace">
-        {error && (
-          <div role="alert" className="error">
-            {error}
-            <Button onClick={() => void load()}>Retry</Button>
-          </div>
-        )}
+      <PrimaryToolbar
+        view={view}
+        navigate={navigate}
+        locked={editing || loading || busy}
+        preferences={preferences}
+        preference={async (key, value) => {
+          try {
+            await invoke("set_preference", { key, value });
+            setPreferences((p) => ({ ...p, [key]: value }));
+          } catch (e) {
+            setError(String(e));
+          }
+        }}
+      />
+      {error && (
+        <div role="alert" className="shell-error error">
+          {error}
+          <Button onClick={() => void load()}>Retry</Button>
+        </div>
+      )}
+      <div className="workspace">
         {loading ? (
           <Spinner label="Opening library" />
         ) : (
@@ -124,53 +91,64 @@ export function App() {
                 games={games}
                 platforms={platforms}
                 preferences={preferences}
-                preference={async (key, value) => {
-                  try {
-                    await invoke("set_preference", { key, value });
-                    setPreferences((p) => ({ ...p, [key]: value }));
-                  } catch (e) {
-                    setError(String(e));
-                  }
-                }}
-                open={(id) => void open(id)}
-                add={() => setView("add")}
+                selected={selected}
+                select={setSelected}
+                add={() => navigate("add")}
+                details={
+                  game ? (
+                    <GameDetail
+                      game={game}
+                      platform={platforms.find(
+                        (p) => p.id === game.platform_id,
+                      )}
+                      edit={() => navigate("edit")}
+                      remove={() => setDeleting(true)}
+                      error={setError}
+                    />
+                  ) : null
+                }
               />
             )}
             {editing && (
-              <Suspense fallback={<Spinner label="Opening editor" />}>
-                <GameForm
-                  key={view === "edit" ? game?.id : "new"}
-                  game={view === "edit" ? (game ?? undefined) : undefined}
-                  platforms={platforms}
-                  cancel={() => setView(view === "edit" ? "detail" : "library")}
-                  saved={(g) => {
-                    setGame(g);
-                    setView("detail");
-                    void refresh().catch((e) => setError(String(e)));
-                  }}
-                />
-              </Suspense>
+              <section className="page-scroll">
+                <Suspense fallback={<Spinner label="Opening editor" />}>
+                  <GameForm
+                    key={view === "edit" ? game?.id : "new"}
+                    game={view === "edit" ? (game ?? undefined) : undefined}
+                    platforms={platforms}
+                    cancel={() => navigate("library")}
+                    saved={(saved) => {
+                      setGames((current) => [
+                        ...current.filter((g) => g.id !== saved.id),
+                        saved,
+                      ]);
+                      setSelected(saved.id);
+                      navigate("library");
+                      void refresh().catch((e) => setError(String(e)));
+                    }}
+                  />
+                </Suspense>
+              </section>
             )}
-            {view === "detail" && game && (
-              <GameDetail
-                game={game}
-                platform={platforms.find((p) => p.id === game.platform_id)}
-                back={() => setView("library")}
-                edit={() => setView("edit")}
-                remove={() => setDeleting(true)}
-                error={setError}
-              />
+            {view === "platforms" && (
+              <section className="page-scroll">
+                <PlatformManager platforms={platforms} refresh={refresh} />
+              </section>
             )}
             {view === "settings" && (
-              <PlatformManager
-                platforms={platforms}
-                refresh={refresh}
-                dataPath={dataPath}
-              />
+              <section className="page-scroll">
+                <header className="page-header">
+                  <h1>Settings</h1>
+                </header>
+                <section className="data-location">
+                  <h2>Local data</h2>
+                  <p>{dataPath}</p>
+                </section>
+              </section>
             )}
           </>
         )}
-      </section>
+      </div>
       {deleting && game && (
         <Confirm
           title="Delete game?"
@@ -180,10 +158,12 @@ export function App() {
           confirm={async () => {
             setBusy(true);
             try {
+              const index = games.findIndex((g) => g.id === game.id);
+              const next = games[index + 1] ?? games[index - 1];
               await invoke("delete_game", { id: game.id });
+              setGames((current) => current.filter((g) => g.id !== game.id));
+              setSelected(next?.id ?? null);
               setDeleting(false);
-              setGame(null);
-              setView("library");
               await refresh();
             } catch (e) {
               setError(String(e));

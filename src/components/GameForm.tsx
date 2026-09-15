@@ -11,6 +11,7 @@ import type { Game, GameInput, Platform } from "../types";
 import { statuses, emptyGame } from "../types";
 import { ManagedImage } from "./Shared";
 import { NotesEditor } from "./Notes";
+import { StarRating } from "./StarRating";
 export function GameForm({
   game,
   platforms,
@@ -158,6 +159,13 @@ export function GameForm({
               ))}
             </Select>
           </Field>
+          <Field label="Account">
+            <Input
+              maxLength={500}
+              value={draft.account ?? ""}
+              onChange={(_, d) => change("account", d.value || null)}
+            />
+          </Field>
           <Field label="Release date">
             <Input
               type="date"
@@ -194,19 +202,10 @@ export function GameForm({
             </Select>
           </Field>
           <Field label="Personal rating">
-            <Select
-              value={draft.rating ?? ""}
-              onChange={(_, d) =>
-                change("rating", d.value ? Number(d.value) : null)
-              }
-            >
-              <option value="">Unrated</option>
-              {[1, 2, 3, 4, 5].map((n) => (
-                <option key={n} value={n}>
-                  {n} {n === 1 ? "star" : "stars"}
-                </option>
-              ))}
-            </Select>
+            <StarRating
+              value={draft.rating}
+              onChange={(value) => change("rating", value)}
+            />
           </Field>
           <Field label="Tags (comma separated)" className="span-two">
             <Input value={tags} onChange={(_, d) => setTags(d.value)} />

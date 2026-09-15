@@ -1,95 +1,106 @@
+import { useEffect, useRef } from "react";
 import { Button } from "@fluentui/react-components";
-import {
-  ArrowLeft20Regular,
-  Edit20Regular,
-  Delete20Regular,
-} from "@fluentui/react-icons";
+import { Edit20Regular, Delete20Regular } from "@fluentui/react-icons";
 import type { Game, Platform } from "../types";
 import { ManagedImage, PlatformIcon } from "./Shared";
 import { meaningfulNotes } from "../notes";
 import { NotesView } from "./NotesView";
+import { StarRating } from "./StarRating";
 export function GameDetail({
   game,
   platform,
-  back,
   edit,
   remove,
   error,
 }: {
   game: Game;
   platform?: Platform;
-  back: () => void;
   edit: () => void;
   remove: () => void;
   error: (e: string) => void;
 }) {
+  const panel = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (panel.current) panel.current.scrollTop = 0;
+  }, [game.id]);
   return (
-    <>
-      <header className="page-header">
-        <Button icon={<ArrowLeft20Regular />} onClick={back}>
-          Library
+    <aside
+      ref={panel}
+      className="detail-sidebar"
+      aria-label="Selected game details"
+      tabIndex={0}
+    >
+      <div className="detail-actions">
+        <Button icon={<Edit20Regular />} onClick={edit}>
+          Edit
         </Button>
-        <div className="actions">
-          <Button icon={<Edit20Regular />} onClick={edit}>
-            Edit
-          </Button>
-          <Button icon={<Delete20Regular />} onClick={remove}>
-            Delete
-          </Button>
-        </div>
-      </header>
-      <article className="detail-layout">
-        <ManagedImage
-          path={game.cover_path}
-          alt={`${game.title} cover`}
-          className="cover"
+        <Button
+          title="Delete game"
+          aria-label="Delete game"
+          icon={<Delete20Regular />}
+          appearance="subtle"
+          onClick={remove}
         />
+      </div>
+      <ManagedImage
+        path={game.cover_path}
+        alt={`${game.title} cover`}
+        className="cover inspector-cover"
+      />
+      <h2 className="game-title">{game.title}</h2>
+      <dl className="metadata">
         <div>
-          <h1>{game.title}</h1>
-          <div className="platform-line">
+          <dt>Platform</dt>
+          <dd className="platform-line">
             <PlatformIcon platform={platform} />
-            <span>{platform?.name}</span>
-            <span className="status">{game.play_status}</span>
-          </div>
-          <dl className="metadata">
-            {[
-              ["Release date", game.release_date],
-              ["Genre", game.genre],
-              ["Developer", game.developer],
-              ["Publisher", game.publisher],
-              ["Media type", game.media_type],
-              [
-                "Personal rating",
-                game.rating ? `${game.rating} / 5 stars` : "Unrated",
-              ],
-            ].map(([k, v]) => (
-              <div key={k}>
-                <dt>{k}</dt>
-                <dd>{v || "-"}</dd>
-              </div>
-            ))}
-          </dl>
-          {game.tags.length > 0 && (
-            <div className="tags">
-              {game.tags.map((t) => (
-                <span key={t}>{t}</span>
-              ))}
-            </div>
-          )}
-          <section className="detail-notes">
-            <h2>Notes</h2>
-            {meaningfulNotes(game.notes_html) ? (
-              <NotesView html={game.notes_html} onError={error} />
-            ) : (
-              <p className="muted">No notes</p>
-            )}
-          </section>
-          <p className="muted timestamps">
-            Added {new Date(game.date_added).toLocaleDateString()} · Modified{" "}
-            {new Date(game.date_modified).toLocaleDateString()}
-          </p>
+            <span>{platform?.name ?? "-"}</span>
+          </dd>
         </div>
-      </article>
-    </>
+        {[
+          ["Account", game.account],
+          ["Release date", game.release_date],
+          ["Genre", game.genre],
+          ["Developer", game.developer],
+          ["Publisher", game.publisher],
+          ["Media type", game.media_type],
+          ["Play status", game.play_status],
+        ].map(([key, value]) => (
+          <div key={key}>
+            <dt>{key}</dt>
+            <dd>{value || "-"}</dd>
+          </div>
+        ))}
+        <div>
+          <dt>Personal rating</dt>
+          <dd>
+            <StarRating value={game.rating} />
+          </dd>
+        </div>
+      </dl>
+      <section>
+        <h3>Tags</h3>
+        {game.tags.length ? (
+          <div className="tags">
+            {game.tags.map((t) => (
+              <span key={t}>{t}</span>
+            ))}
+          </div>
+        ) : (
+          <p className="muted">No tags</p>
+        )}
+      </section>
+      <section className="detail-notes">
+        <h3>Notes</h3>
+        {meaningfulNotes(game.notes_html) ? (
+          <NotesView html={game.notes_html} onError={error} />
+        ) : (
+          <p className="muted">No notes</p>
+        )}
+      </section>
+      <p className="muted timestamps">
+        Added {new Date(game.date_added).toLocaleDateString()} · Modified{" "}
+        {new Date(game.date_modified).toLocaleDateString()}
+      </p>
+    </aside>
   );
 }

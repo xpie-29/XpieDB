@@ -18,6 +18,33 @@ fn input() -> GameInput {
 }
 
 #[test]
+fn account_and_all_star_values_persist_and_clear() {
+    let (dir, c) = database();
+    let mut value = input();
+    value.account = Some("  Steam Main  ".into());
+    let mut game = save_game(&c, None, value).unwrap();
+    assert_eq!(game.data.account.as_deref(), Some("Steam Main"));
+    for rating in 1..=5 {
+        game.data.rating = Some(rating);
+        game = save_game(&c, Some(game.id), game.data).unwrap();
+        assert_eq!(get_game(&c, game.id).unwrap().data.rating, Some(rating));
+    }
+    game.data.account = Some("Steam Alt".into());
+    game = save_game(&c, Some(game.id), game.data).unwrap();
+    drop(c);
+    let c = Connection::open(dir.path().join("test.db")).unwrap();
+    storage::run_migrations(&c).unwrap();
+    let mut reopened = get_game(&c, game.id).unwrap();
+    assert_eq!(reopened.data.account.as_deref(), Some("Steam Alt"));
+    assert_eq!(reopened.data.rating, Some(5));
+    reopened.data.account = Some(" ".into());
+    reopened.data.rating = None;
+    let cleared = save_game(&c, Some(game.id), reopened.data).unwrap();
+    assert_eq!(cleared.data.account, None);
+    assert_eq!(cleared.data.rating, None);
+}
+
+#[test]
 fn crud_null_fields_tags_notes_and_reopen() {
     let (dir, c) = database();
     let mut value = input();

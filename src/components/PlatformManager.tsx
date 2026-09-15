@@ -12,11 +12,9 @@ import { Modal, PlatformIcon, Confirm } from "./Shared";
 export function PlatformManager({
   platforms,
   refresh,
-  dataPath,
 }: {
   platforms: Platform[];
   refresh: () => Promise<void>;
-  dataPath: string;
 }) {
   const [draft, setDraft] = useState<{
     id: number | null;
@@ -44,11 +42,10 @@ export function PlatformManager({
   return (
     <>
       <header className="page-header">
-        <h1>Settings</h1>
+        <h1>Platforms</h1>
       </header>
       <section>
         <div className="section-header">
-          <h2>Platforms</h2>
           <Button
             icon={<Add20Regular />}
             onClick={() => {
@@ -94,10 +91,6 @@ export function PlatformManager({
             </div>
           ))}
         </div>
-      </section>
-      <section className="data-location">
-        <h2>Local data</h2>
-        <p>{dataPath}</p>
       </section>
       {draft && (
         <Modal

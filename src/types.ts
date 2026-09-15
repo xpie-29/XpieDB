@@ -1,6 +1,7 @@
 export type GameInput = {
   title: string;
   platform_id: number;
+  account: string | null;
   release_date: string | null;
   genre: string | null;
   developer: string | null;
@@ -37,6 +38,7 @@ export const statuses = [
 export const emptyGame = (platform: number): GameInput => ({
   title: "",
   platform_id: platform,
+  account: null,
   release_date: null,
   genre: null,
   developer: null,
