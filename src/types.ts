@@ -32,6 +32,7 @@ export type Preferences = {
   cover_size: string;
   library_sort: string;
   // Absent until the user changes them.
+  stats_open?: string;
   report_paper?: string;
   report_orientation?: string;
 };

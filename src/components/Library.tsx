@@ -17,6 +17,7 @@ export function Library({
   select,
   add,
   utilityBar,
+  statsPanel,
   details,
 }: {
   games: Game[];
@@ -29,6 +30,7 @@ export function Library({
   select: (id: number) => void;
   add: () => void;
   utilityBar?: ReactNode;
+  statsPanel?: ReactNode;
   details: ReactNode;
 }) {
   const entries = useRef<Array<HTMLElement | null>>([]);
@@ -77,7 +79,12 @@ export function Library({
   }
   return (
     <div className="library-view">
-      {utilityBar && <div className="library-utility">{utilityBar}</div>}
+      {(utilityBar || statsPanel) && (
+        <div className="library-utility">
+          {utilityBar}
+          {statsPanel}
+        </div>
+      )}
       <div className="library-workspace">
         <section
           className="library-pane"

@@ -11,6 +11,7 @@ import { LibraryUtilityBar } from "./components/LibraryUtilityBar";
 import { IgdbSettings } from "./components/IgdbSettings";
 import { BackupSettings } from "./components/BackupSettings";
 import { Reports } from "./components/Reports";
+import { StatsPanel } from "./components/StatsPanel";
 const AddGameFlow = lazy(() =>
   import("./components/AddGameFlow").then((m) => ({ default: m.AddGameFlow })),
 );
@@ -128,6 +129,20 @@ export function App() {
                 selected={visibleId}
                 select={setSelected}
                 add={() => navigate("add")}
+                statsPanel={
+                  games.length > 0 ? (
+                    <StatsPanel
+                      games={visible}
+                      allCount={games.length}
+                      platforms={platforms}
+                      filtered={hasFilters(filters)}
+                      open={preferences.stats_open !== "false"}
+                      setOpen={(open) =>
+                        void preference("stats_open", String(open))
+                      }
+                    />
+                  ) : null
+                }
                 utilityBar={
                   <LibraryUtilityBar
                     games={games}

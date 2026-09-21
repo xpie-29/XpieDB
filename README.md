@@ -133,6 +133,29 @@ whole collection. It works on Windows and macOS, and a backup made on one opens 
 See [Milestone 5 verification](docs/milestone-5-verification.md) for the test evidence
 and remaining manual checks.
 
+## Statistics
+
+A collapsible **Statistics** ribbon sits under the Library search bar. Collapsed, it is one
+line ("60 games · 40% completed · 8 platforms · 3.0 average rating"); expanded, it shows:
+
+- **Tiles:** total games, completed % and count, backlog (Not Started), average rating
+  (rated games only) with how many are rated, platforms in use, and the physical/digital split.
+- **Games by platform:** share of the collection per platform, top five plus an "Other" row.
+- **Games by play status:** one stacked bar with a legend of counts and shares.
+- **More breakdowns** (tabs): genre, release decade, rating distribution, games added per
+  year, and developer.
+
+The ribbon follows the Library's search and filters, so filtering to one platform, genre or
+account shows statistics for just those games (with "N of M" so the scope is clear). Every
+chart has hover/keyboard-focus readouts and a table view, and the open/closed state is
+remembered. It is hidden while the library is empty.
+
+Notes: a game with several genres or developers counts once in each, so those shares can
+add to more than 100%. Statistics are computed in the app from the loaded games
+(`src/stats.ts`); nothing is stored or sent anywhere. Chart colors are the validated dark
+categorical palette checked against the ribbon surface. See
+[Milestone 7 verification](docs/milestone-7-verification.md).
+
 ## Reports
 
 Reports (toolbar) create a PDF of the library to read or print away from the computer.

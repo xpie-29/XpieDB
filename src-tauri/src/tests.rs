@@ -242,3 +242,14 @@ fn report_preferences_accept_only_known_values() {
     assert!(set_preference(&c, "report_orientation", "sideways").is_err());
     assert_eq!(preferences(&c).unwrap()["report_paper"], "a4");
 }
+
+#[test]
+fn stats_panel_preference_accepts_only_booleans() {
+    let (_dir, c) = database();
+    set_preference(&c, "stats_open", "false").unwrap();
+    assert_eq!(preferences(&c).unwrap()["stats_open"], "false");
+    set_preference(&c, "stats_open", "true").unwrap();
+    assert!(set_preference(&c, "stats_open", "yes").is_err());
+    assert!(set_preference(&c, "stats_open", "").is_err());
+    assert_eq!(preferences(&c).unwrap()["stats_open"], "true");
+}

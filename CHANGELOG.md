@@ -1,5 +1,13 @@
 # Changelog
 
+## Milestone 7 - 2026-09-21
+
+- Added a collapsible Statistics ribbon under the Library search: summary tiles, games by
+  platform, games by play status, and tabbed genre, release decade, rating, added-per-year and
+  developer breakdowns.
+- Statistics follow the Library's search and filters; open/closed state is remembered
+  (`stats_open` preference). Charts have tooltips (hover and keyboard focus) and table views.
+
 ## Milestone 6 - 2026-09-21
 
 - Added Reports: PDF output for "All games, alphabetical" and "Games by platform",
