@@ -306,6 +306,7 @@ fn verify_database(dir: &Path) -> Result<(i64, i64, i64)> {
         return Err(BAD.into());
     }
     storage::run_migrations(&c).map_err(err)?;
+    crate::catalog::normalize_backlog(&c).map_err(err)?;
     let mut present = 0;
     let mut missing = 0;
     for relative in referenced_images(&c)? {

@@ -11,7 +11,7 @@ import {
 import { DocumentPdf20Regular } from "@fluentui/react-icons";
 import type { Preferences } from "../types";
 
-type GroupBy = "none" | "platform";
+type GroupBy = "none" | "platform" | "backlog";
 type Column =
   | "platform"
   | "year"
@@ -37,6 +37,11 @@ const presets: Array<{ id: GroupBy; name: string; text: string }> = [
     id: "platform",
     name: "Games by platform",
     text: "Grouped by platform, with each platform's games sorted by title. The PDF gets a bookmark for each platform.",
+  },
+  {
+    id: "backlog",
+    name: "Backlog, in order",
+    text: "Only games with the Backlog status, numbered in the order you set on the Backlog page.",
   },
 ];
 const columns: Array<{ id: Column; name: string }> = [

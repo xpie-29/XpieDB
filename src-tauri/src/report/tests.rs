@@ -24,6 +24,7 @@ fn game(id: i64, title: &str, platform: i64) -> Game {
         },
         date_added: String::new(),
         date_modified: String::new(),
+        backlog_position: None,
     }
 }
 fn platform(id: i64, name: &str) -> Platform {
@@ -701,7 +702,20 @@ fn sample_reports_for_visual_inspection() {
         g.data.media_type = if i % 2 == 0 { "Physical" } else { "Digital" }.into();
         library.push(g);
     }
+    // A hand-ordered backlog: every seventh game, in reverse title order.
+    let mut place = 0;
+    for g in library.iter_mut().rev().filter(|g| g.id % 7 == 0) {
+        place += 1;
+        g.data.play_status = "Backlog".into();
+        g.backlog_position = Some(place);
+    }
     let cases = [
+        (
+            "backlog",
+            GroupBy::Backlog,
+            vec![Column::Platform, Column::Year, Column::Genre],
+            false,
+        ),
         (
             "all-games",
             GroupBy::None,
@@ -746,4 +760,128 @@ fn sample_reports_for_visual_inspection() {
             result.pages, result.unsupported_characters
         );
     }
+}
+
+fn queued(id: i64, title: &str, platform: i64, position: i64) -> Game {
+    let mut g = game(id, title, platform);
+    g.data.play_status = "Backlog".into();
+    g.backlog_position = Some(position);
+    g
+}
+
+#[test]
+fn backlog_report_lists_only_backlog_games_in_manual_order_with_numbers() {
+    let library = vec![
+        queued(1, "Zeta", 1, 3),
+        game(2, "Not queued", 2),
+        queued(3, "Alpha", 2, 1),
+        queued(4, "Middle", 3, 2),
+        game(5, "Also not queued", 1),
+    ];
+    let report = build(
+        &library,
+        &platforms(),
+        &request(GroupBy::Backlog, &[Column::Platform, Column::Year]),
+        "2026-09-21",
+    );
+    assert_eq!(report.title, "Backlog");
+    assert_eq!(report.subtitle, "2026-09-21  ·  3 games, in order");
+    assert!(report.numbered);
+    assert_eq!(report.games, 3);
+    assert_eq!(report.sections.len(), 1);
+    assert!(report.sections[0].heading.is_none());
+    let rows: Vec<_> = report.sections[0]
+        .rows
+        .iter()
+        .map(|r| r.cells.clone())
+        .collect();
+    // Manual order, not alphabetical; platform column kept (no platform grouping).
+    assert_eq!(
+        rows,
+        [
+            ["1", "Alpha", "Nintendo Switch", ""],
+            ["2", "Middle", "PC", ""],
+            ["3", "Zeta", "PlayStation 4", ""],
+        ]
+    );
+}
+
+#[test]
+fn other_presets_are_not_numbered() {
+    for group in [GroupBy::None, GroupBy::Platform] {
+        let report = build(&big_library(5), &platforms(), &request(group, &[]), "d");
+        assert!(!report.numbered);
+        assert_eq!(report.empty_message, "There are no games in the library.");
+    }
+}
+
+#[test]
+fn backlog_report_lays_out_a_number_column_and_keeps_order_across_pages() {
+    let library: Vec<Game> = (0..140)
+        .map(|i| {
+            // Position order is the reverse of alphabetical order.
+            queued(i + 1, &format!("Game {:03}", i), 1, 140 - i)
+        })
+        .collect();
+    let report = build(&library, &platforms(), &request(GroupBy::Backlog, &[]), "d");
+    let laid = layout(&report, Paper::Letter, false).unwrap();
+    assert!(laid.pages.len() > 1);
+    let all = texts(&laid);
+    for (i, page) in all.iter().enumerate() {
+        assert!(
+            page.iter().any(|t| t.5 == "#" && t.3),
+            "page {i} lacks the # header"
+        );
+        assert!(page.iter().any(|t| t.5 == "Title" && t.3));
+    }
+    // Numbers are in the narrow first column, titles start after it.
+    let numbers: Vec<String> = all
+        .iter()
+        .flatten()
+        .filter(|t| t.0 == 42.0 && t.2 == 9.5 && !t.3 && t.4 == 0)
+        .map(|t| t.5.to_string())
+        .collect();
+    assert_eq!(
+        numbers,
+        (1..=140).map(|n| n.to_string()).collect::<Vec<_>>()
+    );
+    let titles: Vec<String> = all
+        .iter()
+        .flatten()
+        .filter(|t| t.0 > 42.0 && t.0 < 100.0 && t.2 == 9.5 && !t.3 && t.4 == 0)
+        .map(|t| t.5.to_string())
+        .collect();
+    assert_eq!(titles.first().map(String::as_str), Some("Game 139"));
+    assert_eq!(titles.last().map(String::as_str), Some("Game 000"));
+    assert_eq!(titles.len(), 140);
+}
+
+#[test]
+fn an_empty_backlog_says_so_and_still_produces_a_pdf() {
+    let library = vec![game(1, "Only a normal game", 1)];
+    let report = build(&library, &platforms(), &request(GroupBy::Backlog, &[]), "d");
+    assert_eq!(report.games, 0);
+    let laid = layout(&report, Paper::A4, false).unwrap();
+    assert!(
+        texts(&laid)
+            .into_iter()
+            .flatten()
+            .any(|t| t.5 == "The backlog is empty.")
+    );
+    assert!(
+        render(&report, Paper::A4, false)
+            .unwrap()
+            .bytes
+            .starts_with(b"%PDF-")
+    );
+}
+
+#[test]
+fn backlog_group_deserializes_from_the_frontend() {
+    let request: ReportRequest = serde_json::from_str(
+        r#"{"group_by":"backlog","paper":"letter","landscape":false,"columns":["platform"]}"#,
+    )
+    .unwrap();
+    assert_eq!(request.group_by, GroupBy::Backlog);
+    assert_eq!(columns_for(&request), [Column::Platform]);
 }

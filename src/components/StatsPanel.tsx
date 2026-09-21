@@ -20,6 +20,7 @@ const statusColor: Record<string, string> = {
   "Not Started": "var(--viz-3)",
   Paused: "var(--viz-4)",
   Dropped: "var(--viz-5)",
+  Backlog: "var(--viz-6)",
   Other: "var(--viz-other)",
 };
 
@@ -365,7 +366,7 @@ export function StatsPanel({
                 <Tile
                   label="Backlog"
                   value={String(stats.backlog)}
-                  sub={`${formatPct(stats.backlogPct)} not started`}
+                  sub={`${stats.notStarted} not started`}
                 />
                 <Tile
                   label="Average rating"

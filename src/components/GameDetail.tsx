@@ -64,6 +64,9 @@ export function GameDetail({
           ["Publisher", game.publisher],
           ["Media type", game.media_type],
           ["Play status", game.play_status],
+          ...(game.backlog_position == null
+            ? []
+            : [["Backlog position", `#${game.backlog_position}`]]),
         ].map(([key, value]) => (
           <div key={key}>
             <dt>{key}</dt>

@@ -28,6 +28,8 @@ use unicode_normalization::{UnicodeNormalization, char::is_combining_mark};
 pub enum GroupBy {
     None,
     Platform,
+    /// Only backlog games, in the order set by hand, numbered.
+    Backlog,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
@@ -77,6 +79,10 @@ pub struct Report {
     pub columns: Vec<Column>,
     pub sections: Vec<Section>,
     pub games: usize,
+    /// True when each row starts with its position number, before the title.
+    pub numbered: bool,
+    /// Shown instead of the table when there are no rows.
+    pub empty_message: String,
 }
 
 #[derive(Debug)]
@@ -85,7 +91,8 @@ pub struct Section {
     pub rows: Vec<Row>,
 }
 
-/// One printed row: `cells[0]` is the title, the rest follow `Report::columns`.
+/// One printed row. Cells follow the printed columns: the position number (only
+/// when `Report::numbered`), then the title, then `Report::columns`.
 #[derive(Debug)]
 pub struct Row {
     pub cells: Vec<String>,
@@ -196,6 +203,9 @@ pub fn build(
             .unwrap_or("Unknown platform")
     };
 
+    if request.group_by == GroupBy::Backlog {
+        return build_backlog(games, columns, &names, generated);
+    }
     let mut ordered: Vec<&Game> = games.iter().collect();
     ordered.sort_by(|a, b| {
         sort_key(&a.data.title)
@@ -210,6 +220,7 @@ pub fn build(
     };
 
     let (title, sections) = match request.group_by {
+        GroupBy::Backlog => unreachable!("handled above"),
         GroupBy::None => (
             "All Games".to_string(),
             vec![Section {
@@ -248,6 +259,55 @@ pub fn build(
         columns,
         sections,
         games: count,
+        numbered: false,
+        empty_message: "There are no games in the library.".into(),
+    }
+}
+
+fn platform_name<'a>(names: &HashMap<i64, &'a str>, game: &Game) -> &'a str {
+    names
+        .get(&game.data.platform_id)
+        .copied()
+        .unwrap_or("Unknown platform")
+}
+
+/// The backlog report: only games with a backlog position, in that order.
+fn build_backlog(
+    games: &[Game],
+    columns: Vec<Column>,
+    names: &HashMap<i64, &str>,
+    generated: &str,
+) -> Report {
+    let mut queued: Vec<&Game> = games
+        .iter()
+        .filter(|g| g.backlog_position.is_some())
+        .collect();
+    queued.sort_by_key(|g| (g.backlog_position, g.id));
+    let rows: Vec<Row> = queued
+        .iter()
+        .map(|g| Row {
+            cells: [g.backlog_position.unwrap_or_default().to_string()]
+                .into_iter()
+                .chain([g.data.title.clone()])
+                .chain(columns.iter().map(|c| cell(g, platform_name(names, g), *c)))
+                .collect(),
+        })
+        .collect();
+    let count = rows.len();
+    Report {
+        title: "Backlog".into(),
+        subtitle: format!(
+            "{generated}  ·  {count} {}, in order",
+            plural(count, "game")
+        ),
+        columns,
+        sections: vec![Section {
+            heading: None,
+            rows,
+        }],
+        games: count,
+        numbered: true,
+        empty_message: "The backlog is empty.".into(),
     }
 }
 
@@ -301,6 +361,7 @@ pub async fn report_create(app: AppHandle, request: ReportRequest) -> Result<Opt
     let name = match request.group_by {
         GroupBy::None => "All-Games",
         GroupBy::Platform => "Games-by-Platform",
+        GroupBy::Backlog => "Backlog",
     };
     let Some(chosen) = app
         .dialog()

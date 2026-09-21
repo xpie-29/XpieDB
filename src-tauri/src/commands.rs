@@ -56,6 +56,18 @@ pub fn delete_game(app: AppHandle, id: i64) -> Result<()> {
     Ok(())
 }
 #[tauri::command]
+pub fn backlog_set_order(app: AppHandle, ids: Vec<i64>) -> Result<()> {
+    catalog::set_backlog_order(&connection(&app)?, &ids)
+}
+#[tauri::command]
+pub fn backlog_add(app: AppHandle, ids: Vec<i64>) -> Result<usize> {
+    catalog::add_to_backlog(&connection(&app)?, &ids)
+}
+#[tauri::command]
+pub fn backlog_remove(app: AppHandle, id: i64, status: String) -> Result<()> {
+    catalog::remove_from_backlog(&connection(&app)?, id, &status)
+}
+#[tauri::command]
 pub fn list_platforms(app: AppHandle) -> Result<Vec<Platform>> {
     catalog::list_platforms(&connection(&app)?)
 }

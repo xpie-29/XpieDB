@@ -5,13 +5,15 @@ import {
   Grid20Regular,
   List20Regular,
   Settings20Regular,
+  TextNumberListLtr20Regular,
   Games20Regular,
 } from "@fluentui/react-icons";
 import type { Preferences } from "../types";
 export type Destination =
-  "library" | "add" | "edit" | "platforms" | "reports" | "settings";
+  "library" | "backlog" | "add" | "edit" | "platforms" | "reports" | "settings";
 const destinations = [
   { id: "library", name: "Library", icon: <Grid20Regular /> },
+  { id: "backlog", name: "Backlog", icon: <TextNumberListLtr20Regular /> },
   { id: "add", name: "Add Game", icon: <Add20Regular /> },
   { id: "platforms", name: "Platforms", icon: <Games20Regular /> },
   { id: "reports", name: "Reports", icon: <DocumentPdf20Regular /> },

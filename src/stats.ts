@@ -11,6 +11,7 @@ export type Stats = {
   completedPct: number;
   backlog: number;
   backlogPct: number;
+  notStarted: number;
   physical: number;
   digital: number;
   rated: number;
@@ -32,6 +33,7 @@ export const statusOrder = [
   "Not Started",
   "Paused",
   "Dropped",
+  "Backlog",
 ] as const;
 
 const share = (count: number, total: number) =>
@@ -204,8 +206,9 @@ export function computeStats(games: Game[], platforms: Platform[]): Stats {
     byPlatform,
     byStatus,
     completedPct: share(count("Completed"), total),
-    backlog: count("Not Started"),
-    backlogPct: share(count("Not Started"), total),
+    backlog: count("Backlog"),
+    backlogPct: share(count("Backlog"), total),
+    notStarted: count("Not Started"),
     physical: games.filter((g) => g.media_type === "Physical").length,
     digital: games.filter((g) => g.media_type === "Digital").length,
     rated: ratedGames.length,

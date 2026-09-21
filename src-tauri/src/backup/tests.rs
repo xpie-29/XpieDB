@@ -460,8 +460,94 @@ fn older_schema_backups_are_migrated_forward() {
         .unwrap();
     assert!(account.is_none());
     assert_eq!(titles(target.path()), ["Old Game"]);
+    let position: Option<i64> = c
+        .query_row("SELECT backlog_position FROM games", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(position, None);
     assert_eq!(
         count(&c, "SELECT MAX(version) FROM schema_migrations").unwrap(),
         storage::latest_version()
+    );
+}
+
+#[test]
+fn the_backlog_order_survives_backup_and_restore() {
+    let dir = tempfile::tempdir().unwrap();
+    let c = connect(dir.path());
+    let mut ids = Vec::new();
+    for title in ["First", "Second", "Third", "Fourth"] {
+        let mut value = game(title, None);
+        value.play_status = "Backlog".into();
+        ids.push(catalog::save_game(&c, None, value).unwrap().id);
+    }
+    catalog::set_backlog_order(&c, &[ids[2], ids[0], ids[3], ids[1]]).unwrap();
+    let out = tempfile::tempdir().unwrap();
+    let archive = out.path().join("backup.zip");
+    create(dir.path(), &archive).unwrap();
+
+    // Scramble the live order and change membership, then restore.
+    catalog::set_backlog_order(&c, &[ids[1], ids[3], ids[0], ids[2]]).unwrap();
+    catalog::remove_from_backlog(&c, ids[1], "Playing").unwrap();
+    drop(c);
+    restore(dir.path(), &archive).unwrap();
+    let c = connect(dir.path());
+    let restored: Vec<_> = catalog::list_games(&c)
+        .unwrap()
+        .into_iter()
+        .filter_map(|g| g.backlog_position.map(|p| (p, g.data.title)))
+        .collect();
+    let mut restored = restored;
+    restored.sort();
+    assert_eq!(
+        restored,
+        [
+            (1, "Third".to_string()),
+            (2, "First".to_string()),
+            (3, "Fourth".to_string()),
+            (4, "Second".to_string()),
+        ]
+    );
+}
+
+#[test]
+fn a_backup_with_a_broken_backlog_is_repaired_on_restore() {
+    // A library whose backlog positions were damaged (gaps, missing, stray).
+    let dir = tempfile::tempdir().unwrap();
+    let c = connect(dir.path());
+    let mut ids = Vec::new();
+    for (title, status) in [("A", "Backlog"), ("B", "Backlog"), ("Stray", "Playing")] {
+        let mut value = game(title, None);
+        value.play_status = status.into();
+        ids.push(catalog::save_game(&c, None, value).unwrap().id);
+    }
+    c.execute("UPDATE games SET backlog_position=9 WHERE id=?", [ids[0]])
+        .unwrap();
+    c.execute(
+        "UPDATE games SET backlog_position=NULL WHERE id=?",
+        [ids[1]],
+    )
+    .unwrap();
+    c.execute("UPDATE games SET backlog_position=1 WHERE id=?", [ids[2]])
+        .unwrap();
+    drop(c);
+    let out = tempfile::tempdir().unwrap();
+    let archive = out.path().join("backup.zip");
+    create(dir.path(), &archive).unwrap();
+    let target = tempfile::tempdir().unwrap();
+    restore(target.path(), &archive).unwrap();
+    let c = connect(target.path());
+    let mut positions: Vec<_> = catalog::list_games(&c)
+        .unwrap()
+        .into_iter()
+        .map(|g| (g.data.title, g.backlog_position))
+        .collect();
+    positions.sort();
+    assert_eq!(
+        positions,
+        [
+            ("A".to_string(), Some(1)),
+            ("B".to_string(), Some(2)),
+            ("Stray".to_string(), None)
+        ]
     );
 }

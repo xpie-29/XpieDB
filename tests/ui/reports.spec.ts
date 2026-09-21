@@ -56,6 +56,23 @@ test("by-platform hides the platform column and sends the platform grouping", as
   await expect(page.getByRole("checkbox", { name: "Platform" })).toBeChecked();
 });
 
+test("the backlog preset sends the backlog grouping and keeps every column choice", async ({
+  page,
+}) => {
+  await mock(page, "ok");
+  await page.getByRole("radio", { name: "Backlog, in order" }).check();
+  await expect(
+    page.getByText("numbered in the order you set on the Backlog page"),
+  ).toBeVisible();
+  // Unlike by-platform, the platform column is still a choice here.
+  await expect(page.getByRole("checkbox", { name: "Platform" })).toBeChecked();
+  await page.getByRole("button", { name: "Create PDF..." }).click();
+  await expect(reports(page).getByRole("status")).toBeVisible();
+  const [request] = await requests(page);
+  expect(request.group_by).toBe("backlog");
+  expect(request.columns).toEqual(["platform", "year", "status", "rating"]);
+});
+
 test("paper size and orientation are saved as preferences and used", async ({
   page,
 }) => {

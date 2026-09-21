@@ -18,6 +18,8 @@ export type Game = GameInput & {
   id: number;
   date_added: string;
   date_modified: string;
+  /** Place in the manual backlog order (1 = first); set exactly when the status is Backlog. */
+  backlog_position: number | null;
 };
 export type Platform = {
   id: number;
@@ -38,6 +40,7 @@ export type Preferences = {
 };
 export const statuses = [
   "Not Started",
+  "Backlog",
   "Playing",
   "Completed",
   "Paused",

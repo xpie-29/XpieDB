@@ -357,10 +357,15 @@ pub fn layout(report: &Report, paper: Paper, landscape: bool) -> Result<Layout> 
     };
     let (w, h) = page_size(paper, landscape);
 
-    let specs: Vec<_> = std::iter::once(None)
-        .chain(report.columns.iter().copied().map(Some))
-        .map(spec)
-        .collect();
+    let mut specs = Vec::new();
+    if report.numbered {
+        specs.push(("#", Width::Fixed(26.0)));
+    }
+    specs.extend(
+        std::iter::once(None)
+            .chain(report.columns.iter().copied().map(Some))
+            .map(spec),
+    );
     let gaps = COLUMN_GAP * (specs.len() - 1) as f32;
     let fixed: f32 = specs
         .iter()
@@ -400,13 +405,7 @@ pub fn layout(report: &Report, paper: Paper, landscape: bool) -> Result<Layout> 
     if report.games == 0 {
         let x = MARGIN_X;
         let y = b.y + 10.0;
-        b.text(
-            x,
-            y,
-            LINE,
-            NOTE,
-            "There are no games in the library.".into(),
-        );
+        b.text(x, y, LINE, NOTE, report.empty_message.clone());
     }
     for section in &report.sections {
         if section.rows.is_empty() {

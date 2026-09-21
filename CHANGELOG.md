@@ -1,5 +1,16 @@
 # Changelog
 
+## Milestone 8 - 2026-09-21
+
+- Added a **Backlog** play status and a Backlog page: a numbered list of Backlog games in a
+  manual order, with drag-and-drop, keyboard reordering, Move to top, Start playing, Edit,
+  Remove, and Add games (multi-select).
+- New migration 4 (`games.backlog_position`); Rust keeps positions dense and tied to the
+  status, saves whole orders atomically, and repairs damaged data at startup and on restore.
+- Added a "Backlog, in order" PDF report, a "Backlog position" line in the inspector, and a
+  sixth status in Statistics. The Backlog tile now counts Backlog games; Not Started is
+  shown beneath it.
+
 ## Milestone 7 - 2026-09-21
 
 - Added a collapsible Statistics ribbon under the Library search: summary tiles, games by

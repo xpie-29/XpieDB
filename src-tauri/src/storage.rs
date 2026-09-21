@@ -29,6 +29,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "game_account",
         sql: include_str!("../migrations/003_account.sql"),
     },
+    Migration {
+        version: 4,
+        name: "backlog_order",
+        sql: include_str!("../migrations/004_backlog.sql"),
+    },
 ];
 
 /// Highest schema version this build understands.
@@ -70,6 +75,7 @@ pub fn initialize(app: &tauri::AppHandle) -> Result<AppDataPaths, StorageError> 
 
     let connection = Connection::open(&paths.database_path)?;
     run_migrations(&connection)?;
+    crate::catalog::normalize_backlog(&connection)?;
 
     Ok(paths)
 }
@@ -186,8 +192,9 @@ mod tests {
     fn failed_migration_rolls_back_schema_and_bookkeeping() {
         let connection = Connection::open_in_memory().unwrap();
         run_migrations(&connection).unwrap();
+        let next = latest_version() + 1;
         let bad = [Migration {
-            version: 4,
+            version: next,
             name: "broken",
             sql: "CREATE TABLE should_rollback (id INTEGER); INSERT INTO missing_table VALUES (1);",
         }];
@@ -202,12 +209,35 @@ mod tests {
         assert_eq!(count, 0);
         let count: i64 = connection
             .query_row(
-                "SELECT count(*) FROM schema_migrations WHERE version=4",
-                [],
+                "SELECT count(*) FROM schema_migrations WHERE version=?1",
+                [next],
                 |r| r.get(0),
             )
             .unwrap();
         assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn backlog_column_rolls_back_when_bookkeeping_fails() {
+        let connection = Connection::open_in_memory().unwrap();
+        apply_migrations(&connection, &MIGRATIONS[..3]).unwrap();
+        connection.execute_batch("CREATE TRIGGER reject_backlog BEFORE INSERT ON schema_migrations WHEN NEW.version=4 BEGIN SELECT RAISE(ABORT,'test failure'); END;").unwrap();
+        assert!(run_migrations(&connection).is_err());
+        let has_column = |connection: &Connection| -> i64 {
+            connection
+                .query_row(
+                    "SELECT count(*) FROM pragma_table_info('games') WHERE name='backlog_position'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap()
+        };
+        assert_eq!(has_column(&connection), 0);
+        connection
+            .execute_batch("DROP TRIGGER reject_backlog;")
+            .unwrap();
+        run_migrations(&connection).unwrap();
+        assert_eq!(has_column(&connection), 1);
     }
 
     #[test]

@@ -11,6 +11,7 @@ import { LibraryUtilityBar } from "./components/LibraryUtilityBar";
 import { IgdbSettings } from "./components/IgdbSettings";
 import { BackupSettings } from "./components/BackupSettings";
 import { Reports } from "./components/Reports";
+import { Backlog } from "./components/Backlog";
 import { StatsPanel } from "./components/StatsPanel";
 const AddGameFlow = lazy(() =>
   import("./components/AddGameFlow").then((m) => ({ default: m.AddGameFlow })),
@@ -35,6 +36,8 @@ export function App() {
   });
   const [filters, setFilters] = useState(emptyFilters);
   const [view, setView] = useState<Destination>("library");
+  // Where Cancel and Save return to after editing a game.
+  const [editReturn, setEditReturn] = useState<Destination>("library");
   const [selected, setSelected] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -163,6 +166,7 @@ export function App() {
                       )}
                       edit={() => {
                         setSelected(game.id);
+                        setEditReturn("library");
                         navigate("edit");
                       }}
                       remove={() => setDeleting(true)}
@@ -192,19 +196,33 @@ export function App() {
                       key={view === "edit" ? game?.id : "new"}
                       game={view === "edit" ? (game ?? undefined) : undefined}
                       platforms={platforms}
-                      cancel={() => navigate("library")}
+                      cancel={() => navigate(editReturn)}
                       saved={(saved) => {
                         setGames((current) => [
                           ...current.filter((g) => g.id !== saved.id),
                           saved,
                         ]);
                         setSelected(saved.id);
-                        navigate("library");
+                        navigate(editReturn);
                         void refresh().catch((e) => setError(String(e)));
                       }}
                     />
                   )}
                 </Suspense>
+              </section>
+            )}
+            {view === "backlog" && (
+              <section className="page-scroll">
+                <Backlog
+                  games={games}
+                  platforms={platforms}
+                  refresh={refresh}
+                  edit={(id) => {
+                    setSelected(id);
+                    setEditReturn("backlog");
+                    navigate("edit");
+                  }}
+                />
               </section>
             )}
             {view === "platforms" && (

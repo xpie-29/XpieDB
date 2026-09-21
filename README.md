@@ -100,7 +100,7 @@ The SQLite database is a normal portable SQLite database. Personal databases, co
 Migration 1 establishes migration bookkeeping and `app_meta`. Migration 2 adds
 `platforms`, `games`, `tags`, `game_tags`, and `preferences`, plus 20 built-in
 platforms. Each migration applies its SQL and completion record within one
-transaction. Migration 3 adds nullable free-text `games.account`; existing games
+transaction. Migration 3 adds nullable free-text `games.account`; migration 4 adds nullable `games.backlog_position`; existing games
 retain their data with Account unset. Failed migrations roll back both schema
 changes and bookkeeping.
 
@@ -133,15 +133,43 @@ whole collection. It works on Windows and macOS, and a backup made on one opens 
 See [Milestone 5 verification](docs/milestone-5-verification.md) for the test evidence
 and remaining manual checks.
 
+## Backlog
+
+**Backlog** is a play status. Games with it appear on the **Backlog** page as a numbered list
+in an order you set by hand (1 is next up). It is separate from **Not Started**: Not Started
+means owned with no plan, Backlog means queued to play.
+
+- **Membership follows status.** Setting a game's status to Backlog (in the game form, the
+  IGDB import, or **Add games...** on the Backlog page) puts it at the bottom of the list.
+  Changing the status to anything else removes it and the numbers close up. Deleting a game
+  does the same.
+- **Reordering:** drag the handle (the list rearranges live as you drag), or focus the handle
+  and press Up/Down (Home/End for the top and bottom), or use **Move to top**. Each change
+  is saved immediately.
+- **Row actions:** Move to top, **Start playing** (status becomes Playing), Edit (returns to the
+  Backlog afterward), and Remove (status becomes Not Started).
+- **Add games...** opens a searchable list of games not in the backlog; tick several and they are
+  added to the bottom in the order you tick them.
+- **Saved with the library:** the order is stored in the database (`games.backlog_position`,
+  migration 4), so backups and restores keep it. Backups from before this version restore normally.
+- The game inspector shows "Backlog position", the Library's Play Status filter includes Backlog,
+  and Reports has a **Backlog, in order** preset that prints only these games, numbered, in your order.
+
+Rust enforces one rule: a game has a position exactly when its status is Backlog, and positions
+are 1, 2, 3 with no gaps. Saving a new order must list exactly the games currently in the
+backlog, so a stale screen cannot drop or duplicate entries. Databases that break the rule
+(edited or foreign files) are repaired when the app starts and when a backup is restored.
+See [Milestone 8 verification](docs/milestone-8-verification.md).
+
 ## Statistics
 
 A collapsible **Statistics** ribbon sits under the Library search bar. Collapsed, it is one
 line ("60 games · 40% completed · 8 platforms · 3.0 average rating"); expanded, it shows:
 
-- **Tiles:** total games, completed % and count, backlog (Not Started), average rating
+- **Tiles:** total games, completed % and count, backlog (games with the Backlog status, with the Not Started count beneath), average rating
   (rated games only) with how many are rated, platforms in use, and the physical/digital split.
 - **Games by platform:** share of the collection per platform, top five plus an "Other" row.
-- **Games by play status:** one stacked bar with a legend of counts and shares.
+- **Games by play status:** one stacked bar (six statuses) with a legend of counts and shares.
 - **More breakdowns** (tabs): genre, release decade, rating distribution, games added per
   year, and developer.
 
@@ -162,6 +190,7 @@ Reports (toolbar) create a PDF of the library to read or print away from the com
 Two presets are built on one report engine:
 
 - **All games, alphabetical:** a single list sorted by title.
+- **Backlog, in order:** only games with the Backlog status, numbered in your manual order.
 - **Games by platform:** grouped by platform (sorted by name), each platform's games sorted
   by title. The PDF gets a bookmark per platform, and platform headings stay with their first rows.
 

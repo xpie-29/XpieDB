@@ -69,10 +69,25 @@ test("status breakdown keeps a fixed order and includes zero counts", () => {
   ];
   const s = computeStats(games, platforms);
   assert.deepEqual(s.byStatus.map((x) => x.label), [...statusOrder]);
-  assert.deepEqual(s.byStatus.map((x) => x.count), [2, 1, 1, 0, 0]);
+  // Completed, Playing, Not Started, Paused, Dropped, Backlog
+  assert.deepEqual(s.byStatus.map((x) => x.count), [2, 1, 1, 0, 0, 0]);
   assert.equal(s.completedPct, 50);
-  assert.equal(s.backlog, 1);
-  assert.equal(s.backlogPct, 25);
+  assert.equal(s.backlog, 0);
+  assert.equal(s.notStarted, 1);
+});
+
+test("the backlog count is games with the Backlog status, separate from Not Started", () => {
+  const games = [
+    game({ play_status: "Backlog" }),
+    game({ play_status: "Backlog" }),
+    game({ play_status: "Not Started" }),
+    game({ play_status: "Completed" }),
+  ];
+  const s = computeStats(games, platforms);
+  assert.equal(s.backlog, 2);
+  assert.equal(s.backlogPct, 50);
+  assert.equal(s.notStarted, 1);
+  assert.equal(s.byStatus.find((x) => x.label === "Backlog").count, 2);
 });
 
 test("unexpected statuses are counted as Other instead of vanishing", () => {

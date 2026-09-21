@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { installMock, sampleGames } from "./statsMock";
+import { installMock, sampleGames } from "./libraryMock";
 
 const ribbon = (page: Page) => page.locator(".stats-ribbon");
 // Match the label exactly: "Games" alone would also match "24 games".
@@ -31,8 +31,14 @@ test("the ribbon is open by default with headline numbers for the whole library"
   const completed = count((g) => g.play_status === "Completed");
   await expect(tile(page, "Completed")).toContainText(pct(completed));
   await expect(tile(page, "Completed")).toContainText(`${completed} games`);
-  const backlog = count((g) => g.play_status === "Not Started");
+  // Backlog counts games with the Backlog status; Not Started is shown beneath it.
+  const backlog = count((g) => g.play_status === "Backlog");
+  const notStarted = count((g) => g.play_status === "Not Started");
+  expect(backlog).toBeGreaterThan(0);
   await expect(tile(page, "Backlog")).toContainText(String(backlog));
+  await expect(tile(page, "Backlog")).toContainText(
+    `${notStarted} not started`,
+  );
   await expect(tile(page, "Platforms")).toContainText("8");
   const rated = games.filter((g) => g.rating !== null);
   const average =
@@ -68,13 +74,14 @@ test("play status shows a stacked bar and a legend with counts and shares", asyn
 }) => {
   await installMock(page);
   const legend = card(page, "Games by play status").locator(".legend li");
-  await expect(legend).toHaveCount(5);
+  await expect(legend).toHaveCount(6);
   for (const status of [
     "Completed",
     "Playing",
     "Not Started",
     "Paused",
     "Dropped",
+    "Backlog",
   ]) {
     const n = count((g) => g.play_status === status);
     const row = legend.filter({ hasText: status });
@@ -83,7 +90,7 @@ test("play status shows a stacked bar and a legend with counts and shares", asyn
   }
   await expect(
     card(page, "Games by play status").locator(".stack-segment"),
-  ).toHaveCount(5);
+  ).toHaveCount(6);
 });
 
 test("hovering or focusing a mark shows its value and count", async ({
