@@ -27,12 +27,12 @@ pub fn resolve(root: &Path, relative: &str) -> Result<PathBuf> {
             .map_err(|e| e.to_string())?
             .starts_with(&canonical_root)
     {
-        return Err("Image directory is outside GameVault storage.".into());
+        return Err("Image directory is outside XpieDB storage.".into());
     }
     if path.exists() {
         let canonical = path.canonicalize().map_err(|e| e.to_string())?;
         if !canonical.starts_with(&canonical_root) {
-            return Err("Image is outside GameVault storage.".into());
+            return Err("Image is outside XpieDB storage.".into());
         }
     }
     Ok(path)

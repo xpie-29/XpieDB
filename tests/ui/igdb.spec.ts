@@ -233,7 +233,7 @@ test("result fields render and multiple platforms require a selection", async ({
     page.getByRole("button", { name: "Review import" }),
   ).toBeDisabled();
   await page.getByLabel("IGDB platform", { exact: true }).selectOption("48");
-  await expect(page.getByLabel("GameVault platform")).toHaveValue("13");
+  await expect(page.getByLabel("XpieDB platform")).toHaveValue("13");
   await expect(
     page.getByRole("button", { name: "Review import" }),
   ).toBeEnabled();
@@ -248,7 +248,7 @@ test("unmapped platform needs an explicit managed-platform choice", async ({
   await expect(
     page.getByRole("button", { name: "Review import" }),
   ).toBeDisabled();
-  await page.getByLabel("GameVault platform").selectOption("19");
+  await page.getByLabel("XpieDB platform").selectOption("19");
   await expect(
     page.getByRole("button", { name: "Review import" }),
   ).toBeEnabled();

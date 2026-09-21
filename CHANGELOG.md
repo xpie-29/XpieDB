@@ -1,5 +1,18 @@
 # Changelog
 
+## macOS port - 2026-09-21
+
+- Added macOS support alongside Windows; the app is now cross-platform.
+- Renamed the product from GameVault to XpieDB: bundle identifier
+  `com.xpiedb.desktop`, crate `xpiedb`, database `xpiedb.db`, and the credential
+  service. **Existing Windows libraries under `%APPDATA%\com.gamevault.desktop`
+  and saved IGDB credentials are not migrated automatically.** Dated verification
+  reports under `docs/` keep the original GameVault names.
+- Credential storage is selected per platform in `src-tauri/src/igdb/store.rs`
+  (Windows Credential Manager, macOS login Keychain).
+- macOS bundle targets (`.app`, `.dmg`) live in `src-tauri/tauri.macos.conf.json`.
+- Library search shortcut is Cmd+F on macOS.
+
 ## Milestone 4 - 2026-09-15
 
 - Added optional Rust-owned IGDB search, platform selection, and editable metadata review.
@@ -43,7 +56,7 @@
 
 ## 0.1.0 - 2026-09-15
 
-- Scaffolded the GameVault Tauri 2, React, TypeScript, Vite, and Fluent UI foundation.
+- Scaffolded the XpieDB Tauri 2, React, TypeScript, Vite, and Fluent UI foundation.
 - Added Rust application-data directory handling.
 - Added SQLite setup with a migration mechanism using bundled `rusqlite`.
 - Added a basic dark Windows-style application shell for the Library, Add Game, and Settings destinations.

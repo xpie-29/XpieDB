@@ -29,7 +29,7 @@ export function PrimaryToolbar({
 }) {
   return (
     <header className="primary-toolbar">
-      <div className="brand">GameVault</div>
+      <div className="brand">XpieDB</div>
       <nav aria-label="Primary">
         {destinations.map((d) => (
           <Button

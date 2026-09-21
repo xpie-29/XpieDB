@@ -1,5 +1,6 @@
 mod auth;
 mod models;
+pub mod store;
 #[cfg(test)]
 mod tests;
 use crate::{
@@ -50,7 +51,7 @@ fn connection(app: &tauri::AppHandle) -> Result<rusqlite::Connection> {
         app.path()
             .app_data_dir()
             .map_err(|_| "Application data unavailable.")?
-            .join("gamevault.db"),
+            .join("xpiedb.db"),
     )
     .map_err(|_| "Library unavailable.".into())
 }
@@ -101,7 +102,7 @@ impl ClientState {
                     .redirect(reqwest::redirect::Policy::none())
                     .timeout(Duration::from_secs(20))
                     .connect_timeout(Duration::from_secs(8))
-                    .user_agent("GameVault/0.1.0")
+                    .user_agent("XpieDB/0.1.0")
                     .build()
                     .map_err(|_| "Could not initialize the secure HTTP client.")?,
             );
@@ -314,7 +315,7 @@ pub async fn igdb_import(
         .iter()
         .any(|p| p.id == local_platform)
     {
-        return Err("Choose an existing GameVault platform.".into());
+        return Err("Choose an existing XpieDB platform.".into());
     }
     let mut inner = state.inner.lock().await;
     let credentials =

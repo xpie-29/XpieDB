@@ -11,8 +11,7 @@ fn root(app: &AppHandle) -> Result<std::path::PathBuf> {
     app.path().app_data_dir().map_err(|e| e.to_string())
 }
 fn connection(app: &AppHandle) -> Result<rusqlite::Connection> {
-    let c =
-        rusqlite::Connection::open(root(app)?.join("gamevault.db")).map_err(|e| e.to_string())?;
+    let c = rusqlite::Connection::open(root(app)?.join("xpiedb.db")).map_err(|e| e.to_string())?;
     c.busy_timeout(std::time::Duration::from_secs(5))
         .map_err(|e| e.to_string())?;
     c.execute_batch("PRAGMA foreign_keys=ON;")

@@ -1,3 +1,3 @@
 fn main() {
-    gamevault_lib::run();
+    xpiedb_lib::run();
 }

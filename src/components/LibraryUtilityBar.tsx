@@ -23,6 +23,9 @@ import {
   type LibraryFilters,
 } from "../libraryQuery";
 
+// Cmd+F on macOS (Ctrl+F is cursor movement in text fields there); Ctrl+F elsewhere.
+const isMac = navigator.userAgent.includes("Macintosh");
+
 export function LibraryUtilityBar({
   games,
   platforms,
@@ -44,7 +47,7 @@ export function LibraryUtilityBar({
   useEffect(() => {
     const focus = (event: KeyboardEvent) => {
       if (
-        event.ctrlKey &&
+        (isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey) &&
         event.key.toLowerCase() === "f" &&
         !event.altKey &&
         !document.querySelector("dialog[open]")

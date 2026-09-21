@@ -1,8 +1,8 @@
-# GameVault
+# XpieDB
 
-GameVault is a Windows desktop application for cataloging a personal video game collection.
+XpieDB is a cross-platform (Windows and macOS) desktop application for cataloging a personal video game collection.
 
-The project principle is simple: a durable local library where the user owns the data. GameVault does not require an account, subscription, cloud storage, or a server.
+The project principle is simple: a durable local library where the user owns the data. XpieDB does not require an account, subscription, cloud storage, or a server.
 
 ## Technology
 
@@ -34,45 +34,61 @@ Rust owns persistence and application-managed file paths. The frontend calls nar
 
 ## Development
 
-Prerequisites:
+Prerequisites (all platforms):
+
+- Node.js 22.18+ and npm (frontend tests use built-in TypeScript type stripping)
+- Rust stable (1.88 or newer)
+
+Windows:
 
 - Windows 10 or newer
 - Microsoft Visual Studio 2022 Build Tools with MSVC
 - WebView2
-- Node.js 22.18+ and npm (frontend tests use built-in TypeScript type stripping)
 - Rust stable MSVC toolchain
+
+macOS:
+
+- macOS 12 or newer
+- Xcode Command Line Tools (`xcode-select --install`)
 
 Install dependencies:
 
-```powershell
+```bash
 npm install
 ```
 
 Run the desktop app in development mode:
 
-```powershell
+```bash
 npm run tauri dev
 ```
 
-Build the production Windows app:
+Build the production app. Windows produces an NSIS installer; macOS produces
+`XpieDB.app` and a `.dmg` under `src-tauri/target/release/bundle/`:
 
-```powershell
+```bash
 npm run tauri build
 ```
 
+Platform-specific Tauri settings live in `src-tauri/tauri.macos.conf.json`, which
+Tauri merges over `tauri.conf.json` on macOS.
+
 ## Application Data
 
-GameVault uses Tauri's application data directory rather than hardcoded user paths.
+XpieDB uses Tauri's application data directory rather than hardcoded user paths.
 
-On Windows, the current application identifier resolves this to
-`%APPDATA%\com.gamevault.desktop`. The database is `gamevault.db`, with
-`covers` and `backups` directories alongside it.
+The current application identifier resolves this to:
+
+- Windows: `%APPDATA%\com.xpiedb.desktop`
+- macOS: `~/Library/Application Support/com.xpiedb.desktop`
+
+The database is `xpiedb.db`, with `covers` and `backups` directories alongside it.
 
 The foundation currently prepares:
 
 ```text
-GameVault/
-├── gamevault.db
+XpieDB/
+├── xpiedb.db
 ├── covers/
 └── backups/
 ```
@@ -88,7 +104,7 @@ transaction. Migration 3 adds nullable free-text `games.account`; existing games
 retain their data with Account unset. Failed migrations roll back both schema
 changes and bookkeeping.
 
-`rusqlite` is configured with the `bundled` feature so GameVault does not depend on a separate SQLite installation.
+`rusqlite` is configured with the `bundled` feature so XpieDB does not depend on a separate SQLite installation.
 
 ## Backup And Restore
 
@@ -102,10 +118,11 @@ are managed local files; saved records never require IGDB for browsing or editin
 Likely duplicates are warnings with an intentional additional-copy option.
 
 Configure Twitch Client ID and Client Secret directly in Settings. Rust stores
-both in Windows Credential Manager and keeps access tokens only in memory. Saved
+both in the OS credential store (Windows Credential Manager, or the macOS login
+Keychain) and keeps access tokens only in memory. Saved
 secrets are never returned to React, logged, or stored in the catalog database.
-The release service is `com.gamevault.desktop.twitch` (user `igdb`). Normal dev
-uses the same identity; an isolated `com.gamevault.verification` configuration
+The release service is `com.xpiedb.desktop.twitch` (user `igdb`). Normal dev
+uses the same identity; an isolated `com.xpiedb.verification` configuration
 has separate data and credentials. Restart tests must use the same identity.
 
 No metadata refresh or synchronization is implemented. Local edits remain
@@ -114,7 +131,7 @@ for mappings, release-date rules, security decisions, and test results.
 
 ## Foundation Checks
 
-```powershell
+```bash
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo test --manifest-path src-tauri/Cargo.toml --locked
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
@@ -127,8 +144,13 @@ npm run tauri build
 ```
 
 The migration test checks repeated initialization and preservation of existing data.
-The Windows release executable is `src-tauri/target/release/gamevault.exe`;
+The Windows release executable is `src-tauri/target/release/xpiedb.exe`;
 the NSIS installer is produced under `src-tauri/target/release/bundle/nsis`.
+On macOS the app is `src-tauri/target/release/bundle/macos/XpieDB.app` and the
+disk image is under `src-tauri/target/release/bundle/dmg`. macOS builds are
+unsigned and not notarized: Gatekeeper blocks them on other Macs until they are
+signed with an Apple Developer ID. The first Keychain access from an unsigned
+development binary may show a system prompt.
 The library supports offline manual game creation, editing, deletion, tags,
 rich-text notes, managed covers, and custom platforms.
 
@@ -171,7 +193,7 @@ and visually checked. Installer installation/uninstallation was not tested.
   or ratings last in both directions. Sort persists through the existing preferences
   table; search and filters reset on restart. No schema migration is needed.
 - The inspector keeps its selection while visible, selects the first result if
-  filtered out, and disappears for no results. Ctrl+F focuses Library search.
+  filtered out, and disappears for no results. Ctrl+F (Cmd+F on macOS) focuses Library search.
 - Tags are trimmed and deduplicated using SQLite NOCASE (ASCII case folding).
   Saving a game and replacing its tags is atomic. Deletion cascades junctions.
 
@@ -237,8 +259,8 @@ built-in test runner; no test framework dependency is required. See
 750-record performance checks. Stats, IGDB, saved searches, and query syntax
 were outside Milestone 3 scope. IGDB is now implemented in Milestone 4.
 
-`npm run test:ui` runs mocked interaction tests in installed Microsoft Edge using
+`npm run test:ui` runs mocked interaction tests in installed Microsoft Edge (Windows) or Playwright's Chromium (macOS, after `npx playwright install chromium`) using
 Playwright, with an isolated Vite server on port 1421. These tests use no real
 credentials or catalog. The ordinary Rust suite also needs no credentials;
-explicit Windows credential-store checks and their cleanup are documented in the
+explicit native credential-store checks and their cleanup are documented in the
 Milestone 4 report.

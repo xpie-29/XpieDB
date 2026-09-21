@@ -1,10 +1,10 @@
 use super::*;
 use models::*;
 #[test]
-#[ignore = "Read-only Windows diagnostic; reports presence only, never credential values"]
-fn windows_credential_configuration_presence() {
-    keyring_core::set_default_store(windows_native_keyring_store::Store::new().unwrap());
-    for identifier in ["com.gamevault.verification", "com.gamevault.desktop"] {
+#[ignore = "Read-only native-store diagnostic; reports presence only, never credential values"]
+fn native_credential_configuration_presence() {
+    store::init().unwrap();
+    for identifier in ["com.xpiedb.verification", "com.xpiedb.desktop"] {
         let stored = auth::read(&credential_service(identifier)).unwrap();
         println!(
             "{identifier}: configured={}, client_id_present={}, client_secret_present={}",
@@ -24,29 +24,26 @@ fn credential_namespace_is_identity_based_not_build_profile() {
     let config: serde_json::Value =
         serde_json::from_str(include_str!("../../tauri.conf.json")).unwrap();
     let identifier = config["identifier"].as_str().unwrap();
-    assert_eq!(
-        credential_service(identifier),
-        "com.gamevault.desktop.twitch"
-    );
+    assert_eq!(credential_service(identifier), "com.xpiedb.desktop.twitch");
     assert_ne!(
         credential_service(identifier),
-        credential_service("com.gamevault.verification")
+        credential_service("com.xpiedb.verification")
     );
 }
 
 #[test]
-#[ignore = "Explicit Windows Credential Manager test; uses only a unique synthetic entry"]
-fn windows_credentials_survive_process_restart() {
-    keyring_core::set_default_store(windows_native_keyring_store::Store::new().unwrap());
+#[ignore = "Explicit native credential store test; uses only a unique synthetic entry"]
+fn native_credentials_survive_process_restart() {
+    store::init().unwrap();
     // The child reads a credential written by the parent without inheriting values.
-    if let Ok(service) = std::env::var("GAMEVAULT_SYNTHETIC_CREDENTIAL_TEST") {
-        assert!(service.starts_with("com.gamevault.test."));
+    if let Ok(service) = std::env::var("XPIEDB_SYNTHETIC_CREDENTIAL_TEST") {
+        assert!(service.starts_with("com.xpiedb.test."));
         let loaded = auth::read(&service).unwrap().unwrap();
         assert!(loaded.client_id == "synthetic-client-id");
         assert!(loaded.client_secret == "synthetic-client-secret");
         return;
     }
-    let service = format!("com.gamevault.test.{}.twitch", uuid::Uuid::new_v4());
+    let service = format!("com.xpiedb.test.{}.twitch", uuid::Uuid::new_v4());
     let credentials = Credentials::new(
         "synthetic-client-id".into(),
         "synthetic-client-secret".into(),
@@ -57,10 +54,10 @@ fn windows_credentials_survive_process_restart() {
     let outcome = std::process::Command::new(std::env::current_exe().unwrap())
         .args([
             "--exact",
-            "igdb::tests::windows_credentials_survive_process_restart",
+            "igdb::tests::native_credentials_survive_process_restart",
             "--ignored",
         ])
-        .env("GAMEVAULT_SYNTHETIC_CREDENTIAL_TEST", &service)
+        .env("XPIEDB_SYNTHETIC_CREDENTIAL_TEST", &service)
         .status();
     let cleanup = auth::clear(&service);
     assert!(cleanup.is_ok());

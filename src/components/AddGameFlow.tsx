@@ -219,7 +219,7 @@ export function AddGameFlow({
                     ))}
                   </Select>
                 </Field>
-                <Field label="GameVault platform">
+                <Field label="XpieDB platform">
                   <Select
                     disabled={locked}
                     value={local ?? ""}
@@ -239,7 +239,7 @@ export function AddGameFlow({
               {(!remote ||
                 !selected.platforms.find((p) => p.id === remote)?.local_id) && (
                 <p className="muted">
-                  No automatic mapping. Choose an existing GameVault platform.
+                  No automatic mapping. Choose an existing XpieDB platform.
                 </p>
               )}
               <Button

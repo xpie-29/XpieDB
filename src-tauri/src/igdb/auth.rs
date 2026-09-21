@@ -1,9 +1,6 @@
 use crate::catalog::Result;
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 #[derive(Serialize, Deserialize)]
 pub struct Credentials {
@@ -29,12 +26,8 @@ impl Credentials {
     }
 }
 fn entry(service: &str) -> Result<keyring_core::Entry> {
-    keyring_core::Entry::new_with_modifiers(
-        service,
-        "igdb",
-        &HashMap::from([("persistence", "Local")]),
-    )
-    .map_err(|_| "Windows credential storage is unavailable.".into())
+    keyring_core::Entry::new_with_modifiers(service, "igdb", &super::store::modifiers())
+        .map_err(|_| format!("{} is unavailable.", super::store::NAME))
 }
 pub fn read(service: &str) -> Result<Option<Credentials>> {
     match entry(service)?.get_password() {
@@ -42,7 +35,10 @@ pub fn read(service: &str) -> Result<Option<Credentials>> {
             .map(Some)
             .map_err(|_| "Stored IGDB credentials are invalid; update them in Settings.".into()),
         Err(keyring_core::Error::NoEntry) => Ok(None),
-        Err(_) => Err("Windows could not read IGDB credentials.".into()),
+        Err(_) => Err(format!(
+            "{} could not read IGDB credentials.",
+            super::store::NAME
+        )),
     }
 }
 pub fn write(service: &str, credentials: &Credentials) -> Result<()> {
@@ -50,12 +46,15 @@ pub fn write(service: &str, credentials: &Credentials) -> Result<()> {
         .set_password(
             &serde_json::to_string(credentials).map_err(|_| "Could not encode credentials.")?,
         )
-        .map_err(|_| "Windows could not save IGDB credentials.".into())
+        .map_err(|_| format!("{} could not save IGDB credentials.", super::store::NAME))
 }
 pub fn clear(service: &str) -> Result<()> {
     match entry(service)?.delete_credential() {
         Ok(()) | Err(keyring_core::Error::NoEntry) => Ok(()),
-        Err(_) => Err("Windows could not clear IGDB credentials.".into()),
+        Err(_) => Err(format!(
+            "{} could not clear IGDB credentials.",
+            super::store::NAME
+        )),
     }
 }
 #[derive(Deserialize)]

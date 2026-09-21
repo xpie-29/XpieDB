@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "GameVault",
+  "productName": "XpieDB",
   "version": "0.1.0",
-  "identifier": "com.gamevault.desktop",
+  "identifier": "com.xpiedb.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://127.0.0.1:5173",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "GameVault",
+        "title": "XpieDB",
         "width": 1180,
         "height": 760,
         "minWidth": 1040,
@@ -30,6 +30,6 @@
     "targets": ["nsis"],
     "category": "Entertainment",
     "shortDescription": "A local-first personal game collection catalog.",
-    "longDescription": "GameVault is a Windows desktop application for cataloging a personal video game collection while keeping collection data local and portable."
+    "longDescription": "XpieDB is a desktop application for cataloging a personal video game collection while keeping collection data local and portable."
   }
 }

@@ -35,9 +35,11 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            match windows_native_keyring_store::Store::new() {
-                Ok(store) => keyring_core::set_default_store(store),
-                Err(_) => eprintln!("Windows credential storage initialization failed; local Library remains available"),
+            if igdb::store::init().is_err() {
+                eprintln!(
+                    "{} initialization failed; local Library remains available",
+                    igdb::store::NAME
+                );
             }
             storage::initialize(app.handle())?;
             Ok(())
@@ -66,5 +68,5 @@ pub fn run() {
             igdb::igdb_import
         ])
         .run(tauri::generate_context!())
-        .expect("failed to run GameVault");
+        .expect("failed to run XpieDB");
 }

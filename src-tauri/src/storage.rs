@@ -48,11 +48,11 @@ struct Migration {
 
 #[derive(Debug, Error)]
 pub enum StorageError {
-    #[error("GameVault could not find the application data directory.")]
+    #[error("XpieDB could not find the application data directory.")]
     MissingAppDataDir,
-    #[error("GameVault could not prepare local storage: {0}")]
+    #[error("XpieDB could not prepare local storage: {0}")]
     Io(#[from] std::io::Error),
-    #[error("GameVault could not prepare the local database: {0}")]
+    #[error("XpieDB could not prepare the local database: {0}")]
     Sqlite(#[from] rusqlite::Error),
 }
 
@@ -76,7 +76,7 @@ fn app_data_paths(app: &tauri::AppHandle) -> Result<AppDataPaths, StorageError> 
         .map_err(|_| StorageError::MissingAppDataDir)?;
 
     Ok(AppDataPaths {
-        database_path: app_data_dir.join("gamevault.db"),
+        database_path: app_data_dir.join("xpiedb.db"),
         covers_dir: app_data_dir.join("covers"),
         backups_dir: app_data_dir.join("backups"),
         app_data_dir,
