@@ -1,5 +1,16 @@
 # Changelog
 
+## Steam import - 2026-09-21
+
+- Added **Import from Steam** (Add Game): loads a Steam library with the official Web API, matches
+  each game to IGDB by Steam app ID for covers and details, shows a review list, and adds the chosen
+  games as digital Steam games. Add-only: existing games are skipped and never changed.
+- Options to send never-played games to the Backlog and to label the account; imports in groups of ten
+  with progress and Stop.
+- New Settings > Steam section (API key and profile, kept in the OS credential store).
+- IGDB client generalized to run any endpoint; Steam ID lookup uses `external_game_source`.
+- Bulk metadata refresh and other-platform (GOG, PlayStation, Nintendo, Xbox) import were considered and not built.
+
 ## Help and About - 2026-09-21
 
 - Added a Help menu with **About XpieDB** (version, "Created by Xpie, ChatGPT, and Claude",

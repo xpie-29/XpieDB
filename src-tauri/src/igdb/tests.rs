@@ -1,4 +1,5 @@
 use super::*;
+use crate::testutil::mock_server;
 use models::*;
 #[test]
 #[ignore = "Read-only native-store diagnostic; reports presence only, never credential values"]
@@ -187,49 +188,6 @@ fn errors_are_generic() {
     assert!(status_error(503).contains("unavailable"));
 }
 
-fn mock_server(
-    responses: Vec<(u16, &'static str)>,
-) -> (String, std::thread::JoinHandle<Vec<String>>) {
-    use std::io::{Read, Write};
-    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let address = format!("http://{}", listener.local_addr().unwrap());
-    let handle = std::thread::spawn(move || {
-        let mut requests = Vec::new();
-        for (status, body) in responses {
-            let (mut stream, _) = listener.accept().unwrap();
-            stream
-                .set_read_timeout(Some(Duration::from_secs(5)))
-                .unwrap();
-            let mut data = Vec::new();
-            let mut buffer = [0; 4096];
-            loop {
-                let n = stream.read(&mut buffer).unwrap();
-                if n == 0 {
-                    break;
-                }
-                data.extend_from_slice(&buffer[..n]);
-                let text = String::from_utf8_lossy(&data);
-                if let Some(end) = text.find("\r\n\r\n") {
-                    let size = text[..end]
-                        .lines()
-                        .find_map(|line| {
-                            line.to_lowercase()
-                                .strip_prefix("content-length:")
-                                .and_then(|v| v.trim().parse::<usize>().ok())
-                        })
-                        .unwrap_or(0);
-                    if data.len() >= end + 4 + size {
-                        break;
-                    }
-                }
-            }
-            requests.push(String::from_utf8(data).unwrap());
-            write!(stream,"HTTP/1.1 {status} Test\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\nRetry-After: 2\r\n\r\n{body}",body.len()).unwrap();
-        }
-        requests
-    });
-    (address, handle)
-}
 #[test]
 fn mocked_auth_retry_and_cache() {
     let token = r#"{"access_token":"synthetic-token","expires_in":3600,"token_type":"bearer"}"#;
@@ -327,4 +285,192 @@ fn imported_id_and_local_edits_survive_reopen() {
     assert_eq!(loaded.data.igdb_id, Some(42));
     assert_eq!(loaded.data.title, "Local title wins");
     assert_eq!(loaded.data.account.as_deref(), Some("Personal"));
+}
+
+// ---- Steam matching through IGDB's external_games ----
+
+const TOKEN: &str = r#"{"access_token":"synthetic-token","expires_in":3600,"token_type":"bearer"}"#;
+fn steam_client(base: String) -> ClientState {
+    ClientState {
+        test_base: Some(base),
+        client: Some(reqwest::Client::new()),
+        ..Default::default()
+    }
+}
+fn run<T>(future: impl std::future::Future<Output = T>) -> T {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(future)
+}
+fn row(uid: &str, id: i64, name: &str, parent: Option<i64>) -> String {
+    let parent = parent.map_or(String::new(), |p| format!(r#","version_parent":{p}"#));
+    format!(r#"{{"id":9{id},"uid":"{uid}","game":{{"id":{id},"name":"{name}"{parent}}}}}"#)
+}
+
+#[test]
+fn steam_apps_are_matched_by_external_id_with_the_looked_up_source() {
+    let rows = format!(
+        "[{},{},{},{}]",
+        row("620", 100, "Portal 2", None),
+        row("730", 200, "Counter-Strike 2", None),
+        // Not asked for: ignored.
+        row("4242", 300, "Unrequested", None),
+        // Present but IGDB has no game for it.
+        r#"{"id":1,"uid":"999","game":null}"#,
+    );
+    let (base, server) = crate::testutil::mock_server(vec![
+        (200, TOKEN),
+        (200, r#"[{"id":1,"name":"Steam"}]"#),
+        (200, Box::leak(rows.into_boxed_str())),
+    ]);
+    let mut client = steam_client(base);
+    let credentials = Credentials::new("id".into(), "secret".into()).unwrap();
+    let found = run(client.steam_matches(&credentials, &[620, 730, 999])).unwrap();
+    assert_eq!(
+        found
+            .iter()
+            .map(|m| (m.appid, m.game.id, m.game.name.as_str()))
+            .collect::<Vec<_>>(),
+        [(620, 100, "Portal 2"), (730, 200, "Counter-Strike 2")]
+    );
+    let requests = server.join().unwrap();
+    assert!(requests[1].starts_with("POST /external_game_sources "));
+    assert!(requests[1].contains(r#"where name = "Steam""#));
+    assert!(requests[2].starts_with("POST /external_games "));
+    assert!(requests[2].contains("external_game_source = 1 &"));
+    assert!(requests[2].contains(r#"uid = ("620","730","999")"#));
+    assert!(requests[2].contains("game.cover.image_id"));
+    assert!(requests[2].contains("Bearer synthetic-token"));
+    // The retired numeric `category` field is not used.
+    assert!(!requests[2].contains("category"));
+}
+
+#[test]
+fn the_source_id_comes_from_igdb_and_is_remembered() {
+    let (base, server) = crate::testutil::mock_server(vec![
+        (200, TOKEN),
+        (200, r#"[{"id":57,"name":"steam"}]"#),
+        (200, "[]"),
+        (200, "[]"),
+    ]);
+    let mut client = steam_client(base);
+    let credentials = Credentials::new("id".into(), "secret".into()).unwrap();
+    run(async {
+        client.steam_matches(&credentials, &[1]).await.unwrap();
+        client.steam_matches(&credentials, &[2]).await.unwrap();
+    });
+    let requests = server.join().unwrap();
+    // token, ONE source lookup, then two match queries using the found id.
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|r| r.starts_with("POST /external_game_sources "))
+            .count(),
+        1
+    );
+    assert!(requests[2].contains("external_game_source = 57 &"));
+    assert!(requests[3].contains("external_game_source = 57 &"));
+}
+
+#[test]
+fn an_unknown_source_falls_back_to_the_historic_steam_id() {
+    let (base, server) = crate::testutil::mock_server(vec![(200, TOKEN), (200, "[]"), (200, "[]")]);
+    let mut client = steam_client(base);
+    let credentials = Credentials::new("id".into(), "secret".into()).unwrap();
+    run(client.steam_matches(&credentials, &[1])).unwrap();
+    assert!(server.join().unwrap()[2].contains("external_game_source = 1 &"));
+}
+
+#[test]
+fn large_libraries_are_matched_in_batches_of_fifty() {
+    let (base, server) = crate::testutil::mock_server(vec![
+        (200, TOKEN),
+        (200, r#"[{"id":1,"name":"Steam"}]"#),
+        (200, "[]"),
+        (200, "[]"),
+        (200, "[]"),
+    ]);
+    let mut client = steam_client(base);
+    let credentials = Credentials::new("id".into(), "secret".into()).unwrap();
+    let appids: Vec<u64> = (1..=120).collect();
+    run(client.steam_matches(&credentials, &appids)).unwrap();
+    let requests = server.join().unwrap();
+    let batches: Vec<usize> = requests
+        .iter()
+        .filter(|r| r.starts_with("POST /external_games "))
+        .map(|r| r.matches("\",\"").count() + 1)
+        .collect();
+    assert_eq!(batches, [50, 50, 20]);
+}
+
+#[test]
+fn no_apps_means_no_network_traffic() {
+    let mut client = steam_client("http://127.0.0.1:1".into());
+    let credentials = Credentials::new("id".into(), "secret".into()).unwrap();
+    assert!(
+        run(client.steam_matches(&credentials, &[]))
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
+fn the_original_game_wins_over_versions_and_bundles_sharing_an_app_id() {
+    let rows = format!(
+        "[{},{},{}]",
+        row("10", 500, "Game Bundle", Some(400)),
+        row("10", 450, "Game Deluxe", Some(400)),
+        row("10", 400, "Game", None),
+    );
+    let (base, _server) = crate::testutil::mock_server(vec![
+        (200, TOKEN),
+        (200, r#"[{"id":1,"name":"Steam"}]"#),
+        (200, Box::leak(rows.into_boxed_str())),
+    ]);
+    let mut client = steam_client(base);
+    let credentials = Credentials::new("id".into(), "secret".into()).unwrap();
+    let found = run(client.steam_matches(&credentials, &[10])).unwrap();
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].game.id, 400);
+}
+
+#[test]
+fn malformed_rows_are_skipped_not_fatal() {
+    let rows = r#"[
+        {"id":1,"uid":"20","game":42},
+        {"id":2,"uid":"not-a-number","game":{"id":7,"name":"Bad uid"}},
+        {"id":3,"uid":"30","game":{"id":8,"name":"   "}},
+        {"id":4,"uid":30,"game":{"id":9,"name":"Numeric uid ok"}},
+        {"id":5,"game":{"id":10,"name":"No uid"}}
+    ]"#;
+    let (base, _server) = crate::testutil::mock_server(vec![
+        (200, TOKEN),
+        (200, r#"[{"id":1,"name":"Steam"}]"#),
+        (200, rows),
+    ]);
+    let mut client = steam_client(base);
+    let credentials = Credentials::new("id".into(), "secret".into()).unwrap();
+    let found = run(client.steam_matches(&credentials, &[20, 30])).unwrap();
+    assert_eq!(
+        found
+            .iter()
+            .map(|m| (m.appid, m.game.id))
+            .collect::<Vec<_>>(),
+        [(30, 9)]
+    );
+}
+
+#[test]
+fn igdb_failures_surface_as_generic_messages() {
+    let (base, _s) = crate::testutil::mock_server(vec![
+        (200, TOKEN),
+        (200, r#"[{"id":1,"name":"Steam"}]"#),
+        (503, "{}"),
+    ]);
+    let mut client = steam_client(base);
+    let credentials = Credentials::new("id".into(), "secret".into()).unwrap();
+    let error = run(client.steam_matches(&credentials, &[1])).err().unwrap();
+    assert!(error.contains("temporarily unavailable"), "{error}");
 }

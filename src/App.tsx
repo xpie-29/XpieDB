@@ -14,6 +14,8 @@ import { BackupSettings } from "./components/BackupSettings";
 import { Reports } from "./components/Reports";
 import { Backlog } from "./components/Backlog";
 import { About } from "./components/About";
+import { SteamImport } from "./components/SteamImport";
+import { SteamSettings } from "./components/SteamSettings";
 import { StatsPanel } from "./components/StatsPanel";
 const AddGameFlow = lazy(() =>
   import("./components/AddGameFlow").then((m) => ({ default: m.AddGameFlow })),
@@ -199,6 +201,7 @@ export function App() {
                       platforms={platforms}
                       games={games}
                       cancel={() => navigate("library")}
+                      steam={() => navigate("steam")}
                       saved={(saved) => {
                         setGames((current) => [...current, saved]);
                         setSelected(saved.id);
@@ -240,6 +243,16 @@ export function App() {
                 />
               </section>
             )}
+            {view === "steam" && (
+              <section className="page-scroll">
+                <SteamImport
+                  refresh={refresh}
+                  working={setBusy}
+                  close={() => navigate("library")}
+                  openSettings={() => navigate("settings")}
+                />
+              </section>
+            )}
             {view === "platforms" && (
               <section className="page-scroll">
                 <PlatformManager platforms={platforms} refresh={refresh} />
@@ -261,6 +274,7 @@ export function App() {
                   <h1>Settings</h1>
                 </header>
                 <IgdbSettings />
+                <SteamSettings />
                 <BackupSettings restored={reloadRestored} working={setBusy} />
                 <section className="data-location">
                   <h2>Local data</h2>

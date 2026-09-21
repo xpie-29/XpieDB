@@ -1,6 +1,45 @@
 import type { Page } from "@playwright/test";
 
+export type SteamItem = {
+  appid: number;
+  title: string;
+  year: string | null;
+  genre: string | null;
+  playtime_minutes: number;
+  matched: boolean;
+  duplicate: boolean;
+};
+
+/**
+ * A deterministic Steam library: 27 games, 2 already in the library (#2, #13),
+ * every fifth without an IGDB match, every third never played.
+ */
+export function sampleSteamLibrary(count = 27) {
+  const items: SteamItem[] = Array.from({ length: count }, (_, k) => {
+    const i = k + 1;
+    return {
+      appid: 1000 + i,
+      title: `Steam Game ${String(i).padStart(2, "0")}`,
+      year: i % 5 === 0 ? null : String(2010 + (i % 12)),
+      genre: i % 5 === 0 ? null : "Action, Indie",
+      playtime_minutes: i % 3 === 0 ? 0 : i * 17,
+      matched: i % 5 !== 0,
+      duplicate: i === 2 || i === 13,
+    };
+  });
+  return {
+    account_name: "Test Player",
+    matching_available: true,
+    items,
+  };
+}
+
 export type MockOptions = {
+  /** Steam import behavior. */
+  steam?: {
+    configured?: boolean;
+    library?: ReturnType<typeof sampleSteamLibrary>;
+  };
   /** Replaces the generated library. */
   games?: Array<Record<string, unknown>>;
   /** Extra saved preferences, e.g. { stats_open: "false" }. */
@@ -27,6 +66,15 @@ const platforms = [
 }));
 
 /** Deterministic 60-game library used by the stats tests. */
+platforms.push({
+  id: 18,
+  name: "Steam",
+  short_name: "Steam",
+  is_builtin: true,
+  icon_path: null,
+  sort_order: 18,
+});
+
 export function sampleGames() {
   const weights = [18, 14, 10, 7, 5, 3, 2, 1];
   const platformIds = weights.flatMap((w, i) => Array(w).fill(i + 1));
@@ -84,10 +132,41 @@ export function sampleGames() {
 
 export async function installMock(page: Page, options: MockOptions = {}) {
   await page.addInitScript(
-    ({ platforms, games, saved }) => {
+    ({ platforms, games, saved, steam }) => {
       const w = window as any;
       w.preferenceWrites = [];
       w.backlogCalls = [];
+      // ---- Steam import: mirrors the backend's add-only rules ----
+      w.steamConfigured = steam.configured;
+      w.steamCalls = [];
+      w.steamImportCalls = [];
+      w.steamFail = {};
+      w.steamCoverFail = [];
+      const steamAdd = (item: any, options: any) => {
+        const id = Math.max(0, ...games.map((g: any) => g.id)) + 1;
+        const queue = games.filter((g: any) => g.backlog_position !== null);
+        const backlog = options.backlog_unplayed && item.playtime_minutes === 0;
+        games.push({
+          id,
+          igdb_id: item.matched ? 5000 + item.appid : null,
+          title: item.title,
+          platform_id: 18,
+          account: options.account,
+          release_date: item.year ? `${item.year}-01-01` : null,
+          genre: item.genre,
+          developer: null,
+          publisher: null,
+          cover_path: null,
+          media_type: "Digital",
+          play_status: backlog ? "Backlog" : "Not Started",
+          rating: null,
+          notes_html: "",
+          tags: [],
+          date_added: "2026-09-21T00:00:00Z",
+          date_modified: "2026-09-21T00:00:00Z",
+          backlog_position: backlog ? queue.length + 1 : null,
+        });
+      };
       w.openedLinks = [];
       // Minimal stand-in for Tauri's event plumbing, so tests can fire menu events.
       const callbacks: Record<number, (e: unknown) => void> = {};
@@ -131,6 +210,73 @@ export async function installMock(page: Page, options: MockOptions = {}) {
           if (command === "get_app_data_info")
             return { appDataDir: "Synthetic in-memory catalog" };
           if (command === "image_data") return null;
+          if (command === "steam_config")
+            return { configured: w.steamConfigured };
+          if (command === "steam_clear_cache") {
+            w.steamCalls.push(["clear_cache"]);
+            return;
+          }
+          if (command === "steam_save_credentials") {
+            w.steamCalls.push(["save", args]);
+            if (w.steamSaveError) throw w.steamSaveError;
+            w.steamConfigured = true;
+            return;
+          }
+          if (command === "steam_clear_credentials") {
+            w.steamCalls.push(["clear"]);
+            w.steamConfigured = false;
+            return;
+          }
+          if (command === "steam_test") {
+            if (w.steamTestError) throw w.steamTestError;
+            return {
+              games: steam.library.items.length,
+              account_name: steam.library.account_name,
+            };
+          }
+          if (command === "steam_load") {
+            w.steamCalls.push(["load"]);
+            if (w.steamLoadError) throw w.steamLoadError;
+            if (w.steamLoadDelay)
+              await new Promise((r) => setTimeout(r, w.steamLoadDelay));
+            return JSON.parse(JSON.stringify(steam.library));
+          }
+          if (command === "steam_import") {
+            w.steamImportCalls.push({
+              appids: args.appids,
+              options: args.options,
+            });
+            if (w.steamThrowAtCall === w.steamImportCalls.length)
+              throw "Your Steam library is no longer loaded. Load it again.";
+            if (w.steamDelay)
+              await new Promise((r) => setTimeout(r, w.steamDelay));
+            return args.appids.map((appid: number) => {
+              const item = steam.library.items.find(
+                (i: any) => i.appid === appid,
+              );
+              const done = (status: string, message: string | null) => ({
+                appid,
+                title: item.title,
+                status,
+                message,
+              });
+              const have = games.some(
+                (g: any) =>
+                  g.platform_id === 18 &&
+                  g.title.toLowerCase() === item.title.toLowerCase(),
+              );
+              if (item.duplicate || have)
+                return done("skipped", "Already in your library.");
+              if (w.steamFail[appid]) return done("failed", w.steamFail[appid]);
+              steamAdd(item, args.options);
+              return done(
+                "added",
+                w.steamCoverFail.includes(appid)
+                  ? "Added without a cover: it could not be downloaded."
+                  : null,
+              );
+            });
+          }
           if (command === "plugin:event|listen") {
             (listeners[args.event] ??= []).push(args.handler);
             return args.handler;
@@ -194,6 +340,10 @@ export async function installMock(page: Page, options: MockOptions = {}) {
       platforms,
       games: options.games ?? sampleGames(),
       saved: options.preferences ?? {},
+      steam: {
+        configured: options.steam?.configured ?? true,
+        library: options.steam?.library ?? sampleSteamLibrary(),
+      },
     },
   );
   await page.goto("/");

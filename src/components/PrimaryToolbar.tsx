@@ -10,7 +10,14 @@ import {
 } from "@fluentui/react-icons";
 import type { Preferences } from "../types";
 export type Destination =
-  "library" | "backlog" | "add" | "edit" | "platforms" | "reports" | "settings";
+  | "library"
+  | "backlog"
+  | "add"
+  | "edit"
+  | "steam"
+  | "platforms"
+  | "reports"
+  | "settings";
 const destinations = [
   { id: "library", name: "Library", icon: <Grid20Regular /> },
   { id: "backlog", name: "Backlog", icon: <TextNumberListLtr20Regular /> },

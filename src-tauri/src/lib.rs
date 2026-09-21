@@ -5,9 +5,12 @@ mod commands;
 mod igdb;
 mod menu;
 mod report;
+mod steam;
 mod storage;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod testutil;
 
 use serde::Serialize;
 
@@ -36,6 +39,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(igdb::Igdb::default())
         .manage(backup::Backups::default())
+        .manage(steam::Steam::default())
         .on_menu_event(menu::on_event)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -73,6 +77,13 @@ pub fn run() {
             backup::backup_cancel_restore,
             backup::backup_restore,
             menu::about_info,
+            steam::steam_config,
+            steam::steam_save_credentials,
+            steam::steam_clear_credentials,
+            steam::steam_clear_cache,
+            steam::steam_test,
+            steam::steam_load,
+            steam::steam_import,
             report::report_create,
             igdb::igdb_config,
             igdb::igdb_save_credentials,

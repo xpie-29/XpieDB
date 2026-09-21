@@ -212,6 +212,39 @@ and orientation. Paper and orientation are remembered. A native save dialog pick
 
 See [Milestone 6 verification](docs/milestone-6-verification.md).
 
+## Steam Import
+
+**Add Game > Import from Steam** adds the games on your Steam account, matched to IGDB for covers
+and details. It only ever **adds**: a game already in the library (the same IGDB game, or the same
+title, on the Steam platform) is skipped and never modified, so your notes, ratings and edits are
+safe, and the import can be repeated later to pick up new purchases.
+
+Setup (Settings > Steam): a free Steam Web API key from steamcommunity.com/dev/apikey (Steam asks for
+a domain name; any name works) and your profile as a 17-digit Steam ID, a `steamcommunity.com/profiles/...`
+or `/id/...` link, or your custom profile name. In Steam, your profile's **Game details** must be
+Public while you import; if it is not, Steam returns nothing and the app says how to fix it. The key and
+profile are kept in the OS credential store like the IGDB credentials, and never sent to the interface.
+IGDB credentials (Settings > IGDB) are needed for covers and details; without them games are added with
+their Steam titles only.
+
+- **Load:** reads the account's games, then looks each one up in IGDB by its Steam app ID (an exact
+  match, not a title search, so wrong matches are avoided). Games IGDB does not know are still offered
+  and added with their Steam title.
+- **Review:** every game is listed with year, genre, play time and its status (Matched, No IGDB match,
+  Already in library). Filter by title, select or deselect all shown, or tick games one by one.
+  Games already in your library cannot be selected.
+- **Options:** optionally send never-played games (0 hours) to your Backlog, and give every imported
+  game an account label.
+- **Import:** platform Steam, media type Digital, status Not Started (or Backlog for never-played games
+  if you chose that). Games are imported in groups of ten with a progress bar, and you can stop after
+  the current group. A cover that cannot be downloaded does not stop the game from being added.
+
+Not supported, deliberately: GOG, PlayStation, Nintendo and Xbox libraries have no official way to be
+read, and the unofficial ones need your login and can break or put an account at risk, so those stay
+manual or IGDB-assisted. Code: `src-tauri/src/steam/` (Steam client, planning, import) and the Steam
+matching in `src-tauri/src/igdb/`; screens in `src/components/SteamImport.tsx` and `SteamSettings.tsx`.
+See [Steam import verification](docs/milestone-10-verification.md).
+
 ## Help And About
 
 The **Help** menu has **About XpieDB** and **XpieDB on GitHub**. About shows the version, states

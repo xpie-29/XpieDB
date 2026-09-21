@@ -1,5 +1,5 @@
-mod auth;
-mod models;
+pub(crate) mod auth;
+pub(crate) mod models;
 pub mod store;
 #[cfg(test)]
 mod tests;
@@ -10,13 +10,14 @@ use crate::{
 use auth::{Credentials, Token};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use models::{ApiGame, Import, SearchPlatform, SearchResult};
-use serde::Serialize;
+use serde::{Serialize, de::DeserializeOwned};
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tauri::{Manager, State};
 use tokio::sync::Mutex;
 
 pub struct Igdb {
-    inner: Mutex<ClientState>,
+    pub(crate) inner: Mutex<ClientState>,
     thumbnails: tokio::sync::Semaphore,
 }
 impl Default for Igdb {
@@ -28,9 +29,11 @@ impl Default for Igdb {
     }
 }
 #[derive(Default)]
-struct ClientState {
+pub(crate) struct ClientState {
     #[cfg(test)]
     test_base: Option<String>,
+    /// IGDB's id for the Steam source, looked up once per run.
+    steam_source: Option<i64>,
     token: Option<Token>,
     client: Option<reqwest::Client>,
     next_request: Option<Instant>,
@@ -40,7 +43,7 @@ struct ClientState {
 pub struct ConfigStatus {
     configured: bool,
 }
-fn service(app: &tauri::AppHandle) -> String {
+pub(crate) fn service(app: &tauri::AppHandle) -> String {
     credential_service(&app.config().identifier)
 }
 fn credential_service(identifier: &str) -> String {
@@ -83,16 +86,22 @@ async fn bounded(mut response: reqwest::Response, max: usize) -> Result<Vec<u8>>
 }
 impl ClientState {
     fn endpoint(&self, oauth: bool) -> String {
+        if oauth {
+            #[cfg(test)]
+            if let Some(base) = &self.test_base {
+                return format!("{base}/token");
+            }
+            return "https://id.twitch.tv/oauth2/token".into();
+        }
+        self.api("games")
+    }
+    /// URL of an IGDB API endpoint such as `games` or `external_games`.
+    fn api(&self, path: &str) -> String {
         #[cfg(test)]
         if let Some(base) = &self.test_base {
-            return format!("{base}/{}", if oauth { "token" } else { "games" });
+            return format!("{base}/{path}");
         }
-        if oauth {
-            "https://id.twitch.tv/oauth2/token"
-        } else {
-            "https://api.igdb.com/v4/games"
-        }
-        .into()
+        format!("https://api.igdb.com/v4/{path}")
     }
     fn http(&mut self) -> Result<reqwest::Client> {
         if self.client.is_none() {
@@ -161,12 +170,21 @@ impl ClientState {
         Ok(())
     }
     async fn games(&mut self, credentials: &Credentials, query: String) -> Result<Vec<ApiGame>> {
+        self.query("games", credentials, query).await
+    }
+    /// Runs an Apicalypse query against one IGDB endpoint.
+    async fn query<T: DeserializeOwned>(
+        &mut self,
+        path: &str,
+        credentials: &Credentials,
+        query: String,
+    ) -> Result<Vec<T>> {
         for attempt in 0..2 {
             self.token(credentials).await?;
             self.pace().await?;
             let response = self
                 .http()?
-                .post(self.endpoint(false))
+                .post(self.api(path))
                 .header("Client-ID", &credentials.client_id)
                 .bearer_auth(&self.token.as_ref().unwrap().value)
                 .header("Content-Type", "text/plain")
@@ -213,6 +231,147 @@ impl ClientState {
         )
         .await
     }
+}
+/// A Steam app that IGDB has a record for.
+pub(crate) struct SteamMatch {
+    pub appid: u64,
+    pub game: ApiGame,
+}
+/// The fields an import needs, shared by every lookup that returns full games.
+const GAME_FIELDS: &[&str] = &[
+    "name",
+    "first_release_date",
+    "platforms.name",
+    "platforms.slug",
+    "genres.name",
+    "involved_companies.company.name",
+    "involved_companies.developer",
+    "involved_companies.publisher",
+    "release_dates.platform",
+    "release_dates.date",
+    "cover.image_id",
+    "version_parent",
+];
+/// Steam app ids per IGDB request; keeps queries and responses small.
+const STEAM_BATCH: usize = 50;
+/// A row of IGDB's `external_games`: a store's id for a game, with the game expanded.
+#[derive(serde::Deserialize)]
+struct ExternalRow {
+    #[serde(default)]
+    uid: serde_json::Value,
+    game: Option<serde_json::Value>,
+}
+impl ExternalRow {
+    fn appid(&self) -> Option<u64> {
+        match &self.uid {
+            serde_json::Value::String(s) => s.trim().parse().ok(),
+            serde_json::Value::Number(n) => n.as_u64(),
+            _ => None,
+        }
+    }
+    fn game(&self) -> Option<ApiGame> {
+        let game: ApiGame = serde_json::from_value(self.game.clone()?).ok()?;
+        (game.id > 0 && !game.name.trim().is_empty()).then_some(game)
+    }
+}
+impl ClientState {
+    /// IGDB's id for the Steam source. Looked up rather than assumed because
+    /// IGDB replaced its old numeric `category` with `external_game_source`.
+    async fn steam_source_id(&mut self, credentials: &Credentials) -> Result<i64> {
+        if let Some(id) = self.steam_source {
+            return Ok(id);
+        }
+        let sources: Vec<models::Named> = self
+            .query(
+                "external_game_sources",
+                credentials,
+                "fields name; where name = \"Steam\"; limit 5;".into(),
+            )
+            .await?;
+        let id = sources
+            .iter()
+            .find(|s| s.name.eq_ignore_ascii_case("steam"))
+            .map_or(1, |s| s.id);
+        self.steam_source = Some(id);
+        Ok(id)
+    }
+    /// Finds the IGDB game for each Steam app id it knows. Apps IGDB does not
+    /// know are simply absent. When several IGDB records share an app id, the
+    /// original game wins over versions and bundles.
+    pub(crate) async fn steam_matches(
+        &mut self,
+        credentials: &Credentials,
+        appids: &[u64],
+    ) -> Result<Vec<SteamMatch>> {
+        if appids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let source = self.steam_source_id(credentials).await?;
+        let fields = GAME_FIELDS
+            .iter()
+            .map(|f| format!("game.{f}"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let mut best: HashMap<u64, ApiGame> = HashMap::new();
+        for chunk in appids.chunks(STEAM_BATCH) {
+            let uids = chunk
+                .iter()
+                .map(|id| format!("\"{id}\""))
+                .collect::<Vec<_>>()
+                .join(",");
+            let query = format!(
+                "fields uid,{fields}; where external_game_source = {source} & uid = ({uids}); limit 500;"
+            );
+            let rows: Vec<ExternalRow> = self.query("external_games", credentials, query).await?;
+            for row in rows {
+                let (Some(appid), Some(game)) = (row.appid(), row.game()) else {
+                    continue;
+                };
+                if !chunk.contains(&appid) {
+                    continue;
+                }
+                let better = best.get(&appid).is_none_or(|old| {
+                    (game.version_parent.is_some(), game.id)
+                        < (old.version_parent.is_some(), old.id)
+                });
+                if better {
+                    best.insert(appid, game);
+                }
+            }
+        }
+        let mut found: Vec<_> = best
+            .into_iter()
+            .map(|(appid, game)| SteamMatch { appid, game })
+            .collect();
+        found.sort_by_key(|m| m.appid);
+        Ok(found)
+    }
+}
+/// IGDB matches for Steam app ids, or `None` when IGDB is not configured.
+pub(crate) async fn steam_matches(
+    app: &tauri::AppHandle,
+    state: &Igdb,
+    appids: &[u64],
+) -> Result<Option<Vec<SteamMatch>>> {
+    let Some(credentials) = auth::read(&service(app))? else {
+        return Ok(None);
+    };
+    let mut inner = state.inner.lock().await;
+    inner.steam_matches(&credentials, appids).await.map(Some)
+}
+/// Downloads an IGDB cover into the library's managed images; returns its path.
+pub(crate) async fn download_cover(
+    app: &tauri::AppHandle,
+    state: &Igdb,
+    image_id: &str,
+) -> Result<String> {
+    let root = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Application data unavailable.")?;
+    let mut inner = state.inner.lock().await;
+    let bytes = inner.cover(image_id, false).await?;
+    assets::import_bytes(&root, &bytes, "covers")
 }
 #[tauri::command]
 pub async fn igdb_config(app: tauri::AppHandle, state: State<'_, Igdb>) -> Result<ConfigStatus> {

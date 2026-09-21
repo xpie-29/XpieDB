@@ -12,6 +12,7 @@ import {
   Edit20Regular,
   ArrowLeft20Regular,
   ArrowRight20Regular,
+  ArrowDownload20Regular,
 } from "@fluentui/react-icons";
 import type { Game, Platform } from "../types";
 import {
@@ -44,11 +45,13 @@ export function AddGameFlow({
   games,
   saved,
   cancel,
+  steam,
 }: {
   platforms: Platform[];
   games: Game[];
   saved: (g: Game) => void;
   cancel: () => void;
+  steam?: () => void;
 }) {
   const [path, setPath] = useState<"choose" | "search" | "manual" | "review">(
     "choose",
@@ -120,6 +123,15 @@ export function AddGameFlow({
         >
           Enter Manually
         </Button>
+        {steam && (
+          <Button
+            disabled={locked}
+            icon={<ArrowDownload20Regular />}
+            onClick={steam}
+          >
+            Import from Steam
+          </Button>
+        )}
       </div>
       {path === "search" && (
         <>

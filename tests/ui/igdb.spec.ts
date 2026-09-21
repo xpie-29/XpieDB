@@ -1,5 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 
+// Settings also has a Steam section with buttons of the same names.
+const igdb = (page: Page) => page.locator(".igdb-settings");
+
 test("Settings reloads persisted configuration without exposing saved credentials", async ({
   page,
 }) => {
@@ -8,14 +11,14 @@ test("Settings reloads persisted configuration without exposing saved credential
     await page.reload();
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     await expect(
-      page.getByText("Credentials configured", { exact: true }),
+      igdb(page).getByText("Credentials configured", { exact: true }),
     ).toBeVisible();
     await expect(page.getByLabel("Client ID", { exact: true })).toHaveValue("");
     await expect(page.getByLabel("Client Secret", { exact: true })).toHaveValue(
       "",
     );
-    await page.getByRole("button", { name: "Test connection" }).click();
-    await expect(page.getByText("IGDB connection successful.")).toBeVisible();
+    await igdb(page).getByRole("button", { name: "Test connection" }).click();
+    await expect(igdb(page).getByText("IGDB connection successful.")).toBeVisible();
   }
 });
 
@@ -24,22 +27,22 @@ test("Settings surfaces credential read and write failures", async ({
 }) => {
   await mock(page, "storage-error", false);
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await expect(page.getByRole("alert")).toHaveText(
+  await expect(igdb(page).getByRole("alert")).toHaveText(
     "Windows could not read IGDB credentials.",
   );
   await page.getByLabel("Client ID", { exact: true }).fill("synthetic-id");
   await page
     .getByLabel("Client Secret", { exact: true })
     .fill("synthetic-secret");
-  await page.getByRole("button", { name: "Save credentials" }).click();
-  await expect(page.getByRole("alert")).toHaveText(
+  await igdb(page).getByRole("button", { name: "Save credentials" }).click();
+  await expect(igdb(page).getByRole("alert")).toHaveText(
     "Windows could not save IGDB credentials.",
   );
   await expect(page.getByLabel("Client Secret", { exact: true })).toHaveValue(
     "",
   );
   await expect(
-    page.getByRole("button", { name: "Test connection" }),
+    igdb(page).getByRole("button", { name: "Test connection" }),
   ).toBeDisabled();
 });
 
@@ -100,6 +103,7 @@ async function mock(page: Page, mode = "results", add = true) {
             if (mode === "storage-error") throw "Windows could not read IGDB credentials.";
             return { configured: mode === "configured" };
           }
+          if (command === "steam_config") return { configured: false };
           if (command === "igdb_test") return;
           if (command === "igdb_save_credentials") throw "Windows could not save IGDB credentials.";
           if (command === "list_games") return games;
