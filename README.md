@@ -32,6 +32,131 @@ React + TypeScript + Fluent UI
 
 Rust owns persistence and application-managed file paths. The frontend calls narrow Tauri commands for local data operations.
 
+## Build XpieDB On Your Own Mac
+
+XpieDB is not offered as a ready-made download. To use it on a Mac you build it yourself from this
+source code. This section assumes you have never built software before; you only need to copy and paste
+the commands. **You do not need an Apple Developer account, a paid certificate, or to sign anything.**
+
+**What you need:** a Mac running macOS 12 (Monterey) or newer, an internet connection, and about 5 GB of free
+disk space (the finished app is only about 25 MB; the rest is temporary build files). It was built and
+tested on an Apple Silicon Mac. Intel Macs should also work but have not been tested.
+
+**How long it takes:** installing the tools in steps 2 and 3 takes roughly 10 to 20 minutes, mostly waiting for
+downloads. The first build in step 5 then takes a few minutes; on a fast Mac with the downloads already cached it
+took about a minute and a quarter. Later rebuilds are faster.
+
+### Step 1: Open Terminal
+
+Press **Command + Space**, type **Terminal**, and press Return. Every command below is typed (or pasted) into
+that window, one at a time, followed by Return.
+
+### Step 2: Install Apple's command line tools
+
+```bash
+xcode-select --install
+```
+
+A window asks whether to install the tools; click **Install** and wait for it to finish. If it says they are
+already installed, carry on.
+
+### Step 3: Install Homebrew, Node.js and Rust
+
+1. Install **Homebrew** (a tool that installs other tools) by following the one-line installer at
+   [brew.sh](https://brew.sh). It may ask for your Mac password; nothing appears as you type it, which is normal.
+   When it finishes it prints a few "Next steps" commands; run them exactly as shown.
+2. Install Node.js (runs the interface tooling) and Rust (builds the app's core), and make Rust available in
+   Terminal. On an **Apple Silicon** Mac (M1 and newer):
+
+```bash
+brew install node rustup
+echo 'export PATH="/opt/homebrew/opt/rustup/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+rustup default stable
+```
+
+   On an **Intel** Mac, use `/usr/local/opt/rustup/bin` in the second line instead of `/opt/homebrew/opt/rustup/bin`.
+3. Check that they work:
+
+```bash
+node --version
+cargo --version
+```
+
+   Node should report 22.18 or newer and Cargo 1.88 or newer. If either says "command not found", close
+   Terminal, open it again, and retry.
+
+### Step 4: Download the code
+
+```bash
+cd ~
+git clone https://github.com/xpie-29/GameVault.git
+cd GameVault
+git checkout macos-port
+```
+
+The project (and its GitHub repository) still carry the name GameVault; the app itself is XpieDB. The Mac
+version currently lives on the `macos-port` branch. `git` was installed in step 2. You need access to the
+repository; if it is private, sign in to GitHub when Git asks. If you would rather not use Git, download the
+branch from GitHub as a ZIP (Code > Download ZIP), unzip it, and `cd` into the unzipped folder.
+
+### Step 5: Build and install
+
+```bash
+npm run install:mac
+```
+
+This one command installs the JavaScript packages, builds the app, puts **XpieDB** in your **Applications**
+folder (or `~/Applications` if that is not writable), and opens it. Lots of text scrolls past and your Mac's fans
+may spin up; that is normal. It is done when you see `Installed /Applications/XpieDB.app` and the app opens.
+
+### Step 6: Use it
+
+XpieDB opens with an empty library. Add games by hand with **Add Game**, or set up the optional services in
+**Settings**: IGDB (free Twitch developer credentials) adds cover art and details, and Steam lets you import
+your Steam library. Each section there explains what you need and links to where to get it. Your games, covers
+and backups are stored in `~/Library/Application Support/com.xpiedb.desktop`, and API keys are kept in your
+Mac's Keychain, never inside the app.
+
+### Updating, uninstalling
+
+To get newer versions, or to rebuild after changing the code:
+
+```bash
+cd ~/GameVault
+git pull
+npm run install:mac
+```
+
+Your library is stored outside the app, so updating never touches it. To uninstall, quit XpieDB and drag it from
+Applications to the Trash. To also erase your library, delete the `com.xpiedb.desktop` folder shown above (use
+**Settings > Back up library** first if you might want it back), and delete the `GameVault` folder to reclaim the
+build files. Saved credentials appear in **Keychain Access** as `com.xpiedb.desktop.twitch` and
+`com.xpiedb.desktop.steam`.
+
+### If something goes wrong
+
+| What you see | What to do |
+|---|---|
+| `command not found: npm`, `node` or `cargo` | Step 3 is incomplete, or Terminal needs restarting. Close and reopen Terminal, or run `source ~/.zshrc`. |
+| `rustup could not choose a version of cargo` | Run `rustup default stable`. |
+| `xcrun: error: invalid active developer path`, or `linker 'cc' not found` | Run `xcode-select --install` (step 2). |
+| The build fails after a macOS or Xcode update | Run `xcode-select --install` again, then `cd src-tauri && cargo clean && cd ..` and repeat step 5. |
+| A message that Node is too old | Run `brew upgrade node`. |
+| The app ended up in `~/Applications` rather than `/Applications` | Normal when your account cannot write to the main Applications folder; it works the same. To choose a folder yourself: `XPIEDB_INSTALL_DIR=~/Desktop npm run install:mac`. |
+| macOS says XpieDB "is damaged" or "cannot be opened" because Apple cannot check it | This only happens to a copy that was moved from another Mac or downloaded. Build it on this Mac (steps 1 to 5), or run `xattr -dr com.apple.quarantine /Applications/XpieDB.app` once. |
+| The build ran out of disk space | Free some space and run step 5 again. Deleting `src-tauri/target` clears old build files. |
+
+**Why there is no signing:** signing and notarization (paid Apple Developer membership) exist so other people can
+download an app without warnings. An app built and run on the same Mac is never downloaded, so macOS does not
+block it. The build is only ad-hoc signed, which is what lets it run on Apple Silicon, so **a copy of the app moved
+to another Mac will be blocked**; anyone who wants it should build their own using this section. The development
+build (`npm run tauri dev`) and the installed app share the same library folder, so do not run both at once.
+
+**Options for `npm run install:mac`:** add `-- --no-open` to install without launching the app, or set
+`XPIEDB_INSTALL_DIR=/some/folder` to install somewhere other than Applications. Other useful commands are below
+under Development, including running the test suites.
+
 ## Development
 
 Prerequisites (all platforms):
@@ -50,6 +175,7 @@ macOS:
 
 - macOS 12 or newer
 - Xcode Command Line Tools (`xcode-select --install`)
+- New to this? [Build XpieDB On Your Own Mac](#build-xpiedb-on-your-own-mac) walks through every step.
 
 Install dependencies:
 
@@ -72,24 +198,6 @@ npm run tauri build
 
 Platform-specific Tauri settings live in `src-tauri/tauri.macos.conf.json`, which
 Tauri merges over `tauri.conf.json` on macOS.
-
-## Installing On Your Own Mac (No Signing Needed)
-
-To run XpieDB as a normal app on the Mac you built it on, no Apple Developer account, signing or
-notarization is needed:
-
-```bash
-npm run install:mac
-```
-
-This builds the app, closes any running copy, installs it to `/Applications` (or `~/Applications` if that
-is not writable), and opens it. Run it again after pulling or making changes to update the app. Your library,
-covers, backups and saved credentials live outside the app, so reinstalling never touches them.
-
-An app built and run on the same Mac is not blocked by Gatekeeper because it was never downloaded. The
-build is only ad-hoc signed, so **it will be blocked on another Mac** (or after being copied through a
-download); that would need a paid Apple Developer ID, which is deliberately not set up. The development
-build (`npm run tauri dev`) and the installed app use the same data folder, so avoid running both at once.
 
 ## Application Data
 

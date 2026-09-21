@@ -40,6 +40,20 @@ part of the app. Verified three ways:
   tags, covers or custom platforms). The installed app now opens with "0 games". One app-created safety backup
   from restore testing (`backups/xpiedb-pre-restore-*.zip`) still contains the sample games and can be deleted.
 
+## Build instructions verified from a clean copy
+
+The README guide was checked by following its build step from scratch: the project files (no `node_modules`,
+no build output) were copied to a new folder and `npm run install:mac -- --no-open` was run with
+`XPIEDB_INSTALL_DIR` pointing at a scratch folder, from a minimal environment (`PATH` of `/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin`,
+Rust deliberately not on it). Result: the script found Rust itself, installed 211 JavaScript packages, compiled,
+and produced a working ad-hoc-signed `XpieDB.app` (25 MB) in 74 seconds. That timing had a warm crate download cache on a
+fast Apple Silicon Mac; a first-time user will also wait for downloads. The build used about 1.9 GB (487 MB of
+`node_modules`, 1.4 GB of `src-tauri/target`). The installed app running on this Mac was not touched.
+
+Not reproduced here (the tools already exist on this Mac, so these steps are from documentation and experience,
+not from a test): installing Xcode command line tools, Homebrew, and Rust from nothing; the Intel Mac path variant;
+and `git clone` of the repository (the new files were copied from the working tree because they are not pushed yet).
+
 ## Not verified
 
 - Behavior on another Mac (it would be blocked by Gatekeeper; see the README).

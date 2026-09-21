@@ -1,5 +1,13 @@
 # Changelog
 
+## Mac build instructions - 2026-09-21
+
+- README: a step-by-step "Build XpieDB On Your Own Mac" guide for someone starting from scratch
+  (Terminal, command line tools, Homebrew, Node, Rust, download, build and install, first run, updating,
+  uninstalling, troubleshooting, and why no signing is needed).
+- `scripts/install-mac.sh`: `--no-open` flag, optional `XPIEDB_INSTALL_DIR`, installs JavaScript packages when
+  missing, and only closes a running copy at the install destination.
+
 ## Settings text and local install - 2026-09-21
 
 - Settings > IGDB now explains what IGDB is and how to get access (Twitch developer credentials) with a
