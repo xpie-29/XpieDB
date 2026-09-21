@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { Button, Spinner } from "@fluentui/react-components";
 import type { Game, Platform, Preferences } from "./types";
 import { Library } from "./components/Library";
@@ -12,6 +13,7 @@ import { IgdbSettings } from "./components/IgdbSettings";
 import { BackupSettings } from "./components/BackupSettings";
 import { Reports } from "./components/Reports";
 import { Backlog } from "./components/Backlog";
+import { About } from "./components/About";
 import { StatsPanel } from "./components/StatsPanel";
 const AddGameFlow = lazy(() =>
   import("./components/AddGameFlow").then((m) => ({ default: m.AddGameFlow })),
@@ -43,6 +45,7 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [about, setAbout] = useState(false);
   const [dataPath, setDataPath] = useState("");
   const visible = useMemo(
     () => queryLibrary(games, platforms, filters, preferences.library_sort),
@@ -88,6 +91,18 @@ export function App() {
   };
   useEffect(() => {
     void load();
+  }, []);
+  // The Help menu (native) asks the window to show the About dialog.
+  useEffect(() => {
+    let stop: (() => void) | undefined;
+    let cancelled = false;
+    listen("open-about", () => setAbout(true))
+      .then((unlisten) => (cancelled ? unlisten() : (stop = unlisten)))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
   }, []);
   // After a restore every record may differ, so drop view state tied to the old library.
   const reloadRestored = async () => {
@@ -256,6 +271,7 @@ export function App() {
           </>
         )}
       </div>
+      {about && <About close={() => setAbout(false)} />}
       {deleting && game && (
         <Confirm
           title="Delete game?"

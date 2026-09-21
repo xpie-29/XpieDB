@@ -1096,6 +1096,26 @@ button:focus-visible,
   display: flex;
   gap: 2px;
 }
+.about {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+}
+.about p {
+  margin: 0;
+}
+.about-version {
+  color: var(--colorNeutralForeground3);
+  font-size: 12px;
+}
+.about-credit {
+  font-weight: 600;
+  margin-top: 6px;
+}
+.about-small {
+  margin-top: 10px;
+  font-size: 12px;
+}
 .add-games {
   display: grid;
   gap: 8px;

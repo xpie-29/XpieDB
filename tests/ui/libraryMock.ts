@@ -88,6 +88,18 @@ export async function installMock(page: Page, options: MockOptions = {}) {
       const w = window as any;
       w.preferenceWrites = [];
       w.backlogCalls = [];
+      w.openedLinks = [];
+      // Minimal stand-in for Tauri's event plumbing, so tests can fire menu events.
+      const callbacks: Record<number, (e: unknown) => void> = {};
+      const listeners: Record<string, number[]> = {};
+      let nextCallback = 1;
+      w.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
+      w.hasTauriListener = (event: string) =>
+        (listeners[event] ?? []).length > 0;
+      w.fireTauriEvent = (event: string, payload: unknown = null) =>
+        (listeners[event] ?? []).forEach((id) =>
+          callbacks[id]({ event, id, payload }),
+        );
       // Mirrors the Rust rules: Backlog games hold positions 1..N without gaps.
       const queue = () =>
         games
@@ -96,6 +108,10 @@ export async function installMock(page: Page, options: MockOptions = {}) {
       const renumber = () =>
         queue().forEach((g: any, i: number) => (g.backlog_position = i + 1));
       w.__TAURI_INTERNALS__ = {
+        transformCallback: (callback: (e: unknown) => void) => {
+          callbacks[nextCallback] = callback;
+          return nextCallback++;
+        },
         invoke: async (command: string, args: any) => {
           // Like the real backend, hand back fresh copies on every call.
           if (command === "list_games")
@@ -115,6 +131,21 @@ export async function installMock(page: Page, options: MockOptions = {}) {
           if (command === "get_app_data_info")
             return { appDataDir: "Synthetic in-memory catalog" };
           if (command === "image_data") return null;
+          if (command === "plugin:event|listen") {
+            (listeners[args.event] ??= []).push(args.handler);
+            return args.handler;
+          }
+          if (command === "plugin:event|unlisten") return;
+          if (command === "about_info")
+            return {
+              name: "XpieDB",
+              version: "0.1.0",
+              repository: "https://github.com/xpie-29/GameVault",
+            };
+          if (command === "open_link") {
+            w.openedLinks.push(args.url);
+            return;
+          }
           if (command === "backlog_set_order") {
             w.backlogCalls.push([command, args.ids]);
             if (w.failNextOrder) {

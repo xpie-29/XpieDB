@@ -1,5 +1,12 @@
 # Changelog
 
+## Help and About - 2026-09-21
+
+- Added a Help menu with **About XpieDB** (version, "Created by Xpie, ChatGPT, and Claude",
+  a link to the GitHub repository, and IGDB and font credits) and **XpieDB on GitHub**.
+- On macOS the application-menu About opens the same dialog. The rest of the default menu is unchanged.
+- Bulk metadata refresh was removed from the feature list: it could overwrite personal edits.
+
 ## Milestone 8 - 2026-09-21
 
 - Added a **Backlog** play status and a Backlog page: a numbered list of Backlog games in a

@@ -3,6 +3,7 @@ mod backup;
 mod catalog;
 mod commands;
 mod igdb;
+mod menu;
 mod report;
 mod storage;
 #[cfg(test)]
@@ -35,6 +36,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(igdb::Igdb::default())
         .manage(backup::Backups::default())
+        .on_menu_event(menu::on_event)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
@@ -44,6 +46,7 @@ pub fn run() {
                     igdb::store::NAME
                 );
             }
+            app.set_menu(menu::build(app.handle())?)?;
             storage::initialize(app.handle())?;
             Ok(())
         })
@@ -69,6 +72,7 @@ pub fn run() {
             backup::backup_choose_restore,
             backup::backup_cancel_restore,
             backup::backup_restore,
+            menu::about_info,
             report::report_create,
             igdb::igdb_config,
             igdb::igdb_save_credentials,

@@ -212,6 +212,17 @@ and orientation. Paper and orientation are remembered. A native save dialog pick
 
 See [Milestone 6 verification](docs/milestone-6-verification.md).
 
+## Help And About
+
+The **Help** menu has **About XpieDB** and **XpieDB on GitHub**. About shows the version, states
+that XpieDB was created by Xpie, ChatGPT, and Claude, links to the repository
+(https://github.com/xpie-29/GameVault, opened in the default browser), and credits IGDB and the
+DejaVu Sans font. On macOS the standard application-menu About opens the same dialog. The
+menu is Tauri's default menu (so Edit, Window and the rest keep their normal behavior) with the
+Help items added in `src-tauri/src/menu.rs`; the dialog is `src/components/About.tsx`. The
+repository URL lives in one place, `REPOSITORY_URL` in `menu.rs`. The repository is still
+named GameVault; update that constant if it is renamed.
+
 ## IGDB
 
 IGDB is optional: Add Game offers Search IGDB or Enter Manually. Search, choose a
@@ -227,7 +238,8 @@ The release service is `com.xpiedb.desktop.twitch` (user `igdb`). Normal dev
 uses the same identity; an isolated `com.xpiedb.verification` configuration
 has separate data and credentials. Restart tests must use the same identity.
 
-No metadata refresh or synchronization is implemented. Local edits remain
+No metadata refresh or synchronization is implemented, and bulk refresh is deliberately not
+planned because it could overwrite personal edits. Local edits remain
 authoritative. See [Milestone 4 verification](docs/milestone-4-verification.md)
 for mappings, release-date rules, security decisions, and test results.
 
