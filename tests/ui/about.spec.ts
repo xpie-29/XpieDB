@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { installMock } from "./libraryMock";
 
-const REPO = "https://github.com/xpie-29/GameVault";
+const REPO = "https://github.com/xpie-29/XpieDB";
 // Wait until the app has registered its listener, as it always has by the time a person can click a menu.
 const fire = async (page: Page) => {
   await page.waitForFunction(() =>
@@ -25,7 +25,7 @@ test("the Help menu event opens the About dialog with credits and the repository
   );
   await expect(dialog(page)).toContainText("Version 0.1.0");
   await expect(
-    dialog(page).getByRole("link", { name: "github.com/xpie-29/GameVault" }),
+    dialog(page).getByRole("link", { name: "github.com/xpie-29/XpieDB" }),
   ).toHaveAttribute("href", REPO);
   await expect(dialog(page)).toContainText("IGDB");
 });

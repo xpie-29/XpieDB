@@ -11,8 +11,8 @@ const ABOUT_ID: &str = "about";
 const GITHUB_ID: &str = "github";
 /// Frontend event that opens the About dialog.
 const ABOUT_EVENT: &str = "open-about";
-/// The repository still carries its original name, GameVault.
-pub const REPOSITORY_URL: &str = "https://github.com/xpie-29/GameVault";
+/// Where the source lives; shown in the About dialog and opened by Help > XpieDB on GitHub.
+pub const REPOSITORY_URL: &str = "https://github.com/xpie-29/XpieDB";
 
 #[derive(Serialize)]
 pub struct AboutInfo {

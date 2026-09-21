@@ -300,7 +300,7 @@ export async function installMock(page: Page, options: MockOptions = {}) {
             return {
               name: "XpieDB",
               version: "0.1.0",
-              repository: "https://github.com/xpie-29/GameVault",
+              repository: "https://github.com/xpie-29/XpieDB",
             };
           if (command === "open_link") {
             w.openedLinks.push(args.url);

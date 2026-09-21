@@ -90,15 +90,13 @@ cargo --version
 
 ```bash
 cd ~
-git clone https://github.com/xpie-29/GameVault.git
-cd GameVault
-git checkout macos-port
+git clone https://github.com/xpie-29/XpieDB.git
+cd XpieDB
 ```
 
-The project (and its GitHub repository) still carry the name GameVault; the app itself is XpieDB. The Mac
-version currently lives on the `macos-port` branch. `git` was installed in step 2. You need access to the
-repository; if it is private, sign in to GitHub when Git asks. If you would rather not use Git, download the
-branch from GitHub as a ZIP (Code > Download ZIP), unzip it, and `cd` into the unzipped folder.
+`git` was installed in step 2, and the repository is public, so Git does not ask you to sign in. If you would
+rather not use Git, download the code from GitHub as a ZIP (Code > Download ZIP), unzip it, and `cd` into the
+unzipped folder.
 
 ### Step 5: Build and install
 
@@ -123,14 +121,14 @@ Mac's Keychain, never inside the app.
 To get newer versions, or to rebuild after changing the code:
 
 ```bash
-cd ~/GameVault
+cd ~/XpieDB
 git pull
 npm run install:mac
 ```
 
 Your library is stored outside the app, so updating never touches it. To uninstall, quit XpieDB and drag it from
 Applications to the Trash. To also erase your library, delete the `com.xpiedb.desktop` folder shown above (use
-**Settings > Back up library** first if you might want it back), and delete the `GameVault` folder to reclaim the
+**Settings > Back up library** first if you might want it back), and delete the `XpieDB` folder to reclaim the
 build files. Saved credentials appear in **Keychain Access** as `com.xpiedb.desktop.twitch` and
 `com.xpiedb.desktop.steam`.
 
@@ -375,12 +373,12 @@ See [Steam import verification](docs/milestone-10-verification.md).
 
 The **Help** menu has **About XpieDB** and **XpieDB on GitHub**. About shows the version, states
 that XpieDB was created by Xpie, ChatGPT, and Claude, links to the repository
-(https://github.com/xpie-29/GameVault, opened in the default browser), and credits IGDB and the
+(https://github.com/xpie-29/XpieDB, opened in the default browser), and credits IGDB and the
 DejaVu Sans font. On macOS the standard application-menu About opens the same dialog. The
 menu is Tauri's default menu (so Edit, Window and the rest keep their normal behavior) with the
 Help items added in `src-tauri/src/menu.rs`; the dialog is `src/components/About.tsx`. The
-repository URL lives in one place, `REPOSITORY_URL` in `menu.rs`. The repository is still
-named GameVault; update that constant if it is renamed.
+repository URL lives in one place, `REPOSITORY_URL` in `menu.rs`; update that constant (and rebuild) if the
+repository is ever renamed again.
 
 ## IGDB
 

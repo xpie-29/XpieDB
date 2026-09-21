@@ -1,5 +1,14 @@
 # Changelog
 
+## Repository rename cleanup - 2026-09-21
+
+- The GitHub repository and local folder are now named XpieDB. The About dialog and Help > XpieDB on GitHub
+  link to `https://github.com/xpie-29/XpieDB`, and the git remote and README (clone URL, folder name, update
+  and uninstall commands) were updated.
+- README download step no longer needs a branch checkout (the macOS port is on `master`) and no longer says the
+  repository might be private. The historical verification reports for milestones 2 to 4 keep the original
+  GameVault names on purpose, as records of what was verified at the time.
+
 ## Mac build instructions - 2026-09-21
 
 - README: a step-by-step "Build XpieDB On Your Own Mac" guide for someone starting from scratch
