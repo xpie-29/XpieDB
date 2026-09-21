@@ -225,3 +225,20 @@ fn image_import_validation_and_shared_cover_cleanup() {
         assert!(assets::resolve(dir.path(), path).is_err());
     }
 }
+
+#[test]
+fn report_preferences_accept_only_known_values() {
+    let (_dir, c) = database();
+    for (key, value) in [
+        ("report_paper", "letter"),
+        ("report_paper", "a4"),
+        ("report_orientation", "portrait"),
+        ("report_orientation", "landscape"),
+    ] {
+        set_preference(&c, key, value).unwrap();
+        assert_eq!(preferences(&c).unwrap()[key], value);
+    }
+    assert!(set_preference(&c, "report_paper", "legal").is_err());
+    assert!(set_preference(&c, "report_orientation", "sideways").is_err());
+    assert_eq!(preferences(&c).unwrap()["report_paper"], "a4");
+}

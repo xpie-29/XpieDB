@@ -559,7 +559,8 @@ button:focus-visible,
   overflow-wrap: anywhere;
 }
 .igdb-settings,
-.backup-settings {
+.backup-settings,
+.reports {
   max-width: 700px;
   margin-bottom: 32px;
 }
@@ -674,4 +675,28 @@ button:focus-visible,
   .brand {
     font-size: 18px;
   }
+}
+
+.reports fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 24px;
+}
+.reports legend {
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding: 0;
+}
+.reports .report-options {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.reports .columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+.reports [role="status"] {
+  overflow-wrap: anywhere;
 }

@@ -31,6 +31,9 @@ export type Preferences = {
   library_view: string;
   cover_size: string;
   library_sort: string;
+  // Absent until the user changes them.
+  report_paper?: string;
+  report_orientation?: string;
 };
 export const statuses = [
   "Not Started",

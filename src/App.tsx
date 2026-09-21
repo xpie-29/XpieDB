@@ -10,6 +10,7 @@ import { PrimaryToolbar, type Destination } from "./components/PrimaryToolbar";
 import { LibraryUtilityBar } from "./components/LibraryUtilityBar";
 import { IgdbSettings } from "./components/IgdbSettings";
 import { BackupSettings } from "./components/BackupSettings";
+import { Reports } from "./components/Reports";
 const AddGameFlow = lazy(() =>
   import("./components/AddGameFlow").then((m) => ({ default: m.AddGameFlow })),
 );
@@ -194,6 +195,16 @@ export function App() {
             {view === "platforms" && (
               <section className="page-scroll">
                 <PlatformManager platforms={platforms} refresh={refresh} />
+              </section>
+            )}
+            {view === "reports" && (
+              <section className="page-scroll">
+                <Reports
+                  gameCount={games.length}
+                  preferences={preferences}
+                  preference={preference}
+                  working={setBusy}
+                />
               </section>
             )}
             {view === "settings" && (

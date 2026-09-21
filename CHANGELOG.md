@@ -1,5 +1,16 @@
 # Changelog
 
+## Milestone 6 - 2026-09-21
+
+- Added Reports: PDF output for "All games, alphabetical" and "Games by platform",
+  with selectable columns, paper size, and orientation (paper and orientation remembered).
+- One report engine (model, pagination, PDF writer) behind both presets; new groupings
+  only need to extend the model builder.
+- PDFs have repeating column headers, page numbers, platform bookmarks, and selectable
+  text. Numbers in titles sort by value; accents and case are ignored.
+- Bundled DejaVu Sans (license included). Unprintable characters (CJK) show as `?` and
+  are reported. Added the `krilla`, `ttf-parser`, and `unicode-normalization` crates.
+
 ## Milestone 5 - 2026-09-21
 
 - Added backup and restore (Settings): one portable `.zip` with the database snapshot,

@@ -3,6 +3,7 @@ mod backup;
 mod catalog;
 mod commands;
 mod igdb;
+mod report;
 mod storage;
 #[cfg(test)]
 mod tests;
@@ -65,6 +66,7 @@ pub fn run() {
             backup::backup_choose_restore,
             backup::backup_cancel_restore,
             backup::backup_restore,
+            report::report_create,
             igdb::igdb_config,
             igdb::igdb_save_credentials,
             igdb::igdb_clear_credentials,

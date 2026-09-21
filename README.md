@@ -133,6 +133,33 @@ whole collection. It works on Windows and macOS, and a backup made on one opens 
 See [Milestone 5 verification](docs/milestone-5-verification.md) for the test evidence
 and remaining manual checks.
 
+## Reports
+
+Reports (toolbar) create a PDF of the library to read or print away from the computer.
+Two presets are built on one report engine:
+
+- **All games, alphabetical:** a single list sorted by title.
+- **Games by platform:** grouped by platform (sorted by name), each platform's games sorted
+  by title. The PDF gets a bookmark per platform, and platform headings stay with their first rows.
+
+Choose the columns after the title (platform, release year, genre, play status, rating as
+stars, account, media type), the paper size (US Letter or A4, chosen by locale until you pick)
+and orientation. Paper and orientation are remembered. A native save dialog picks the file.
+
+- Titles sort case- and accent-insensitively with numbers compared by value, so
+  "Hades Vol. 2" comes before "Hades Vol. 10". This differs slightly from the Library's
+  Title A-Z sort, which compares numbers as text.
+- Long titles wrap inside their column; the column headers repeat on every page; each
+  page footer reads "Page X of Y". Text in the PDF is selectable and searchable.
+- PDFs use a bundled font (DejaVu Sans, see `src-tauri/assets/fonts/LICENSE-DejaVu.txt`)
+  that covers Latin, Greek and Cyrillic scripts, accents and symbols such as roman numerals.
+  Japanese, Chinese and Korean text cannot be printed; those characters appear as `?` and
+  the app says how many were affected.
+- Code: `src-tauri/src/report/` (`mod.rs` builds the model, `layout.rs` paginates and writes
+  the PDF with the `krilla` crate). Adding a grouping or sort means extending `build`.
+
+See [Milestone 6 verification](docs/milestone-6-verification.md).
+
 ## IGDB
 
 IGDB is optional: Add Game offers Search IGDB or Enter Manually. Search, choose a
@@ -256,6 +283,7 @@ Missing or unreadable images display the application-owned placeholder.
 - `src-tauri/src/catalog.rs`: validation, sanitization, CRUD, tags, and preferences.
 - `src-tauri/src/assets.rs`: image import, resolution, display, and reference-aware cleanup.
 - `src-tauri/src/backup/`: backup, validation, restore, and their tests.
+- `src-tauri/src/report/`: PDF report model, layout, and tests.
 - `src-tauri/src/commands.rs`: narrow IPC wrappers, native picker, and safe URL opening.
 - `src-tauri/src/tests.rs`: temporary-database and image regression tests.
 - `src/components/`: Library, GameForm, GameDetail, PlatformManager, Notes editor/view,

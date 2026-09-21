@@ -291,6 +291,8 @@ pub fn set_preference(c: &Connection, key: &str, value: &str) -> Result<()> {
     let valid = match key {
         "library_view" => ["grid", "list"].contains(&value),
         "cover_size" => ["small", "medium", "large", "extra_large"].contains(&value),
+        "report_paper" => ["letter", "a4"].contains(&value),
+        "report_orientation" => ["portrait", "landscape"].contains(&value),
         "library_sort" => [
             "title_asc",
             "title_desc",

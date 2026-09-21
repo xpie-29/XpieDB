@@ -1,17 +1,20 @@
 import { Button, Select } from "@fluentui/react-components";
 import {
   Add20Regular,
+  DocumentPdf20Regular,
   Grid20Regular,
   List20Regular,
   Settings20Regular,
   Games20Regular,
 } from "@fluentui/react-icons";
 import type { Preferences } from "../types";
-export type Destination = "library" | "add" | "edit" | "platforms" | "settings";
+export type Destination =
+  "library" | "add" | "edit" | "platforms" | "reports" | "settings";
 const destinations = [
   { id: "library", name: "Library", icon: <Grid20Regular /> },
   { id: "add", name: "Add Game", icon: <Add20Regular /> },
   { id: "platforms", name: "Platforms", icon: <Games20Regular /> },
+  { id: "reports", name: "Reports", icon: <DocumentPdf20Regular /> },
   { id: "settings", name: "Settings", icon: <Settings20Regular /> },
 ] as const;
 export function PrimaryToolbar({
