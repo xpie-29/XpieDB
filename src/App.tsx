@@ -9,6 +9,7 @@ import { Confirm } from "./components/Shared";
 import { PrimaryToolbar, type Destination } from "./components/PrimaryToolbar";
 import { LibraryUtilityBar } from "./components/LibraryUtilityBar";
 import { IgdbSettings } from "./components/IgdbSettings";
+import { BackupSettings } from "./components/BackupSettings";
 const AddGameFlow = lazy(() =>
   import("./components/AddGameFlow").then((m) => ({ default: m.AddGameFlow })),
 );
@@ -83,6 +84,13 @@ export function App() {
   useEffect(() => {
     void load();
   }, []);
+  // After a restore every record may differ, so drop view state tied to the old library.
+  const reloadRestored = async () => {
+    await refresh();
+    setPreferences(await invoke<Preferences>("get_preferences"));
+    setFilters(emptyFilters());
+    setSelected(null);
+  };
   const editing = view === "add" || view === "edit";
   const navigate = (next: Destination) => {
     setError("");
@@ -194,6 +202,7 @@ export function App() {
                   <h1>Settings</h1>
                 </header>
                 <IgdbSettings />
+                <BackupSettings restored={reloadRestored} working={setBusy} />
                 <section className="data-location">
                   <h2>Local data</h2>
                   <p>{dataPath}</p>

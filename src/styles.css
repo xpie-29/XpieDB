@@ -558,9 +558,16 @@ button:focus-visible,
 .data-location {
   overflow-wrap: anywhere;
 }
-.igdb-settings {
+.igdb-settings,
+.backup-settings {
   max-width: 700px;
   margin-bottom: 32px;
+}
+.backup-settings .actions {
+  flex-wrap: wrap;
+}
+.backup-settings [role="status"] {
+  overflow-wrap: anywhere;
 }
 .igdb-settings form {
   display: grid;

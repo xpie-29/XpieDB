@@ -108,7 +108,30 @@ changes and bookkeeping.
 
 ## Backup And Restore
 
-Backup and restore are planned for Milestone 5. The intended behavior is to back up the SQLite database and all collection-owned local assets, including cover images.
+Settings > Backup and restore creates and restores a single `.zip` file holding the
+whole collection. It works on Windows and macOS, and a backup made on one opens on the other.
+
+- **Contents:** `manifest.json` (format, app and schema versions, counts), a consistent
+  snapshot of the SQLite database (`VACUUM INTO`, safe while the app is open), and every
+  cover and custom platform icon the catalog references. Unreferenced leftover images
+  are not included. IGDB credentials are never included; they stay in the OS credential store.
+- **Back up:** a native save dialog picks the destination. The archive is written beside
+  it as `.part` and renamed into place, so a failed backup never leaves a truncated file.
+- **Restore:** a native open dialog picks the file, which is fully validated before the
+  confirmation appears. Only the manifest, `xpiedb.db`, and `covers/` or `platform-icons/`
+  files with managed names are accepted, so path traversal and unexpected content are
+  rejected. Sizes are enforced while extracting, images must match their extension, and
+  the database must pass `PRAGMA integrity_check` and a foreign-key check. Older schemas
+  are migrated forward; a backup from a newer XpieDB is refused.
+- **Safety net:** after validation and before anything is replaced, the current library
+  is backed up automatically to `backups/xpiedb-pre-restore-<timestamp>.zip`. The swap is
+  a short series of renames that is rolled back if any step fails, so a failed restore
+  keeps the previous library. Safety backups are kept until you delete them.
+- A referenced image missing from the library at backup time is reported, not fatal;
+  it shows the placeholder, as it always has.
+
+See [Milestone 5 verification](docs/milestone-5-verification.md) for the test evidence
+and remaining manual checks.
 
 ## IGDB
 
@@ -232,6 +255,7 @@ Missing or unreadable images display the application-owned placeholder.
 - `src-tauri/migrations/002_library.sql`: catalog schema and platform seed.
 - `src-tauri/src/catalog.rs`: validation, sanitization, CRUD, tags, and preferences.
 - `src-tauri/src/assets.rs`: image import, resolution, display, and reference-aware cleanup.
+- `src-tauri/src/backup/`: backup, validation, restore, and their tests.
 - `src-tauri/src/commands.rs`: narrow IPC wrappers, native picker, and safe URL opening.
 - `src-tauri/src/tests.rs`: temporary-database and image regression tests.
 - `src/components/`: Library, GameForm, GameDetail, PlatformManager, Notes editor/view,

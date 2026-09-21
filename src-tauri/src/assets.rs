@@ -7,9 +7,11 @@ use std::{
     io::{Cursor, Read, Write},
     path::{Path, PathBuf},
 };
-const MAX_BYTES: u64 = 20 * 1024 * 1024;
+pub const MAX_BYTES: u64 = 20 * 1024 * 1024;
 
-pub fn resolve(root: &Path, relative: &str) -> Result<PathBuf> {
+/// Splits a managed relative path into (kind, filename), rejecting anything that
+/// is not `covers|platform-icons/<uuid>.<jpg|png|webp>`.
+pub fn parse_relative(relative: &str) -> Result<(&str, &str)> {
     let parts: Vec<_> = relative.split('/').collect();
     if parts.len() != 2 || !["covers", "platform-icons"].contains(&parts[0]) {
         return Err("Invalid managed image path.".into());
@@ -18,9 +20,22 @@ pub fn resolve(root: &Path, relative: &str) -> Result<PathBuf> {
     if uuid::Uuid::parse_str(stem).is_err() || !["jpg", "png", "webp"].contains(&ext) {
         return Err("Invalid image filename.".into());
     }
-    let path = root.join(parts[0]).join(parts[1]);
+    Ok((parts[0], parts[1]))
+}
+/// File extension for the image format detected from content, if supported.
+pub fn detect_extension(bytes: &[u8]) -> Option<&'static str> {
+    match image::guess_format(bytes).ok()? {
+        ImageFormat::Png => Some("png"),
+        ImageFormat::Jpeg => Some("jpg"),
+        ImageFormat::WebP => Some("webp"),
+        _ => None,
+    }
+}
+pub fn resolve(root: &Path, relative: &str) -> Result<PathBuf> {
+    let (kind, file) = parse_relative(relative)?;
+    let path = root.join(kind).join(file);
     let canonical_root = root.canonicalize().map_err(|e| e.to_string())?;
-    let parent = root.join(parts[0]);
+    let parent = root.join(kind);
     if parent.exists()
         && !parent
             .canonicalize()

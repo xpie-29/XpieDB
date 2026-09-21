@@ -31,6 +31,11 @@ const MIGRATIONS: &[Migration] = &[
     },
 ];
 
+/// Highest schema version this build understands.
+pub(crate) fn latest_version() -> i64 {
+    MIGRATIONS.last().map_or(0, |m| m.version)
+}
+
 #[derive(Debug)]
 pub struct AppDataPaths {
     pub app_data_dir: PathBuf,

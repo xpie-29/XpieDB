@@ -1,4 +1,5 @@
 mod assets;
+mod backup;
 mod catalog;
 mod commands;
 mod igdb;
@@ -32,6 +33,7 @@ fn get_app_data_info(app: tauri::AppHandle) -> Result<AppDataInfo, String> {
 pub fn run() {
     tauri::Builder::default()
         .manage(igdb::Igdb::default())
+        .manage(backup::Backups::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
@@ -59,6 +61,10 @@ pub fn run() {
             commands::image_data,
             commands::discard_image,
             commands::open_link,
+            backup::backup_create,
+            backup::backup_choose_restore,
+            backup::backup_cancel_restore,
+            backup::backup_restore,
             igdb::igdb_config,
             igdb::igdb_save_credentials,
             igdb::igdb_clear_credentials,

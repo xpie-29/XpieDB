@@ -1,5 +1,15 @@
 # Changelog
 
+## Milestone 5 - 2026-09-21
+
+- Added backup and restore (Settings): one portable `.zip` with the database snapshot,
+  covers, custom platform icons, and a manifest. Credentials are never included.
+- Restore validates the archive first, backs up the current library automatically,
+  then swaps it in with rollback on failure. Hostile or damaged archives are rejected.
+- Commands: `backup_create`, `backup_choose_restore`, `backup_restore`,
+  `backup_cancel_restore`. Added the `zip` crate (deflate only).
+- Rebuilt on the macOS branch: no earlier implementation had been committed.
+
 ## macOS port - 2026-09-21
 
 - Added macOS support alongside Windows; the app is now cross-platform.

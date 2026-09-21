@@ -87,12 +87,14 @@ export function Modal({
 export function Confirm({
   title,
   text,
+  label = "Delete",
   confirm,
   close,
   busy,
 }: {
   title: string;
   text: string;
+  label?: string;
   confirm: () => void;
   close: () => void;
   busy: boolean;
@@ -109,7 +111,7 @@ export function Confirm({
             Cancel
           </Button>
           <Button appearance="primary" disabled={busy} onClick={confirm}>
-            Delete
+            {label}
           </Button>
         </>
       }

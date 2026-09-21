@@ -29,6 +29,7 @@ tokio = { version = "1", features = ["sync", "time"] }
 serde_json = "1"
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 keyring-core = "1"
+zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2", "deflate-flate2-zlib-rs"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-native-keyring-store = "1.1"
