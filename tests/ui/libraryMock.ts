@@ -168,6 +168,8 @@ export async function installMock(page: Page, options: MockOptions = {}) {
         });
       };
       w.openedLinks = [];
+      w.igdbConfigured = false;
+      w.igdbCalls = [];
       // Minimal stand-in for Tauri's event plumbing, so tests can fire menu events.
       const callbacks: Record<number, (e: unknown) => void> = {};
       const listeners: Record<string, number[]> = {};
@@ -210,6 +212,18 @@ export async function installMock(page: Page, options: MockOptions = {}) {
           if (command === "get_app_data_info")
             return { appDataDir: "Synthetic in-memory catalog" };
           if (command === "image_data") return null;
+          if (command === "igdb_config")
+            return { configured: !!w.igdbConfigured };
+          if (command === "igdb_save_credentials") {
+            w.igdbCalls.push(["save", args]);
+            w.igdbConfigured = true;
+            return;
+          }
+          if (command === "igdb_clear_credentials") {
+            w.igdbConfigured = false;
+            return;
+          }
+          if (command === "igdb_test") return;
           if (command === "steam_config")
             return { configured: w.steamConfigured };
           if (command === "steam_clear_cache") {

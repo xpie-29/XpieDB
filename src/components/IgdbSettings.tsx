@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Button, Field, Input } from "@fluentui/react-components";
+import { Button, Field, Input, Link } from "@fluentui/react-components";
 import {
   Save20Regular,
   PlugConnected20Regular,
   Delete20Regular,
 } from "@fluentui/react-icons";
+const SETUP_PAGE = "https://api-docs.igdb.com/#getting-started";
+
 export function IgdbSettings() {
   const [configured, setConfigured] = useState(false),
     [id, setId] = useState(""),
@@ -33,6 +35,26 @@ export function IgdbSettings() {
   return (
     <section className="igdb-settings">
       <h2>IGDB</h2>
+      <p className="muted">
+        IGDB, the Internet Game Database, supplies cover art and details such as
+        release date, genres and developers when you search for a game or import
+        from Steam. It is optional: you can always add games by hand. Access
+        uses free Twitch developer credentials: sign in to the Twitch developer
+        console (Twitch requires two-factor authentication for this), register
+        an application (any name, with http://localhost as the OAuth redirect
+        URL), then copy its Client ID and create a Client Secret.{" "}
+        <Link
+          href={SETUP_PAGE}
+          onClick={(e) => {
+            e.preventDefault();
+            invoke("open_link", { url: SETUP_PAGE }).catch((err) =>
+              setError(String(err)),
+            );
+          }}
+        >
+          Set up IGDB access
+        </Link>
+      </p>
       <p role="status">
         {configured ? "Credentials configured" : "Not configured"}
       </p>

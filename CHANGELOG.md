@@ -1,5 +1,13 @@
 # Changelog
 
+## Settings text and local install - 2026-09-21
+
+- Settings > IGDB now explains what IGDB is and how to get access (Twitch developer credentials) with a
+  "Set up IGDB access" link, matching the Steam section. The status line ("Not configured" or
+  "Credentials configured") stays directly below the description.
+- Added `npm run install:mac`: builds and installs an unsigned copy to Applications for use on the same Mac.
+  Code signing and notarization were deliberately skipped, since they are only needed to share the app.
+
 ## Steam import - 2026-09-21
 
 - Added **Import from Steam** (Add Game): loads a Steam library with the official Web API, matches

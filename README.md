@@ -73,6 +73,24 @@ npm run tauri build
 Platform-specific Tauri settings live in `src-tauri/tauri.macos.conf.json`, which
 Tauri merges over `tauri.conf.json` on macOS.
 
+## Installing On Your Own Mac (No Signing Needed)
+
+To run XpieDB as a normal app on the Mac you built it on, no Apple Developer account, signing or
+notarization is needed:
+
+```bash
+npm run install:mac
+```
+
+This builds the app, closes any running copy, installs it to `/Applications` (or `~/Applications` if that
+is not writable), and opens it. Run it again after pulling or making changes to update the app. Your library,
+covers, backups and saved credentials live outside the app, so reinstalling never touches them.
+
+An app built and run on the same Mac is not blocked by Gatekeeper because it was never downloaded. The
+build is only ad-hoc signed, so **it will be blocked on another Mac** (or after being copied through a
+download); that would need a paid Apple Developer ID, which is deliberately not set up. The development
+build (`npm run tauri dev`) and the installed app use the same data folder, so avoid running both at once.
+
 ## Application Data
 
 XpieDB uses Tauri's application data directory rather than hardcoded user paths.
