@@ -190,7 +190,11 @@ export function Reader({
           zoomAtOpen.current,
         );
         if (cancelled) return;
+        // A newly opened document starts quietly on its first page, so show where it actually is.
+        const first = Math.min(Math.max(1, startPage), count);
         setPages(count);
+        setPage(first);
+        setPageText(String(first));
         setStatus("ready");
         instance
           .outline()

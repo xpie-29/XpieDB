@@ -289,6 +289,30 @@ test("other guides can be switched to without leaving the reader, each at its ow
   await expect(panel).toContainText("No other guides with a PDF.");
 });
 
+test("switching to a guide with no saved place shows page 1, not the old page number", async ({ page }) => {
+  const files = { 1: guidePdf(), 4: guidePdf() };
+  await servePdfs(page, files);
+  const guides = guidesFor(files).map((g: any) => ({
+    ...g,
+    files: g.files.map((f: any) => (f.id === 4 ? { ...f, last_page: null, last_opened_at: null } : f)),
+  }));
+  await installMock(page, { guides, preferences: { collection: "guides" } });
+  await page.getByRole("grid", { name: "Guides" }).getByRole("gridcell", { name: "Game 05 Official Guide", exact: true }).click();
+  await page.getByRole("button", { name: "Read" }).first().click();
+  await expect(bar(page).getByLabel("Page count")).toHaveText("of 8");
+  await pageBox(page).fill("6");
+  await pageBox(page).press("Enter");
+  await pageIs(page, 6);
+  await bar(page).getByRole("button", { name: "Other guides" }).click();
+  await reader(page).getByRole("button", { name: /Game 12 Guide\.pdf/ }).click();
+  await expect(bar(page)).toContainText("Game 12 Strategy Guide");
+  await pageIs(page, 1);
+  await expect(bar(page).getByRole("button", { name: "Previous page" })).toBeDisabled();
+  await expect(bar(page).getByRole("button", { name: "Next page" })).toBeEnabled();
+  await bar(page).getByRole("button", { name: "Next page" }).click();
+  await pageIs(page, 2);
+});
+
 test("a damaged file explains itself and offers the default reader", async ({ page }) => {
   await openReader(page, { files: { 1: Buffer.from("this is not a pdf at all") } }).catch(() => {});
   await expect(reader(page).getByRole("alert")).toContainText("doesn't look like a valid PDF");
