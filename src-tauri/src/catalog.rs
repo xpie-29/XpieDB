@@ -237,6 +237,12 @@ pub fn save_game(c: &Connection, id: Option<i64>, mut input: GameInput) -> Resul
 pub fn delete_game(c: &Connection, id: i64) -> Result<Option<String>> {
     let tx = c.unchecked_transaction().map_err(db)?;
     let old = get_game(&tx, id)?.data.cover_path;
+    // Guides for this game stay; they remember the title because the link is cleared.
+    tx.execute(
+        "UPDATE guides SET game_title=(SELECT title FROM games WHERE id=?1) WHERE game_id=?1",
+        [id],
+    )
+    .map_err(db)?;
     tx.execute("DELETE FROM games WHERE id=?", [id])
         .map_err(db)?;
     renumber_backlog(&tx).map_err(db)?;
@@ -399,7 +405,7 @@ pub fn save_platform(
     Ok(())
 }
 pub fn delete_platform(c: &Connection, id: i64) -> Result<()> {
-    let changed=c.execute("DELETE FROM platforms WHERE id=? AND is_builtin=0 AND NOT EXISTS(SELECT 1 FROM games WHERE platform_id=platforms.id) AND NOT EXISTS(SELECT 1 FROM hardware WHERE platform_id=platforms.id)",[id]).map_err(db)?;
+    let changed=c.execute("DELETE FROM platforms WHERE id=? AND is_builtin=0 AND NOT EXISTS(SELECT 1 FROM games WHERE platform_id=platforms.id) AND NOT EXISTS(SELECT 1 FROM hardware WHERE platform_id=platforms.id) AND NOT EXISTS(SELECT 1 FROM guides WHERE platform_id=platforms.id)",[id]).map_err(db)?;
     if changed == 0 {
         return Err("Only unused custom platforms can be deleted.".into());
     }

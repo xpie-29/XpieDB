@@ -13,10 +13,12 @@ file is what a new session needs to start working safely.
 - The owner develops on this Mac and runs the **installed app** (`/Applications/XpieDB.app`), built with
   `npm run install:mac`. The dev app (`npm run tauri dev`) and the installed app share one data folder, so do
   not run both at once, and quit the installed app before changing its database from outside.
-- Never touch the owner's real library: `~/Library/Application Support/com.xpiedb.desktop` (`xpiedb.db`,
-  `covers/`, `platform-icons/`, `backups/`). It currently holds their real data. The 60 "Sample Game" rows used
-  in early testing were deleted; test data lives only in `tests/ui/libraryMock.ts`. Use a temp `HOME` or temp
-  directories for experiments, and make a copy before any manual database edit.
+- The owner's current library (`~/Library/Application Support/com.xpiedb.desktop`: `xpiedb.db`, `covers/`,
+  `platform-icons/`, `backups/`) is **temporary**: as of 2026-10-04 the owner said not to worry about corrupting
+  it, because they will start again with a fresh install and new database once the app is at the level they want
+  to use. Schema migrations and the installed app may therefore be tried on it directly. It is still polite to keep
+  using the sandbox (`scripts/mac-test-run.sh`) for UI experiments, since it needs no cleanup and never affects the
+  installed app. Test data lives only in `tests/ui/libraryMock.ts`.
 - Screen capture is enabled for this app: `screencapture -x -o -l <windowid>` after finding the window id with
   CoreGraphics (a small Swift snippet) lets you check the real native window.
 - **Real-window testing is a standard step for UI changes** (the owner expects it; mocked Playwright tests alone
@@ -53,9 +55,9 @@ paths and the build fails otherwise).
   (`src-tauri/src/igdb/store.rs` selects Windows Credential Manager or macOS Keychain), are never returned to the
   frontend, and never appear in logs or error text.
 - **Modules** (`src-tauri/src/`): `catalog.rs` (games, platforms, tags, preferences, backlog order),
-  `storage.rs` (migrations 1-6), `assets.rs` (managed images), `backup/` (zip backup and restore),
+  `storage.rs` (migrations 1-7), `assets.rs` (managed images), `backup/` (zip backup and restore),
   `report/` (PDF reports via `krilla`), `igdb/` (IGDB client, auth, models), `steam/` (Steam import),
-  `hardware.rs` (Hardware collection), `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
+  `hardware.rs` (Hardware collection), `guides.rs` (Guides collection), `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
   pure logic in `src/stats.ts`, `libraryQuery.ts`, `steamImport.ts`, `listOrder.ts` (kept free of Tauri so
   `node --test` can run it).
 - **Schema changes are migrations** (`src-tauri/migrations/NNN_*.sql`, registered in `storage.rs`), each applied
@@ -66,6 +68,9 @@ paths and the build fails otherwise).
 - **Hardware invariants** (Rust-enforced in `hardware.rs`): a parent is always a `system`, systems have no
   parent or compatibility list, accessories are never deleted with their system (they go with it when it is sold,
   or become loose and remember `former_parent_name`). Hardware photos reuse the `covers` folder.
+- **Guides** (`guides.rs`): a guide may link to a game (`game_id`) or name one you do not own (`game_title`).
+  Deleting a game never deletes its guides: `catalog::delete_game` copies the title into `game_title` first.
+  Guide photos reuse the `covers` folder like Hardware photos.
 - **Preferences** are an allow-listed key/value table (`catalog::set_preference`); add new keys there.
 - **Steam/IGDB import is add-only**: never modify an existing game. Bulk metadata refresh was deliberately
   rejected by the owner because it could overwrite personal edits; do not build it.

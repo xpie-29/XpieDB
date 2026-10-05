@@ -1,6 +1,7 @@
 use crate::{
     assets,
     catalog::{self, Game, GameInput, Platform, Result},
+    guides::{self, Guide, GuideInput},
     hardware::{self, Hardware, HardwareInput},
 };
 use std::collections::HashMap;
@@ -99,6 +100,38 @@ pub fn save_hardware(
 pub fn delete_hardware(app: AppHandle, id: i64) -> Result<()> {
     let c = connection(&app)?;
     if let Some(old) = hardware::delete_hardware(&c, id)?
+        && let Err(e) = assets::remove_unused(&c, &root(&app)?, &old)
+    {
+        eprintln!("{e}");
+    }
+    Ok(())
+}
+#[tauri::command]
+pub fn list_guides(app: AppHandle) -> Result<Vec<Guide>> {
+    guides::list_guides(&connection(&app)?)
+}
+#[tauri::command]
+pub fn save_guide(app: AppHandle, id: Option<i64>, input: GuideInput) -> Result<Guide> {
+    let root = root(&app)?;
+    let c = connection(&app)?;
+    assets::validate_reference(&root, input.photo_path.as_deref(), "covers")?;
+    let old = id
+        .map(|id| guides::get_guide(&c, id))
+        .transpose()?
+        .and_then(|g| g.data.photo_path);
+    let guide = guides::save_guide(&c, id, input)?;
+    if let Some(old) = old
+        && guide.data.photo_path.as_ref() != Some(&old)
+        && let Err(e) = assets::remove_unused(&c, &root, &old)
+    {
+        eprintln!("{e}");
+    }
+    Ok(guide)
+}
+#[tauri::command]
+pub fn delete_guide(app: AppHandle, id: i64) -> Result<()> {
+    let c = connection(&app)?;
+    if let Some(old) = guides::delete_guide(&c, id)?
         && let Err(e) = assets::remove_unused(&c, &root(&app)?, &old)
     {
         eprintln!("{e}");

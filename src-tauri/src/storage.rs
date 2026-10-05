@@ -44,6 +44,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "hardware",
         sql: include_str!("../migrations/006_hardware.sql"),
     },
+    Migration {
+        version: 7,
+        name: "guides",
+        sql: include_str!("../migrations/007_guides.sql"),
+    },
 ];
 
 /// Highest schema version this build understands.
@@ -374,6 +379,29 @@ mod tests {
             .unwrap();
         run_migrations(&connection).unwrap();
         assert_eq!(tables(&connection), 2);
+    }
+
+    #[test]
+    fn guides_table_rolls_back_when_bookkeeping_fails() {
+        let connection = Connection::open_in_memory().unwrap();
+        apply_migrations(&connection, &MIGRATIONS[..6]).unwrap();
+        connection.execute_batch("CREATE TRIGGER reject_guides BEFORE INSERT ON schema_migrations WHEN NEW.version=7 BEGIN SELECT RAISE(ABORT,'test failure'); END;").unwrap();
+        assert!(run_migrations(&connection).is_err());
+        let tables = |connection: &Connection| -> i64 {
+            connection
+                .query_row(
+                    "SELECT count(*) FROM sqlite_master WHERE name='guides'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap()
+        };
+        assert_eq!(tables(&connection), 0);
+        connection
+            .execute_batch("DROP TRIGGER reject_guides;")
+            .unwrap();
+        run_migrations(&connection).unwrap();
+        assert_eq!(tables(&connection), 1);
     }
 
     #[test]

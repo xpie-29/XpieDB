@@ -130,7 +130,7 @@ pub fn data_url(root: &Path, relative: &str) -> Result<String> {
 }
 pub fn remove_unused(c: &Connection, root: &Path, relative: &str) -> Result<()> {
     let path = resolve(root, relative)?;
-    let used:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM games WHERE cover_path=?1) OR EXISTS(SELECT 1 FROM hardware WHERE photo_path=?1) OR EXISTS(SELECT 1 FROM platforms WHERE icon_path=?1)",[relative],|r|r.get(0)).map_err(|e|e.to_string())?;
+    let used:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM games WHERE cover_path=?1) OR EXISTS(SELECT 1 FROM hardware WHERE photo_path=?1) OR EXISTS(SELECT 1 FROM guides WHERE photo_path=?1) OR EXISTS(SELECT 1 FROM platforms WHERE icon_path=?1)",[relative],|r|r.get(0)).map_err(|e|e.to_string())?;
     if !used && path.exists() {
         fs::remove_file(path).map_err(|e| format!("Cannot remove unused image: {e}"))?;
     }

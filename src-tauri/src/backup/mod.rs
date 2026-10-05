@@ -95,6 +95,7 @@ fn referenced_images(c: &Connection) -> Result<Vec<String>> {
         .prepare(
             "SELECT cover_path FROM games WHERE cover_path IS NOT NULL \
              UNION SELECT photo_path FROM hardware WHERE photo_path IS NOT NULL \
+             UNION SELECT photo_path FROM guides WHERE photo_path IS NOT NULL \
              UNION SELECT icon_path FROM platforms WHERE icon_path IS NOT NULL ORDER BY 1",
         )
         .map_err(err)?;

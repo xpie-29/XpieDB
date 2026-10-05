@@ -564,3 +564,16 @@ fn hardware_photos_are_part_of_a_backup() {
     .unwrap();
     assert!(referenced_images(&c).unwrap().contains(&photo));
 }
+
+#[test]
+fn guide_photos_are_part_of_a_backup() {
+    let (dir, _cover) = library(6);
+    let c = connect(dir.path());
+    let photo = assets::import_bytes(dir.path(), &png(88), "covers").unwrap();
+    c.execute(
+        "INSERT INTO guides (title, has_physical, photo_path) VALUES ('Guide', 1, ?1)",
+        [&photo],
+    )
+    .unwrap();
+    assert!(referenced_images(&c).unwrap().contains(&photo));
+}
