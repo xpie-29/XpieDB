@@ -265,7 +265,7 @@ export function Library({
               style={
                 {
                   "--list-columns": gridTemplate(widths),
-                  "--list-width": `${totalWidth(widths) + 80}px`,
+                  "--list-width": `${totalWidth(widths) + 72}px`,
                 } as CSSProperties
               }
             >

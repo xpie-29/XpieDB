@@ -59,15 +59,15 @@ test("list: double-clicking a border fits the column; Reset columns restores def
   const head = page.getByRole("columnheader", { name: "Title" });
   await expect(page.getByRole("button", { name: "Reset columns" })).toHaveCount(0);
   await page.getByRole("separator", { name: "Resize Title column" }).dblclick();
-  // "Game 01" is much shorter than the 280px default.
+  // "Game 01" is much shorter than the 220px default.
   const fitted = (await head.boundingBox())!.width;
   expect(fitted).toBeLessThan(200);
   expect(fitted).toBeGreaterThanOrEqual(80);
   await page.getByRole("button", { name: "Reset columns" }).click();
-  expect(Math.round((await head.boundingBox())!.width)).toBe(280);
+  expect(Math.round((await head.boundingBox())!.width)).toBe(220);
   const last = (await writes(page)).at(-1);
   expect(last[0]).toBe("list_columns");
-  expect(JSON.parse(last[1]).title).toBe(280);
+  expect(JSON.parse(last[1]).title).toBe(220);
 });
 
 test("list: arrow keys resize a focused border", async ({ page }) => {

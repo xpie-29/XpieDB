@@ -28,13 +28,13 @@ test("saved widths are clamped per column and bad entries fall back individually
 test("widths round-trip and clampWidth rejects non-numbers", () => {
   const w = { ...defaultWidths(), title: 321 };
   assert.deepEqual(parseWidths(serializeWidths(w)), w);
-  assert.equal(clampWidth("title", Number.NaN), 280);
+  assert.equal(clampWidth("title", Number.NaN), 220);
   assert.equal(clampWidth("title", 10), 80);
 });
 
 test("the grid template lists every column then a flexible filler", () => {
   assert.equal(
     gridTemplate(defaultWidths()),
-    "56px 280px 140px 80px 100px 90px 36px minmax(0, 1fr)",
+    "56px 220px 140px 80px 100px 90px 36px minmax(0, 1fr)",
   );
 });
