@@ -3,6 +3,8 @@ import gamepad from "./platformIcons/gamepad.svg";
 import playstation from "./platformIcons/playstation.svg";
 import sega from "./platformIcons/sega.svg";
 import steam from "./platformIcons/steam.svg";
+import steamdeck from "./platformIcons/steamdeck.svg";
+import vrCardboard from "./platformIcons/vr-cardboard.svg";
 import xbox from "./platformIcons/xbox.svg";
 
 /** An icon bundled with the app. `tint` is its colour when icons are shown in colour. `label` is a short caption that tells apart platforms sharing a glyph. */
@@ -11,8 +13,9 @@ export type BundledIcon = { url: string; tint: string; label?: string };
 /**
  * Icons for the built-in platforms, keyed by platform name. Brand logos come from Simple Icons (CC0) and
  * Font Awesome Free (CC BY 4.0, see THIRD_PARTY_NOTICES.md). Tints come from the owner's colour chart
- * (platform_icon_colors.xlsx) and are fixed, not user-editable. Six colours that were under 3:1
- * contrast on the dark background were lightened (same hue): NES, GameCube, 3DS, PS2, PS4, PS5. Where no freely licensed logo exists
+ * (platform_icon_colors.xlsx) and are fixed, not user-editable. Eleven chart colours that were
+ * under 3:1 contrast on the dark background were lightened (same hue): NES, GameCube, 3DS, PS2, PS4,
+ * PS5, Game Boy Advance, Xbox One, Master System, Genesis and Game Gear. Where no freely licensed logo exists
  * (Nintendo consoles) a generic gamepad is shown with the platform's short name beneath it.
  */
 export const bundledIcons: Record<string, BundledIcon> = {
@@ -35,6 +38,21 @@ export const bundledIcons: Record<string, BundledIcon> = {
   "Xbox Series S/X": { url: xbox, tint: "#2FA84F", label: "X|S" },
   Steam: { url: steam, tint: "#66C0F4" },
   PC: { url: desktop, tint: "#00B7C3" },
+  "PlayStation Portable": { url: playstation, tint: "#6F7FB3", label: "PSP" },
+  "PlayStation Vita": { url: playstation, tint: "#4D8FE8", label: "Vita" },
+  "Game Boy": { url: gamepad, tint: "#8BAC0F", label: "GB" },
+  "Game Boy Color": { url: gamepad, tint: "#F2C200", label: "GBC" },
+  "Game Boy Advance": { url: gamepad, tint: "#866BD4", label: "GBA" },
+  "Nintendo DS": { url: gamepad, tint: "#7F8C99", label: "DS" },
+  "Virtual Boy": { url: vrCardboard, tint: "#FF2A00", label: "VB" },
+  "Xbox One": { url: xbox, tint: "#139313", label: "One" },
+  "Steam Deck": { url: steamdeck, tint: "#1A9FFF", label: "Deck" },
+  "Sega Master System": { url: sega, tint: "#D84D49", label: "SMS" },
+  "Sega Genesis / Mega Drive": { url: sega, tint: "#007FDE", label: "MD" },
+  "Sega CD": { url: sega, tint: "#3F8FCB", label: "CD" },
+  "Sega 32X": { url: sega, tint: "#E2582A", label: "32X" },
+  "Sega Saturn": { url: sega, tint: "#3AA6A6", label: "SAT" },
+  "Game Gear": { url: sega, tint: "#23899D", label: "GG" },
   Dreamcast: { url: sega, tint: "#F47B20", label: "DC" },
 };
 

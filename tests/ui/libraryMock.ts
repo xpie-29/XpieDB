@@ -54,8 +54,8 @@ const platforms = [
   "Xbox 360",
   "PlayStation 2",
   "Super Nintendo",
-  "Game Boy Advance",
-  "Sega Genesis",
+  "Atari 2600",
+  "Atari 7800",
 ].map((name, i) => ({
   id: i + 1,
   name,

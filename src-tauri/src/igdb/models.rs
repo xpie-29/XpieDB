@@ -68,6 +68,12 @@ pub fn date(timestamp: i64) -> Option<String> {
     (year.len() == 4 && !year.starts_with('-') && year != "0000")
         .then(|| value.format("%Y-%m-%d").to_string())
 }
+fn builtin_named(local: &[Platform], name: &str) -> Option<i64> {
+    local
+        .iter()
+        .find(|p| p.is_builtin && p.name == name)
+        .map(|p| p.id)
+}
 pub fn mapped_platform(remote: &Named, local: &[Platform]) -> Option<i64> {
     let seed_id = match remote.slug.as_str() {
         "nes" | "nintendo-entertainment-system-nes" => 1,
@@ -89,6 +95,22 @@ pub fn mapped_platform(remote: &Named, local: &[Platform]) -> Option<i64> {
         "series-x-s" => 17,
         "win" => 19,
         "dc" => 20,
+        // Platforms added later are found by name. Slugs are IGDB's; a slug that does not match
+        // simply leaves the platform unmapped. IGDB has no Steam Deck platform.
+        "psp" => return builtin_named(local, "PlayStation Portable"),
+        "psvita" => return builtin_named(local, "PlayStation Vita"),
+        "gb" => return builtin_named(local, "Game Boy"),
+        "gbc" => return builtin_named(local, "Game Boy Color"),
+        "gba" => return builtin_named(local, "Game Boy Advance"),
+        "nds" => return builtin_named(local, "Nintendo DS"),
+        "virtualboy" => return builtin_named(local, "Virtual Boy"),
+        "xboxone" => return builtin_named(local, "Xbox One"),
+        "sms" => return builtin_named(local, "Sega Master System"),
+        "genesis-slash-megadrive" => return builtin_named(local, "Sega Genesis / Mega Drive"),
+        "segacd" => return builtin_named(local, "Sega CD"),
+        "sega32" => return builtin_named(local, "Sega 32X"),
+        "saturn" => return builtin_named(local, "Sega Saturn"),
+        "gamegear" => return builtin_named(local, "Game Gear"),
         _ => return None,
     };
     local

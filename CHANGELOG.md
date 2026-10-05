@@ -1,5 +1,16 @@
 # Changelog
 
+## Platform icons, colours and 15 more platforms - 2026-10-04
+
+- Library: returning from the editor keeps the scroll position and flashes the edited game; the list view has
+  resizable, persisted columns (drag, double-click to fit, arrow keys, Reset columns).
+- Every built-in platform has a bundled offline icon (Simple Icons CC0, Font Awesome Free CC BY 4.0; see
+  `THIRD_PARTY_NOTICES.md`), tinted from the owner's colour chart. Platforms > "Colour the platform icons"
+  switches between colour and plain mono. Colours that were too dark on the dark theme were lightened.
+- Migration 5 adds 15 built-in platforms (PSP, Vita, Game Boy, Game Boy Color, Game Boy Advance, DS, Virtual Boy,
+  Xbox One, Steam Deck, Master System, Genesis / Mega Drive, Sega CD, 32X, Saturn, Game Gear) and sorts the
+  built-ins by maker. IGDB search maps the new platforms by name.
+
 ## Repository rename cleanup - 2026-09-21
 
 - The GitHub repository and local folder are now named XpieDB. The About dialog and Help > XpieDB on GitHub

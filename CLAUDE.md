@@ -38,8 +38,8 @@ file is what a new session needs to start working safely.
 ```bash
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
-cargo test --manifest-path src-tauri/Cargo.toml --locked     # 115 passed, 3 ignored
-npm test                                                      # 77 passed (node:test, TypeScript type-stripping)
+cargo test --manifest-path src-tauri/Cargo.toml --locked     # 119 passed, 3 ignored
+npm test                                                      # 78 passed (node:test, TypeScript type-stripping)
 npm run build                                                 # tsc + vite
 npm run test:ui                                               # 105 passed (Playwright, Chromium, mocked IPC)
 ```
@@ -53,7 +53,7 @@ paths and the build fails otherwise).
   (`src-tauri/src/igdb/store.rs` selects Windows Credential Manager or macOS Keychain), are never returned to the
   frontend, and never appear in logs or error text.
 - **Modules** (`src-tauri/src/`): `catalog.rs` (games, platforms, tags, preferences, backlog order),
-  `storage.rs` (migrations 1-4), `assets.rs` (managed images), `backup/` (zip backup and restore),
+  `storage.rs` (migrations 1-5), `assets.rs` (managed images), `backup/` (zip backup and restore),
   `report/` (PDF reports via `krilla`), `igdb/` (IGDB client, auth, models), `steam/` (Steam import),
   `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
   pure logic in `src/stats.ts`, `libraryQuery.ts`, `steamImport.ts`, `listOrder.ts` (kept free of Tauri so

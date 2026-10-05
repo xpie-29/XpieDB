@@ -223,7 +223,8 @@ The SQLite database is a normal portable SQLite database. Personal databases, co
 
 Migration 1 establishes migration bookkeeping and `app_meta`. Migration 2 adds
 `platforms`, `games`, `tags`, `game_tags`, and `preferences`, plus 20 built-in
-platforms. Each migration applies its SQL and completion record within one
+platforms. Migration 5 adds 15 more built-in platforms (handhelds, Xbox One, Steam Deck, the Sega consoles) and groups the
+built-ins by maker; existing platform ids never change, and a custom platform with one of the new names is adopted rather than duplicated. Each migration applies its SQL and completion record within one
 transaction. Migration 3 adds nullable free-text `games.account`; migration 4 adds nullable `games.backlog_position`; existing games
 retain their data with Account unset. Failed migrations roll back both schema
 changes and bookkeeping.

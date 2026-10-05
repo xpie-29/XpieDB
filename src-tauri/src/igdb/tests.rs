@@ -137,6 +137,44 @@ fn missing_dates_and_companies() {
     assert!(date(i64::MAX).is_none());
 }
 #[test]
+fn later_built_in_platforms_map_by_name() {
+    let c = rusqlite::Connection::open_in_memory().unwrap();
+    crate::storage::run_migrations(&c).unwrap();
+    let local = catalog::list_platforms(&c).unwrap();
+    let id_of = |name: &str| local.iter().find(|p| p.name == name).unwrap().id;
+    for (slug, name) in [
+        ("gba", "Game Boy Advance"),
+        ("psvita", "PlayStation Vita"),
+        ("xboxone", "Xbox One"),
+        ("genesis-slash-megadrive", "Sega Genesis / Mega Drive"),
+        ("gamegear", "Game Gear"),
+    ] {
+        let remote = Named {
+            id: 1,
+            name: name.into(),
+            slug: slug.into(),
+        };
+        assert_eq!(
+            mapped_platform(&remote, &local),
+            Some(id_of(name)),
+            "{slug}"
+        );
+    }
+    // A custom platform of the same name is not a built-in, so it is not used.
+    c.execute(
+        "UPDATE platforms SET is_builtin=0 WHERE name='Game Boy Advance'",
+        [],
+    )
+    .unwrap();
+    let custom = catalog::list_platforms(&c).unwrap();
+    let remote = Named {
+        id: 1,
+        name: "x".into(),
+        slug: "gba".into(),
+    };
+    assert_eq!(mapped_platform(&remote, &custom), None);
+}
+#[test]
 fn unmapped_and_invalid_platforms() {
     let c = rusqlite::Connection::open_in_memory().unwrap();
     crate::storage::run_migrations(&c).unwrap();

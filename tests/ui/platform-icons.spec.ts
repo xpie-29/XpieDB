@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { installMock } from "./libraryMock";
 
 // Mock platforms: PC, PlayStation 4, Nintendo Switch, Xbox 360 and others flagged built-in.
-// "Game Boy Advance" is not one of the 20 bundled platforms, so it must fall back to text.
+// "Atari 2600" is not one of the 35 bundled platforms, so it must fall back to text.
 const writes = (page: Page) =>
   page.evaluate(() => (window as any).preferenceWrites);
 const rowFor = (page: Page, platform: string) =>
@@ -29,9 +29,9 @@ test("built-in platforms show a bundled icon, others fall back to text", async (
   await expect(
     rowFor(page, "PlayStation 4").first().locator(".glyph-label"),
   ).toHaveText("PS4");
-  const fallback = rowFor(page, "Game Boy Advance").first().locator(".platform-icon");
+  const fallback = rowFor(page, "Atari 2600").first().locator(".platform-icon");
   await expect(fallback.locator(".glyph")).toHaveCount(0);
-  await expect(fallback).toHaveText("Gam");
+  await expect(fallback).toHaveText("Ata");
 });
 
 test("hovering an icon shows the full platform name", async ({ page }) => {
@@ -55,14 +55,14 @@ test("icons are tinted by default, and the setting switches them to mono and bac
   page,
 }) => {
   await installMock(page, { preferences: { library_view: "list" } });
-  // Tints from the colour chart.
+  // Tints from the colour chart (PS4 is the dark-mode-lightened value).
   expect(await glyphColor(page, "PC")).toBe(rgb("#00B7C3"));
   expect(await glyphColor(page, "PlayStation 4")).toBe(rgb("#397AEA"));
   expect(await glyphColor(page, "Nintendo Switch")).toBe(rgb("#E60012"));
   expect(await glyphColor(page, "Xbox 360")).toBe(rgb("#7AC143"));
   // The platform with no bundled icon is unaffected.
   await expect(
-    rowFor(page, "Game Boy Advance").first().locator(".glyph"),
+    rowFor(page, "Atari 2600").first().locator(".glyph"),
   ).toHaveCount(0);
 
   await page.getByRole("button", { name: "Platforms" }).click();

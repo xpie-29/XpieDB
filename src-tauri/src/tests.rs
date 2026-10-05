@@ -93,10 +93,10 @@ fn crud_null_fields_tags_notes_and_reopen() {
 fn platforms_seed_and_restrict_deletion() {
     let (_dir, c) = database();
     let platforms = list_platforms(&c).unwrap();
-    assert_eq!(platforms.len(), 20);
+    assert_eq!(platforms.len(), 35);
     assert!(platforms.iter().all(|p| p.is_builtin));
     storage::run_migrations(&c).unwrap();
-    assert_eq!(list_platforms(&c).unwrap().len(), 20);
+    assert_eq!(list_platforms(&c).unwrap().len(), 35);
     assert!(delete_platform(&c, 1).is_err());
     save_platform(&c, None, "Custom", "CUS", None).unwrap();
     let id = list_platforms(&c).unwrap().last().unwrap().id;

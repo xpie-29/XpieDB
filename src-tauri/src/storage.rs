@@ -34,6 +34,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "backlog_order",
         sql: include_str!("../migrations/004_backlog.sql"),
     },
+    Migration {
+        version: 5,
+        name: "more_platforms",
+        sql: include_str!("../migrations/005_more_platforms.sql"),
+    },
 ];
 
 /// Highest schema version this build understands.
@@ -238,6 +243,109 @@ mod tests {
             .unwrap();
         run_migrations(&connection).unwrap();
         assert_eq!(has_column(&connection), 1);
+    }
+
+    fn platform_rows(connection: &Connection) -> Vec<(i64, String, i64, bool)> {
+        connection
+            .prepare("SELECT id, name, sort_order, is_builtin FROM platforms ORDER BY id")
+            .unwrap()
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap()
+    }
+
+    #[test]
+    fn more_platforms_keep_old_ids_and_group_the_sort_order() {
+        let connection = Connection::open_in_memory().unwrap();
+        apply_migrations(&connection, &MIGRATIONS[..4]).unwrap();
+        let before = platform_rows(&connection);
+        assert_eq!(before.len(), 20);
+        run_migrations(&connection).unwrap();
+        let after = platform_rows(&connection);
+        assert_eq!(after.len(), 35);
+        // The 20 original rows keep their ids and names (games and Steam import point at them).
+        for (old, new) in before.iter().zip(&after) {
+            assert_eq!((old.0, &old.1), (new.0, &new.1));
+        }
+        assert_eq!(after[17].1, "Steam");
+        assert_eq!(after[20].1, "PlayStation Portable");
+        assert_eq!(after[34].1, "Game Gear");
+        assert!(after.iter().all(|p| p.3));
+        // Positions are exactly 1..=35, so the list order is fully defined.
+        let mut positions: Vec<i64> = after.iter().map(|p| p.2).collect();
+        positions.sort_unstable();
+        assert_eq!(positions, (1..=35).collect::<Vec<i64>>());
+        let by_position = |connection: &Connection| -> Vec<String> {
+            connection
+                .prepare("SELECT name FROM platforms ORDER BY sort_order")
+                .unwrap()
+                .query_map([], |r| r.get(0))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap()
+        };
+        let names = by_position(&connection);
+        assert_eq!(names[0], "Nintendo Entertainment System");
+        assert_eq!(names[13], "Nintendo 3DS");
+        assert_eq!(names[14], "PlayStation");
+        assert_eq!(names[34], "PC");
+    }
+
+    #[test]
+    fn a_custom_platform_with_a_new_built_in_name_is_adopted_not_duplicated() {
+        let connection = Connection::open_in_memory().unwrap();
+        apply_migrations(&connection, &MIGRATIONS[..4]).unwrap();
+        connection
+            .execute(
+                "INSERT INTO platforms (name, short_name, icon_path, is_builtin) VALUES ('game boy advance', 'MyGBA', 'platform-icons/mine.png', 0)",
+                [],
+            )
+            .unwrap();
+        let custom_id = connection.last_insert_rowid();
+        connection
+            .execute(
+                "INSERT INTO games (title, platform_id) VALUES ('Metroid Fusion', ?1)",
+                [custom_id],
+            )
+            .unwrap();
+        run_migrations(&connection).unwrap();
+        let (name, short, icon, builtin): (String, String, Option<String>, bool) = connection
+            .query_row(
+                "SELECT name, short_name, icon_path, is_builtin FROM platforms WHERE id=?1",
+                [custom_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+            )
+            .unwrap();
+        // Same row: the owner's spelling, short name and icon survive; it is now built-in.
+        assert_eq!(name, "game boy advance");
+        assert_eq!(short, "MyGBA");
+        assert_eq!(icon.as_deref(), Some("platform-icons/mine.png"));
+        assert!(builtin);
+        let games: i64 = connection
+            .query_row(
+                "SELECT count(*) FROM games WHERE platform_id=?1",
+                [custom_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(games, 1);
+        assert_eq!(platform_rows(&connection).len(), 35);
+    }
+
+    #[test]
+    fn more_platforms_roll_back_when_bookkeeping_fails() {
+        let connection = Connection::open_in_memory().unwrap();
+        apply_migrations(&connection, &MIGRATIONS[..4]).unwrap();
+        let before = platform_rows(&connection);
+        connection.execute_batch("CREATE TRIGGER reject_platforms BEFORE INSERT ON schema_migrations WHEN NEW.version=5 BEGIN SELECT RAISE(ABORT,'test failure'); END;").unwrap();
+        assert!(run_migrations(&connection).is_err());
+        assert_eq!(platform_rows(&connection), before);
+        connection
+            .execute_batch("DROP TRIGGER reject_platforms;")
+            .unwrap();
+        run_migrations(&connection).unwrap();
+        assert_eq!(platform_rows(&connection).len(), 35);
     }
 
     #[test]
