@@ -524,3 +524,25 @@ fn existing_libraries_upgrade_without_touching_any_game() {
     let g = backlog_game(&c, "New", "Backlog");
     assert_eq!(g.backlog_position, Some(1));
 }
+
+#[test]
+fn list_column_widths_accept_only_known_columns_and_sane_sizes() {
+    let (_dir, c) = database();
+    let good = r#"{"title":300,"genre":120}"#;
+    set_preference(&c, "list_columns", good).unwrap();
+    assert_eq!(preferences(&c).unwrap()["list_columns"], good);
+    for bad in [
+        "",
+        "not json",
+        "[1,2]",
+        r#"{"title":"wide"}"#,
+        r#"{"title":-5}"#,
+        r#"{"title":10}"#,
+        r#"{"title":5000}"#,
+        r#"{"title":120.5}"#,
+        r#"{"cover":100}"#,
+    ] {
+        assert!(set_preference(&c, "list_columns", bad).is_err(), "{bad}");
+    }
+    assert_eq!(preferences(&c).unwrap()["list_columns"], good);
+}

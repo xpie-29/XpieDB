@@ -268,11 +268,11 @@ button:focus-visible,
   justify-content: center;
 }
 .game-list {
-  min-width: 669px;
+  width: max(100%, var(--list-width, 669px));
 }
 .list-row {
   display: grid;
-  grid-template-columns: 44px minmax(130px, 1fr) 80px 65px 90px 76px 20px;
+  grid-template-columns: var(--list-columns);
   align-items: center;
   gap: 8px;
   height: 40px;
@@ -295,6 +295,38 @@ button:focus-visible,
   top: -16px;
   background: var(--colorNeutralBackground2);
   z-index: 1;
+}
+.col-head {
+  position: relative;
+  padding-right: 6px;
+}
+.col-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 2;
+}
+.col-handle::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  right: 4px;
+  width: 1px;
+  background: var(--colorNeutralStroke2);
+}
+.col-handle:hover::after,
+.col-handle:focus-visible::after {
+  width: 2px;
+  right: 4px;
+  background: var(--colorBrandStroke1);
+}
+.col-handle:focus-visible {
+  outline: none;
 }
 @keyframes just-edited-row {
   from {

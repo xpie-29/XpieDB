@@ -35,6 +35,8 @@ export type Preferences = {
   library_sort: string;
   // Absent until the user changes them.
   stats_open?: string;
+  /** JSON of list-view column widths in pixels. */
+  list_columns?: string;
   report_paper?: string;
   report_orientation?: string;
 };

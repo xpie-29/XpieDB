@@ -413,6 +413,19 @@ pub fn preferences(c: &Connection) -> Result<HashMap<String, String>> {
         .or_insert_with(|| "title_asc".into());
     Ok(values)
 }
+/// List column widths: a JSON object of known column names to whole pixel widths.
+fn valid_list_columns(value: &str) -> bool {
+    const KEYS: [&str; 7] = [
+        "platform", "title", "genre", "media", "status", "rating", "notes",
+    ];
+    let Ok(serde_json::Value::Object(map)) = serde_json::from_str::<serde_json::Value>(value)
+    else {
+        return false;
+    };
+    map.iter().all(|(k, v)| {
+        KEYS.contains(&k.as_str()) && v.as_u64().is_some_and(|n| (20..=2000).contains(&n))
+    })
+}
 pub fn set_preference(c: &Connection, key: &str, value: &str) -> Result<()> {
     let valid = match key {
         "library_view" => ["grid", "list"].contains(&value),
@@ -420,6 +433,7 @@ pub fn set_preference(c: &Connection, key: &str, value: &str) -> Result<()> {
         "stats_open" => ["true", "false"].contains(&value),
         "report_paper" => ["letter", "a4"].contains(&value),
         "report_orientation" => ["portrait", "landscape"].contains(&value),
+        "list_columns" => valid_list_columns(value),
         "library_sort" => [
             "title_asc",
             "title_desc",

@@ -1,7 +1,11 @@
 import {
   useLayoutEffect,
+  useMemo,
   useRef,
+  useState,
+  type CSSProperties,
   type KeyboardEvent,
+  type PointerEvent,
   type ReactNode,
 } from "react";
 import { Button } from "@fluentui/react-components";
@@ -10,6 +14,17 @@ import type { Game, Platform, Preferences } from "../types";
 import { ManagedImage, PlatformIcon } from "./Shared";
 import { meaningfulNotes } from "../notes";
 import { StarRating } from "./StarRating";
+import {
+  clampWidth,
+  defaultWidths,
+  gridTemplate,
+  listColumns,
+  parseWidths,
+  serializeWidths,
+  totalWidth,
+  type ColumnKey,
+  type ColumnWidths,
+} from "../listColumns";
 
 export function Library({
   games,
@@ -23,6 +38,7 @@ export function Library({
   add,
   scroll,
   highlight,
+  setPreference,
   utilityBar,
   statsPanel,
   details,
@@ -40,6 +56,7 @@ export function Library({
   scroll: { current: number };
   /** A game to flash briefly, e.g. the one just edited. */
   highlight?: number | null;
+  setPreference: (key: string, value: string) => void;
   utilityBar?: ReactNode;
   statsPanel?: ReactNode;
   details: ReactNode;
@@ -47,11 +64,72 @@ export function Library({
   const entries = useRef<Array<HTMLElement | null>>([]);
   const grid = useRef<HTMLDivElement>(null);
   const pane = useRef<HTMLElement>(null);
+  const list = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (pane.current) pane.current.scrollTop = scroll.current;
     // Restore once, when the Library is shown again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const saved = useMemo(
+    () => parseWidths(preferences.list_columns),
+    [preferences.list_columns],
+  );
+  // Width being dragged; the saved value is written once, when the drag ends.
+  const [live, setLive] = useState<Partial<ColumnWidths>>({});
+  const widths = { ...saved, ...live } as ColumnWidths;
+  const customized = serializeWidths(saved) !== serializeWidths(defaultWidths());
+  const commit = (next: ColumnWidths) => {
+    setLive({});
+    if (serializeWidths(next) !== serializeWidths(saved))
+      setPreference("list_columns", serializeWidths(next));
+  };
+  const resizeStart = (e: PointerEvent<HTMLElement>, key: ColumnKey) => {
+    e.preventDefault();
+    const target = e.currentTarget;
+    target.setPointerCapture(e.pointerId);
+    const startX = e.clientX;
+    const start = widths[key];
+    let latest = start;
+    const move = (m: globalThis.PointerEvent) => {
+      latest = clampWidth(key, start + m.clientX - startX);
+      setLive({ [key]: latest });
+    };
+    const end = () => {
+      target.removeEventListener("pointermove", move);
+      target.removeEventListener("pointerup", end);
+      target.removeEventListener("pointercancel", end);
+      commit({ ...widths, [key]: latest });
+    };
+    target.addEventListener("pointermove", move);
+    target.addEventListener("pointerup", end);
+    target.addEventListener("pointercancel", end);
+  };
+  // Double-click: fit the widest cell in the column (the heading counts too).
+  const autoFit = (key: ColumnKey) => {
+    const index = listColumns.findIndex((c) => c.key === key);
+    let widest = 0;
+    list.current
+      ?.querySelectorAll<HTMLElement>(`.list-row > :nth-child(${index + 1})`)
+      .forEach((cell) => {
+        // A cell is as wide as its column, so measure what is inside it.
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        const handle = cell.querySelector(".col-handle");
+        if (handle) range.setEndBefore(handle);
+        widest = Math.max(widest, range.getBoundingClientRect().width);
+      });
+    commit({ ...widths, [key]: clampWidth(key, widest + 12) });
+  };
+  const resizeKey = (e: KeyboardEvent, key: ColumnKey) => {
+    const step = e.shiftKey ? 40 : 10;
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    const next = clampWidth(
+      key,
+      widths[key] + (e.key === "ArrowRight" ? step : -step),
+    );
+    commit({ ...widths, [key]: next });
+  };
   function keyboard(e: KeyboardEvent, index: number, isGrid: boolean) {
     let columns = 1;
     if (isGrid && grid.current)
@@ -119,6 +197,18 @@ export function Library({
                 ? `${games.length} of ${total} games`
                 : `${total} ${total === 1 ? "game" : "games"}`}
             </span>
+            {preferences.library_view === "list" && customized && (
+              <Button
+                size="small"
+                appearance="subtle"
+                onClick={() => {
+                  setLive({});
+                  setPreference("list_columns", serializeWidths(defaultWidths()));
+                }}
+              >
+                Reset columns
+              </Button>
+            )}
           </div>
           {!games.length ? (
             <div className="empty">
@@ -167,17 +257,40 @@ export function Library({
               ))}
             </div>
           ) : (
-            <div className="game-list" role="grid" aria-label="Game library">
+            <div
+              ref={list}
+              className="game-list"
+              role="grid"
+              aria-label="Game library"
+              style={
+                {
+                  "--list-columns": gridTemplate(widths),
+                  "--list-width": `${totalWidth(widths) + 80}px`,
+                } as CSSProperties
+              }
+            >
               <div className="list-row list-heading" role="row">
-                <span role="columnheader">Platform</span>
-                <span role="columnheader">Title</span>
-                <span role="columnheader">Genre</span>
-                <span role="columnheader">Media</span>
-                <span role="columnheader">Status</span>
-                <span role="columnheader">Rating</span>
-                <span role="columnheader" aria-label="Notes">
-                  <Note20Regular title="Notes" />
-                </span>
+                {listColumns.map((c) => (
+                  <span role="columnheader" key={c.key} className="col-head">
+                    {c.key === "notes" ? (
+                      <Note20Regular title="Notes" aria-label="Notes" />
+                    ) : (
+                      c.label
+                    )}
+                    <span
+                      className="col-handle"
+                      role="separator"
+                      aria-orientation="vertical"
+                      aria-label={`Resize ${c.label} column`}
+                      aria-valuenow={widths[c.key]}
+                      aria-valuemin={c.min}
+                      tabIndex={0}
+                      onPointerDown={(e) => resizeStart(e, c.key)}
+                      onDoubleClick={() => autoFit(c.key)}
+                      onKeyDown={(e) => resizeKey(e, c.key)}
+                    />
+                  </span>
+                ))}
               </div>
               {games.map((g, i) => (
                 <div

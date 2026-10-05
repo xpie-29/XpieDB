@@ -161,6 +161,7 @@ export function App() {
                 add={() => navigate("add")}
                 scroll={libraryScroll}
                 highlight={highlight}
+                setPreference={(key, value) => void preference(key, value)}
                 statsPanel={
                   games.length > 0 ? (
                     <StatsPanel
