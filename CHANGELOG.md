@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 - 2026-10-05
+
+Library polish, platforms, and the collections work. Details are in the dated sections below.
+
+- **Library:** scroll position and a highlight after editing; resizable list columns.
+- **Platforms:** 35 built-in platforms with bundled icons, chart colours and a colour/mono switch; moved to Settings.
+- **Collections:** a Games / Guides / Hardware selector. Hardware (systems, accessories, sale handling), Guides
+  (linked to games, digital copies, Find on Internet Archive) and an in-app PDF reader with bookmarks.
+- **Database:** migrations 5 to 9 (more platforms, hardware, guides, guide files, reader state).
+- **Tooling:** scripts to test the built app in a sandbox; full test suites: Rust 175 (4 ignored), JS 96, UI 187.
+
 ## In-app PDF reader - 2026-10-05
 
 - Read a PDF inside XpieDB (PDF.js): ranged loading by id through a `guidefile` URL scheme, zoom, search, contents,

@@ -22,7 +22,7 @@ file is what a new session needs to start working safely.
 - Screen capture is enabled for this app: `screencapture -x -o -l <windowid>` after finding the window id with
   CoreGraphics (a small Swift snippet) lets you check the real native window.
 - **Real-window testing is a standard step for UI changes** (the owner expects it; mocked Playwright tests alone
-  missed a horizontal-scrollbar bug). Never use the installed app or the real library for it. Build with
+  missed a horizontal-scrollbar bug and several reader bugs). Use the sandbox, not the installed app. Build with
   `npm run tauri build -- --bundles app`, then `scripts/mac-test-run.sh` launches that build with `HOME` pointed at
   `/tmp/xpiedb-sandbox`, seeded with a **copy** of the real library (`--empty` for a blank one, `--stop` to quit and
   delete it). `swift scripts/mac-window.swift` prints the window id and origin (screen points);
@@ -101,16 +101,26 @@ paths and the build fails otherwise).
   by the owner by hand.
 
 ## State of the project
-Feature-complete for the v1 the owner defined: local library with covers, rich-text notes, tags, custom platforms;
-search, filters, sorting; Statistics ribbon; ordered Backlog (new `Backlog` status); PDF reports (all games,
-by platform, backlog; Letter/A4); backup and restore; IGDB search and import; Steam library import matched to
-IGDB; Help > About; macOS and Windows builds. History is one linear branch, `master`, with a verification
-report per milestone in `docs/` and a `CHANGELOG.md`.
-Collections work (plan in `docs/plan-collections-and-guides.md`): the collection selector and the **Hardware**
-collection (systems and accessories, grouped/flat list, add/edit, sale dialog) and the **Guides** collection
-(list, detail, add/edit, links to games both ways, attach/open PDF and ePub copies) are built; Internet
-Archive lookup (search, review, download) is built; the in-app PDF reader is built; ePub reading, a pop-out reader window and an
-option to include guide files in backups are still only a plan. Hardware and Guides list columns are fixed (not resizable) and have no grid view.
+Version **0.2.0** (2026-10-05). The v1 the owner defined is done: local library with covers, rich-text notes,
+tags, custom platforms; search, filters, sorting; Statistics ribbon; ordered Backlog; PDF reports; backup and
+restore; IGDB search and import; Steam library import; Help > About; macOS and Windows builds. History is one
+linear branch, `master`, with a verification report per milestone in `docs/` and a `CHANGELOG.md`.
+
+0.2.0 added (plan and decisions in `docs/plan-collections-and-guides.md`):
+- Library: scroll position kept after editing (plus a highlight of the edited game); resizable, saved list columns.
+- Platforms: 35 built-in platforms with bundled offline icons, colour tints from the owner's chart (lightened where
+  too dark on the dark theme) and a colour/mono switch; Platforms now lives in Settings.
+- **Collections**: a toolbar selector for Games, Guides and Hardware (the choice is remembered).
+  - Hardware: systems and accessories (parent system, "also works with" platforms), grouped or flat list, one photo,
+    purchase/sale details, and a per-accessory question when a system is sold.
+  - Guides: linked to games both ways, one photo, PDF/ePub digital copies, **Find on Internet Archive** (ranked
+    matches to review, never borrow-only items), and an **in-app PDF reader** (ranged loading, zoom, search,
+    contents, bookmarks, night mode, full screen, resume, switching between guides).
+- Dev tooling: `scripts/mac-test-run.sh` and the Swift helpers for testing the built app in a sandbox.
+
+The owner's next steps, in the order discussed: a **pop-out reader window**, **ePub reading** (foliate-js), an
+option to **include guide files in backups** (off by default), then resizable columns and grid views for Hardware
+and Guides.
 
 ## Known gaps and open items
 - **Steam import has never run against the real Steam or IGDB services** (no API keys during development; the
@@ -126,9 +136,25 @@ option to include guide files in backups are still only a plan. Hardware and Gui
   Gatekeeper, so other people must build their own.
 - PDF reports use bundled DejaVu Sans, so CJK characters print as `?` (counted and reported to the user).
 - Verification docs for milestones 2 to 4 keep the old GameVault name on purpose.
+- **0.2.0 was verified on macOS only.** Not tried on Windows: migrations 5 to 9, the reader's `guidefile` scheme
+  (Tauri uses `http://guidefile.localhost/<id>` there; the CSP already allows it), and full screen.
+- Not seen in a real window (covered by browser tests only): the Hardware add-accessory and sale dialogs, choosing
+  photos, the Guides add/edit form, a download from the Internet Archive dialog, and the reader on a PDF with an
+  outline, an encrypted PDF, or link annotations. The platform icon colours were only looked at on the dark theme
+  (some are faint on light; see the contrast table in the conversation history: Wii, Xbox, Steam, 360, PC).
+- IGDB platform slugs for 14 of the 15 platforms added in 0.2.0 (Steam Deck has no IGDB platform) were written from memory and never tested against IGDB.
+- The Internet Archive lookup matches by title only, so results need the owner's review; borrow-only items cannot
+  be downloaded (the owner decided against adding Archive credentials: their docs attribute restricted downloads to
+  logged-in cookies, not API keys).
+- Hardware and Guides lists have fixed columns and no grid view; Hardware and Guides have no reports or statistics.
+- A local git stash named "discarded: clickable chart tracking + multi-genre work" holds work the owner chose to
+  drop (it is not pushed). `git stash drop` removes it for good.
 
 ## Ideas discussed, not built
-Click a Statistics chart to filter the Library; CSV/JSON export; more report groupings (genre, status, account,
+Click a Statistics chart to filter the Library (the discarded stash holds a first attempt, including splitting
+multi-genre games); CSV/JSON export; an in-app reader pop-out window, ePub reading, page thumbnails and two-page
+spreads; including guide files in backups; reports and statistics for Hardware and Guides; a "has a guide" filter
+in the Library; more report groupings (genre, status, account,
 year) and filtering a report to the current Library view; making the Library title sort numeric-aware like the
 reports; a Windows data migration. Importing GOG, PlayStation, Nintendo or Xbox libraries was ruled out (no
 official access).
