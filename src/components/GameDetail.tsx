@@ -114,7 +114,7 @@ export function GameDetail({
               ))}
             </ul>
           )}
-          <div className="file-actions">
+          <div className="button-stack">
             {addGuide && (
               <Button icon={<Add20Regular />} onClick={addGuide}>
                 Add guide

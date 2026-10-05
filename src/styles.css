@@ -1604,3 +1604,8 @@ button:focus-visible,
   gap: 12px;
   margin: 12px 0;
 }
+.button-stack {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}

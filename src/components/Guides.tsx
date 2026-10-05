@@ -425,7 +425,7 @@ function GuideDetail({
         ) : (
           <p className="muted">No digital copy</p>
         )}
-        <div className="file-actions">
+        <div className="button-stack">
           <Button icon={<Add20Regular />} onClick={attachFile}>
             Attach PDF or ePub
           </Button>
