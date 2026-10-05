@@ -448,6 +448,13 @@ pub fn set_preference(c: &Connection, key: &str, value: &str) -> Result<()> {
         "platform_icon_style" => ["color", "mono"].contains(&value),
         "collection" => ["games", "guides", "hardware"].contains(&value),
         "hardware_grouping" => ["grouped", "flat"].contains(&value),
+        "reader_night" => ["true", "false"].contains(&value),
+        "reader_zoom" => {
+            ["page-width", "page-fit", "auto"].contains(&value)
+                || value
+                    .parse::<f64>()
+                    .is_ok_and(|zoom| zoom.is_finite() && (0.25..=5.0).contains(&zoom))
+        }
         "library_sort" => [
             "title_asc",
             "title_desc",

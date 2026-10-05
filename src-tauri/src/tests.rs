@@ -591,3 +591,21 @@ fn hardware_grouping_preference_accepts_only_grouped_or_flat() {
         );
     }
 }
+
+#[test]
+fn reader_preferences_accept_only_sane_values() {
+    let (_dir, c) = database();
+    for value in ["true", "false"] {
+        set_preference(&c, "reader_night", value).unwrap();
+        assert_eq!(preferences(&c).unwrap()["reader_night"], value);
+    }
+    for value in ["page-width", "page-fit", "auto", "1.25", "0.25", "5", "2"] {
+        set_preference(&c, "reader_zoom", value).unwrap();
+        assert_eq!(preferences(&c).unwrap()["reader_zoom"], value);
+    }
+    for bad in ["", "yes", "wide", "0.1", "5.1", "-1", "NaN", "inf", "1e9"] {
+        assert!(set_preference(&c, "reader_zoom", bad).is_err(), "{bad}");
+    }
+    assert!(set_preference(&c, "reader_night", "maybe").is_err());
+    assert_eq!(preferences(&c).unwrap()["reader_zoom"], "2");
+}

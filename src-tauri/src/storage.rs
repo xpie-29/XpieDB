@@ -54,6 +54,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "guide_files",
         sql: include_str!("../migrations/008_guide_files.sql"),
     },
+    Migration {
+        version: 9,
+        name: "reader",
+        sql: include_str!("../migrations/009_reader.sql"),
+    },
 ];
 
 /// Highest schema version this build understands.
@@ -430,6 +435,38 @@ mod tests {
             .unwrap();
         run_migrations(&connection).unwrap();
         assert_eq!(tables(&connection), 1);
+    }
+
+    #[test]
+    fn reader_columns_roll_back_when_bookkeeping_fails() {
+        let connection = Connection::open_in_memory().unwrap();
+        apply_migrations(&connection, &MIGRATIONS[..8]).unwrap();
+        connection.execute_batch("CREATE TRIGGER reject_reader BEFORE INSERT ON schema_migrations WHEN NEW.version=9 BEGIN SELECT RAISE(ABORT,'test failure'); END;").unwrap();
+        assert!(run_migrations(&connection).is_err());
+        let state = |connection: &Connection| -> (i64, i64) {
+            (
+                connection
+                    .query_row(
+                        "SELECT count(*) FROM pragma_table_info('guide_files') WHERE name='last_page'",
+                        [],
+                        |r| r.get(0),
+                    )
+                    .unwrap(),
+                connection
+                    .query_row(
+                        "SELECT count(*) FROM sqlite_master WHERE name='guide_bookmarks'",
+                        [],
+                        |r| r.get(0),
+                    )
+                    .unwrap(),
+            )
+        };
+        assert_eq!(state(&connection), (0, 0));
+        connection
+            .execute_batch("DROP TRIGGER reject_reader;")
+            .unwrap();
+        run_migrations(&connection).unwrap();
+        assert_eq!(state(&connection), (1, 1));
     }
 
     #[test]

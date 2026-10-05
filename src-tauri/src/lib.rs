@@ -3,6 +3,7 @@ mod assets;
 mod backup;
 mod catalog;
 mod commands;
+mod file_server;
 mod guide_files;
 mod guides;
 mod hardware;
@@ -17,6 +18,7 @@ mod tests;
 mod testutil;
 
 use serde::Serialize;
+use tauri::Manager;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -45,6 +47,36 @@ pub fn run() {
         .manage(backup::Backups::default())
         .manage(steam::Steam::default())
         .manage(archive::Archive::default())
+        .register_uri_scheme_protocol("guidefile", |context, request| {
+            // The reader asks for a guide file by id (and byte range); nothing else is served.
+            let app = context.app_handle();
+            let range = request
+                .headers()
+                .get("range")
+                .and_then(|v| v.to_str().ok())
+                .map(str::to_string);
+            let served = match (app.path().app_data_dir(), commands::connection(app)) {
+                (Ok(root), Ok(c)) => file_server::serve(
+                    &c,
+                    &root,
+                    request.method().as_str(),
+                    request.uri().path().trim_start_matches('/'),
+                    range.as_deref(),
+                ),
+                _ => file_server::Served {
+                    status: 500,
+                    headers: vec![],
+                    body: b"Unavailable".to_vec(),
+                },
+            };
+            let mut response = tauri::http::Response::builder().status(served.status);
+            for (name, value) in served.headers {
+                response = response.header(name, value);
+            }
+            response
+                .body(served.body)
+                .unwrap_or_else(|_| tauri::http::Response::new(Vec::new()))
+        })
         .on_menu_event(menu::on_event)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -78,6 +110,11 @@ pub fn run() {
             commands::remove_guide_file,
             commands::open_guide_file,
             commands::reveal_guide_file,
+            commands::set_guide_file_position,
+            commands::list_guide_bookmarks,
+            commands::add_guide_bookmark,
+            commands::rename_guide_bookmark,
+            commands::delete_guide_bookmark,
             commands::list_platforms,
             commands::save_platform,
             commands::delete_platform,

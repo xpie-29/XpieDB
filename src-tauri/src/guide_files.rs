@@ -32,7 +32,20 @@ pub struct GuideFile {
     pub date_added: String,
     /// The copy in the app folder is gone (for example after restoring a backup without guide files).
     pub missing: bool,
+    /// Where the reader stopped, and when the file was last opened in it.
+    pub last_page: Option<i64>,
+    pub last_opened_at: Option<String>,
 }
+#[derive(Clone, Debug, Serialize)]
+pub struct Bookmark {
+    pub id: i64,
+    pub file_id: i64,
+    pub page: i64,
+    pub label: String,
+    pub date_added: String,
+}
+pub const MAX_PAGE: i64 = 100_000;
+const MAX_BOOKMARKS: i64 = 500;
 
 /// "pdf" or "epub" by looking inside the file, or None.
 pub fn detect_kind(file: &mut fs::File) -> Result<Option<&'static str>> {
@@ -267,9 +280,11 @@ fn row(r: &rusqlite::Row, root: &Path) -> rusqlite::Result<GuideFile> {
         source_url: r.get(6)?,
         date_added: r.get(7)?,
         missing: stored_path(root, &stored).map_or(true, |p| !p.is_file()),
+        last_page: r.get(8)?,
+        last_opened_at: r.get(9)?,
     })
 }
-const COLUMNS: &str = "id,guide_id,file_name,kind,stored_name,size_bytes,source_url,date_added";
+const COLUMNS: &str = "id,guide_id,file_name,kind,stored_name,size_bytes,source_url,date_added,last_page,last_opened_at";
 pub fn get(c: &Connection, root: &Path, id: i64) -> Result<GuideFile> {
     c.query_row(
         &format!("SELECT {COLUMNS} FROM guide_files WHERE id=?1"),
@@ -321,6 +336,149 @@ pub fn path_of(c: &Connection, root: &Path, id: i64) -> Result<PathBuf> {
     }
     Ok(path)
 }
+/// Remembers where the reader stopped, so the file reopens there.
+pub fn record_position(c: &Connection, id: i64, page: i64) -> Result<()> {
+    if !(1..=MAX_PAGE).contains(&page) {
+        return Err("That is not a valid page number.".into());
+    }
+    let changed = c
+        .execute(
+            "UPDATE guide_files SET last_page=?1, last_opened_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?2",
+            params![page, id],
+        )
+        .map_err(db)?;
+    if changed == 0 {
+        return Err("This guide file no longer exists.".into());
+    }
+    Ok(())
+}
+fn bookmark_row(r: &rusqlite::Row) -> rusqlite::Result<Bookmark> {
+    Ok(Bookmark {
+        id: r.get(0)?,
+        file_id: r.get(1)?,
+        page: r.get(2)?,
+        label: r.get(3)?,
+        date_added: r.get(4)?,
+    })
+}
+pub fn list_bookmarks(c: &Connection, file_id: i64) -> Result<Vec<Bookmark>> {
+    c.prepare("SELECT id,file_id,page,label,date_added FROM guide_bookmarks WHERE file_id=? ORDER BY page,id")
+        .map_err(db)?
+        .query_map([file_id], bookmark_row)
+        .map_err(db)?
+        .collect::<std::result::Result<_, _>>()
+        .map_err(db)
+}
+fn clean_label(label: Option<&str>, page: i64) -> Result<String> {
+    let text: String = label
+        .unwrap_or("")
+        .chars()
+        .filter(|c| !c.is_control())
+        .collect();
+    let text = text.trim();
+    if text.chars().count() > 200 {
+        return Err("Use a bookmark name under 200 characters.".into());
+    }
+    Ok(if text.is_empty() {
+        format!("Page {page}")
+    } else {
+        text.into()
+    })
+}
+/// One bookmark per page; with no name it is called "Page N".
+pub fn add_bookmark(
+    c: &Connection,
+    file_id: i64,
+    page: i64,
+    label: Option<&str>,
+) -> Result<Bookmark> {
+    if !(1..=MAX_PAGE).contains(&page) {
+        return Err("That is not a valid page number.".into());
+    }
+    let label = clean_label(label, page)?;
+    let exists: bool = c
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM guide_files WHERE id=?)",
+            [file_id],
+            |r| r.get(0),
+        )
+        .map_err(db)?;
+    if !exists {
+        return Err("This guide file no longer exists.".into());
+    }
+    let count: i64 = c
+        .query_row(
+            "SELECT count(*) FROM guide_bookmarks WHERE file_id=?",
+            [file_id],
+            |r| r.get(0),
+        )
+        .map_err(db)?;
+    if count >= MAX_BOOKMARKS {
+        return Err("This file has the most bookmarks it can hold (500).".into());
+    }
+    match c.execute(
+        "INSERT INTO guide_bookmarks(file_id,page,label) VALUES (?1,?2,?3)",
+        params![file_id, page, label],
+    ) {
+        Ok(_) => {}
+        Err(rusqlite::Error::SqliteFailure(e, _))
+            if e.code == rusqlite::ErrorCode::ConstraintViolation =>
+        {
+            return Err("That page is already bookmarked.".into());
+        }
+        Err(e) => return Err(db(e)),
+    }
+    c.query_row(
+        "SELECT id,file_id,page,label,date_added FROM guide_bookmarks WHERE id=?",
+        [c.last_insert_rowid()],
+        bookmark_row,
+    )
+    .map_err(db)
+}
+pub fn rename_bookmark(c: &Connection, id: i64, label: &str) -> Result<()> {
+    let page: i64 = c
+        .query_row("SELECT page FROM guide_bookmarks WHERE id=?", [id], |r| {
+            r.get(0)
+        })
+        .optional()
+        .map_err(db)?
+        .ok_or("This bookmark no longer exists.")?;
+    let label = clean_label(Some(label), page)?;
+    c.execute(
+        "UPDATE guide_bookmarks SET label=?1 WHERE id=?2",
+        params![label, id],
+    )
+    .map_err(db)?;
+    Ok(())
+}
+pub fn delete_bookmark(c: &Connection, id: i64) -> Result<()> {
+    if c.execute("DELETE FROM guide_bookmarks WHERE id=?", [id])
+        .map_err(db)?
+        == 0
+    {
+        return Err("This bookmark no longer exists.".into());
+    }
+    Ok(())
+}
+
+/// A file's copy on disk and its kind ("pdf" or "epub"), by id.
+pub fn file_info(c: &Connection, root: &Path, id: i64) -> Result<(PathBuf, String)> {
+    let (stored, kind): (String, String) = c
+        .query_row(
+            "SELECT stored_name,kind FROM guide_files WHERE id=?",
+            [id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .optional()
+        .map_err(db)?
+        .ok_or("This guide file no longer exists.")?;
+    let path = stored_path(root, &stored)?;
+    if !path.is_file() {
+        return Err("The file is no longer in the app's folder.".into());
+    }
+    Ok((path, kind))
+}
+
 /// Removes the record and its copy.
 pub fn remove(c: &Connection, root: &Path, id: i64) -> Result<()> {
     let stored: String = c
@@ -562,6 +720,85 @@ mod tests {
         );
         // Removing the record still works.
         remove(&e.c, e.dir.path(), file.id).unwrap();
+    }
+
+    #[test]
+    fn the_reading_position_is_remembered_and_validated() {
+        let e = env();
+        let file = attach_file(&e, &write(&e, "a.pdf", &pdf_bytes(8))).unwrap();
+        assert_eq!((file.last_page, file.last_opened_at.clone()), (None, None));
+        record_position(&e.c, file.id, 42).unwrap();
+        let again = get(&e.c, e.dir.path(), file.id).unwrap();
+        assert_eq!(again.last_page, Some(42));
+        assert!(again.last_opened_at.is_some());
+        record_position(&e.c, file.id, 7).unwrap();
+        assert_eq!(get(&e.c, e.dir.path(), file.id).unwrap().last_page, Some(7));
+        for bad in [0, -3, MAX_PAGE + 1] {
+            assert!(record_position(&e.c, file.id, bad).is_err(), "{bad}");
+        }
+        assert!(record_position(&e.c, 9999, 1).is_err());
+        assert_eq!(get(&e.c, e.dir.path(), file.id).unwrap().last_page, Some(7));
+    }
+
+    #[test]
+    fn bookmarks_are_one_per_page_ordered_renamed_and_removed() {
+        let e = env();
+        let file = attach_file(&e, &write(&e, "a.pdf", &pdf_bytes(9))).unwrap();
+        let other = attach(
+            &e.c,
+            e.dir.path(),
+            e.guide,
+            &write(&e, "b.pdf", &pdf_bytes(10)),
+            None,
+            MAX_BYTES,
+        )
+        .unwrap();
+        let second = add_bookmark(&e.c, file.id, 20, Some("  Boss map ")).unwrap();
+        let first = add_bookmark(&e.c, file.id, 3, None).unwrap();
+        assert_eq!(second.label, "Boss map");
+        assert_eq!(first.label, "Page 3");
+        add_bookmark(&e.c, other.id, 3, None).unwrap();
+        let pages: Vec<_> = list_bookmarks(&e.c, file.id)
+            .unwrap()
+            .into_iter()
+            .map(|b| b.page)
+            .collect();
+        assert_eq!(pages, [3, 20]);
+        assert!(
+            add_bookmark(&e.c, file.id, 3, None)
+                .unwrap_err()
+                .contains("already bookmarked")
+        );
+        for bad in [0, -1, MAX_PAGE + 1] {
+            assert!(add_bookmark(&e.c, file.id, bad, None).is_err());
+        }
+        assert!(add_bookmark(&e.c, file.id, 5, Some(&"x".repeat(201))).is_err());
+        assert!(add_bookmark(&e.c, 9999, 5, None).is_err());
+        rename_bookmark(&e.c, first.id, "Start").unwrap();
+        rename_bookmark(&e.c, first.id, "   ").unwrap();
+        assert_eq!(list_bookmarks(&e.c, file.id).unwrap()[0].label, "Page 3");
+        assert!(rename_bookmark(&e.c, 9999, "x").is_err());
+        delete_bookmark(&e.c, first.id).unwrap();
+        assert!(delete_bookmark(&e.c, first.id).is_err());
+        assert_eq!(list_bookmarks(&e.c, file.id).unwrap().len(), 1);
+        // Bookmarks go with their file, and only theirs.
+        remove(&e.c, e.dir.path(), file.id).unwrap();
+        assert!(list_bookmarks(&e.c, file.id).unwrap().is_empty());
+        assert_eq!(list_bookmarks(&e.c, other.id).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_file_holds_at_most_500_bookmarks() {
+        let e = env();
+        let file = attach_file(&e, &write(&e, "a.pdf", &pdf_bytes(11))).unwrap();
+        for page in 1..=500 {
+            add_bookmark(&e.c, file.id, page, None).unwrap();
+        }
+        assert!(
+            add_bookmark(&e.c, file.id, 501, None)
+                .unwrap_err()
+                .contains("most bookmarks")
+        );
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use crate::{
     assets,
     catalog::{self, Game, GameInput, Platform, Result},
-    guide_files::{self, GuideFile},
+    guide_files::{self, Bookmark, GuideFile},
     guides::{self, Guide, GuideInput},
     hardware::{self, Hardware, HardwareInput},
 };
@@ -270,4 +270,30 @@ pub fn open_link(app: AppHandle, url: String) -> Result<()> {
     app.opener()
         .open_url(validate_url(&url)?, None::<&str>)
         .map_err(|e| e.to_string())
+}
+/// Remembers where the reader stopped in a file.
+#[tauri::command]
+pub fn set_guide_file_position(app: AppHandle, id: i64, page: i64) -> Result<()> {
+    guide_files::record_position(&connection(&app)?, id, page)
+}
+#[tauri::command]
+pub fn list_guide_bookmarks(app: AppHandle, file_id: i64) -> Result<Vec<Bookmark>> {
+    guide_files::list_bookmarks(&connection(&app)?, file_id)
+}
+#[tauri::command]
+pub fn add_guide_bookmark(
+    app: AppHandle,
+    file_id: i64,
+    page: i64,
+    label: Option<String>,
+) -> Result<Bookmark> {
+    guide_files::add_bookmark(&connection(&app)?, file_id, page, label.as_deref())
+}
+#[tauri::command]
+pub fn rename_guide_bookmark(app: AppHandle, id: i64, label: String) -> Result<()> {
+    guide_files::rename_bookmark(&connection(&app)?, id, &label)
+}
+#[tauri::command]
+pub fn delete_guide_bookmark(app: AppHandle, id: i64) -> Result<()> {
+    guide_files::delete_bookmark(&connection(&app)?, id)
 }
