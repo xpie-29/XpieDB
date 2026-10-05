@@ -100,6 +100,47 @@ pub fn attach(
     source_url: Option<&str>,
     max_bytes: u64,
 ) -> Result<GuideFile> {
+    attach_as(
+        c, root, guide_id, source, None, source_url, max_bytes, false,
+    )
+}
+/// Attaches a file the app downloaded itself: it is checked like any other, then moved into place
+/// (never copied again) and shown under `name`. The temporary file is removed if anything fails.
+pub fn attach_downloaded(
+    c: &Connection,
+    root: &Path,
+    guide_id: i64,
+    temp: &Path,
+    name: &str,
+    source_url: Option<&str>,
+    max_bytes: u64,
+) -> Result<GuideFile> {
+    let result = attach_as(
+        c,
+        root,
+        guide_id,
+        temp,
+        Some(name),
+        source_url,
+        max_bytes,
+        true,
+    );
+    if result.is_err() {
+        let _ = fs::remove_file(temp);
+    }
+    result
+}
+#[allow(clippy::too_many_arguments)]
+fn attach_as(
+    c: &Connection,
+    root: &Path,
+    guide_id: i64,
+    source: &Path,
+    name: Option<&str>,
+    source_url: Option<&str>,
+    max_bytes: u64,
+    move_file: bool,
+) -> Result<GuideFile> {
     let exists: bool = c
         .query_row(
             "SELECT EXISTS(SELECT 1 FROM guides WHERE id=?)",
@@ -128,11 +169,17 @@ pub fn attach(
     let temp = root.join(DIR).join(format!("{stored_name}.part"));
     let digest = (|| -> Result<String> {
         input.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
-        let mut out = fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&temp)
-            .map_err(|e| e.to_string())?;
+        let mut out = if move_file {
+            None
+        } else {
+            Some(
+                fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&temp)
+                    .map_err(|e| e.to_string())?,
+            )
+        };
         let mut hasher = Sha256::new();
         let mut buffer = vec![0u8; 256 * 1024];
         let mut total = 0u64;
@@ -146,9 +193,13 @@ pub fn attach(
                 return Err("The file grew while it was being copied.".into());
             }
             hasher.update(&buffer[..n]);
-            out.write_all(&buffer[..n]).map_err(|e| e.to_string())?;
+            if let Some(out) = out.as_mut() {
+                out.write_all(&buffer[..n]).map_err(|e| e.to_string())?;
+            }
         }
-        out.sync_all().map_err(|e| e.to_string())?;
+        if let Some(out) = out {
+            out.sync_all().map_err(|e| e.to_string())?;
+        }
         Ok(hasher
             .finalize()
             .iter()
@@ -173,16 +224,24 @@ pub fn attach(
         let _ = fs::remove_file(&temp);
         return Err("This file is already attached to this guide.".into());
     }
-    fs::rename(&temp, &target).map_err(|e| {
-        let _ = fs::remove_file(&temp);
-        e.to_string()
-    })?;
+    let from: &Path = if move_file { source } else { &temp };
+    fs::rename(from, &target)
+        .or_else(|_| {
+            // Across volumes a rename fails: copy then delete.
+            fs::copy(from, &target)
+                .map(|_| ())
+                .and_then(|()| fs::remove_file(from))
+        })
+        .map_err(|e| {
+            let _ = fs::remove_file(&temp);
+            e.to_string()
+        })?;
     let inserted = c.execute(
         "INSERT INTO guide_files(guide_id,file_name,kind,stored_name,size_bytes,sha256,source_url) \
          VALUES (?1,?2,?3,?4,?5,?6,?7)",
         params![
             guide_id,
-            display_name(source),
+            name.map_or_else(|| display_name(source), |n| display_name(Path::new(n))),
             kind,
             stored_name,
             size as i64,

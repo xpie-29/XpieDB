@@ -1,3 +1,4 @@
+mod archive;
 mod assets;
 mod backup;
 mod catalog;
@@ -43,6 +44,7 @@ pub fn run() {
         .manage(igdb::Igdb::default())
         .manage(backup::Backups::default())
         .manage(steam::Steam::default())
+        .manage(archive::Archive::default())
         .on_menu_event(menu::on_event)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -104,7 +106,12 @@ pub fn run() {
             igdb::igdb_test,
             igdb::igdb_search,
             igdb::igdb_thumbnail,
-            igdb::igdb_import
+            igdb::igdb_import,
+            archive::archive_search,
+            archive::archive_item,
+            archive::archive_open_page,
+            archive::archive_cancel,
+            archive::archive_download
         ])
         .run(tauri::generate_context!())
         .expect("failed to run XpieDB");

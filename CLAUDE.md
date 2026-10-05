@@ -57,7 +57,7 @@ paths and the build fails otherwise).
 - **Modules** (`src-tauri/src/`): `catalog.rs` (games, platforms, tags, preferences, backlog order),
   `storage.rs` (migrations 1-8), `assets.rs` (managed images), `backup/` (zip backup and restore),
   `report/` (PDF reports via `krilla`), `igdb/` (IGDB client, auth, models), `steam/` (Steam import),
-  `hardware.rs` (Hardware collection), `guides.rs` (Guides collection), `guide_files.rs` (PDF/ePub copies), `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
+  `hardware.rs` (Hardware collection), `guides.rs` (Guides collection), `guide_files.rs` (PDF/ePub copies), `archive/` (Internet Archive lookup and download), `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
   pure logic in `src/stats.ts`, `libraryQuery.ts`, `steamImport.ts`, `listOrder.ts` (kept free of Tauri so
   `node --test` can run it).
 - **Schema changes are migrations** (`src-tauri/migrations/NNN_*.sql`, registered in `storage.rs`), each applied
@@ -74,6 +74,10 @@ paths and the build fails otherwise).
   copied into `guide-files/<uuid>.<ext>` after checking their content (not their name); the frontend only ever
   names a file by id, Rust picks the file with a dialog, and files are **not in backups** (the owner chose that;
   a restored database shows missing files as such). An in-app reader is only a plan (Part 3 of the plan doc).
+  **Internet Archive** (`archive/`): the frontend names an item and a file by Archive id only (never a URL); Rust
+  re-reads the item's metadata and downloads only a listed PDF or ePub of an item that is not borrow-only, follows
+  redirects only within archive.org, one download at a time, with progress events and cancel. It only adds files to
+  guides (or creates a guide for the download); search results are ranked candidates for the owner to review.
 - **Preferences** are an allow-listed key/value table (`catalog::set_preference`); add new keys there.
 - **Steam/IGDB import is add-only**: never modify an existing game. Bulk metadata refresh was deliberately
   rejected by the owner because it could overwrite personal edits; do not build it.
