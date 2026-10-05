@@ -59,7 +59,7 @@ test("About can be opened from any page and again after closing", async ({
   page,
 }) => {
   await installMock(page);
-  for (const name of ["Backlog", "Reports", "Settings", "Platforms"]) {
+  for (const name of ["Backlog", "Reports", "Settings"]) {
     await page.getByRole("button", { name, exact: true }).click();
     await fire(page);
     await expect(dialog(page)).toBeVisible();

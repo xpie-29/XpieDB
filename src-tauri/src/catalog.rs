@@ -435,6 +435,7 @@ pub fn set_preference(c: &Connection, key: &str, value: &str) -> Result<()> {
         "report_orientation" => ["portrait", "landscape"].contains(&value),
         "list_columns" => valid_list_columns(value),
         "platform_icon_style" => ["color", "mono"].contains(&value),
+        "collection" => ["games", "guides", "hardware"].contains(&value),
         "library_sort" => [
             "title_asc",
             "title_desc",

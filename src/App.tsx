@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Button, Spinner } from "@fluentui/react-components";
-import type { Game, Platform, Preferences } from "./types";
+import { collectionOf, type Collection, type Game, type Platform, type Preferences } from "./types";
 import { Library } from "./components/Library";
 import { GameDetail } from "./components/GameDetail";
 import { PlatformManager } from "./components/PlatformManager";
@@ -123,6 +123,14 @@ export function App() {
     const timer = window.setTimeout(() => setHighlight(null), 2600);
     return () => window.clearTimeout(timer);
   }, [highlight, view]);
+  const collection = collectionOf(preferences.collection);
+  // Switching collection always lands on that collection's list.
+  const switchCollection = (next: Collection) => {
+    if (next === collection) return;
+    setError("");
+    setView("library");
+    void preference("collection", next);
+  };
   const editing = view === "add" || view === "edit";
   const navigate = (next: Destination) => {
     setError("");
@@ -138,6 +146,8 @@ export function App() {
         locked={editing || loading || busy}
         preferences={preferences}
         preference={preference}
+        collection={collection}
+        setCollection={switchCollection}
       />
       {error && (
         <div role="alert" className="shell-error error">
@@ -150,7 +160,23 @@ export function App() {
           <Spinner label="Opening library" />
         ) : (
           <>
-            {view === "library" && (
+            {collection === "guides" && view === "library" && (
+              <section className="page-scroll">
+                <header className="page-header">
+                  <h1>Guides</h1>
+                </header>
+                <p className="muted">Guides are coming soon.</p>
+              </section>
+            )}
+            {collection === "hardware" && view === "library" && (
+              <section className="page-scroll">
+                <header className="page-header">
+                  <h1>Hardware</h1>
+                </header>
+                <p className="muted">Hardware is coming soon.</p>
+              </section>
+            )}
+            {collection === "games" && view === "library" && (
               <Library
                 games={visible}
                 total={games.length}
@@ -208,7 +234,7 @@ export function App() {
                 }
               />
             )}
-            {editing && (
+            {collection === "games" && editing && (
               <section className="page-scroll">
                 <Suspense fallback={<Spinner label="Opening editor" />}>
                   {view === "add" ? (
@@ -246,7 +272,7 @@ export function App() {
                 </Suspense>
               </section>
             )}
-            {view === "backlog" && (
+            {collection === "games" && view === "backlog" && (
               <section className="page-scroll">
                 <Backlog
                   games={games}
@@ -260,7 +286,7 @@ export function App() {
                 />
               </section>
             )}
-            {view === "steam" && (
+            {collection === "games" && view === "steam" && (
               <section className="page-scroll">
                 <SteamImport
                   refresh={refresh}
@@ -275,6 +301,7 @@ export function App() {
                 <PlatformManager
                   platforms={platforms}
                   refresh={refresh}
+                  back={() => navigate("settings")}
                   iconStyle={preferences.platform_icon_style ?? "color"}
                   setIconStyle={(value) =>
                     void preference("platform_icon_style", value)
@@ -282,7 +309,7 @@ export function App() {
                 />
               </section>
             )}
-            {view === "reports" && (
+            {collection === "games" && view === "reports" && (
               <section className="page-scroll">
                 <Reports
                   gameCount={games.length}
@@ -297,6 +324,16 @@ export function App() {
                 <header className="page-header">
                   <h1>Settings</h1>
                 </header>
+                <section className="settings-platforms">
+                  <h2>Platforms</h2>
+                  <p>
+                    Add your own platforms, choose icons, and switch icon
+                    colours.
+                  </p>
+                  <Button onClick={() => navigate("platforms")}>
+                    Manage platforms
+                  </Button>
+                </section>
                 <IgdbSettings />
                 <SteamSettings />
                 <BackupSettings restored={reloadRestored} working={setBusy} />

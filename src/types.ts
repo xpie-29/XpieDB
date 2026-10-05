@@ -39,6 +39,8 @@ export type Preferences = {
   list_columns?: string;
   /** "color" (the default when absent) or "mono". */
   platform_icon_style?: string;
+  /** Which collection is shown: "games" (the default when absent), "guides" or "hardware". */
+  collection?: string;
   report_paper?: string;
   report_orientation?: string;
 };
@@ -66,3 +68,12 @@ export const emptyGame = (platform: number): GameInput => ({
   notes_html: "",
   tags: [],
 });
+
+export type Collection = "games" | "guides" | "hardware";
+export const collections: Array<{ id: Collection; name: string }> = [
+  { id: "games", name: "Games" },
+  { id: "guides", name: "Guides" },
+  { id: "hardware", name: "Hardware" },
+];
+export const collectionOf = (value: string | undefined): Collection =>
+  collections.find((c) => c.id === value)?.id ?? "games";

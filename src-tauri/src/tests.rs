@@ -562,3 +562,17 @@ fn platform_icon_style_accepts_only_color_or_mono() {
     }
     assert_eq!(preferences(&c).unwrap()["platform_icon_style"], "color");
 }
+
+#[test]
+fn collection_preference_accepts_only_the_three_collections() {
+    let (_dir, c) = database();
+    assert!(!preferences(&c).unwrap().contains_key("collection"));
+    for value in ["hardware", "guides", "games"] {
+        set_preference(&c, "collection", value).unwrap();
+        assert_eq!(preferences(&c).unwrap()["collection"], value);
+    }
+    for bad in ["", "Games", "systems", "platforms"] {
+        assert!(set_preference(&c, "collection", bad).is_err(), "{bad}");
+    }
+    assert_eq!(preferences(&c).unwrap()["collection"], "games");
+}

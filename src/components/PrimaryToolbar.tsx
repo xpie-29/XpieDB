@@ -1,4 +1,13 @@
-import { Button, Select } from "@fluentui/react-components";
+import type { ReactElement } from "react";
+import {
+  Button,
+  Menu,
+  MenuItemRadio,
+  MenuList,
+  MenuPopover,
+  MenuTrigger,
+  Select,
+} from "@fluentui/react-components";
 import {
   Add20Regular,
   DocumentPdf20Regular,
@@ -7,8 +16,11 @@ import {
   Settings20Regular,
   TextNumberListLtr20Regular,
   Games20Regular,
+  Book20Regular,
+  Desktop20Regular,
+  ChevronDown16Regular,
 } from "@fluentui/react-icons";
-import type { Preferences } from "../types";
+import { collectionOf, collections, type Collection, type Preferences } from "../types";
 export type Destination =
   | "library"
   | "backlog"
@@ -18,43 +30,110 @@ export type Destination =
   | "platforms"
   | "reports"
   | "settings";
-const destinations = [
-  { id: "library", name: "Library", icon: <Grid20Regular /> },
-  { id: "backlog", name: "Backlog", icon: <TextNumberListLtr20Regular /> },
-  { id: "add", name: "Add Game", icon: <Add20Regular /> },
-  { id: "platforms", name: "Platforms", icon: <Games20Regular /> },
-  { id: "reports", name: "Reports", icon: <DocumentPdf20Regular /> },
-  { id: "settings", name: "Settings", icon: <Settings20Regular /> },
-] as const;
+type Item = { id: Destination; name: string; icon: ReactElement };
+const item = (id: Destination, name: string, icon: ReactElement): Item => ({
+  id,
+  name,
+  icon,
+});
+/** Buttons before and after the collection selector, per collection. */
+const layout: Record<Collection, { before: Item[]; after: Item[] }> = {
+  games: {
+    before: [
+      item("library", "Library", <Grid20Regular />),
+      item("backlog", "Backlog", <TextNumberListLtr20Regular />),
+      item("add", "Add Game", <Add20Regular />),
+    ],
+    after: [
+      item("reports", "Reports", <DocumentPdf20Regular />),
+      item("settings", "Settings", <Settings20Regular />),
+    ],
+  },
+  guides: {
+    before: [item("library", "Library", <Grid20Regular />)],
+    after: [item("settings", "Settings", <Settings20Regular />)],
+  },
+  hardware: {
+    before: [
+      item("library", "Library", <Grid20Regular />),
+      item("add", "Add Hardware", <Add20Regular />),
+    ],
+    after: [item("settings", "Settings", <Settings20Regular />)],
+  },
+};
+const collectionIcon: Record<Collection, ReactElement> = {
+  games: <Games20Regular />,
+  guides: <Book20Regular />,
+  hardware: <Desktop20Regular />,
+};
 export function PrimaryToolbar({
   view,
   navigate,
   locked,
   preferences,
   preference,
+  collection,
+  setCollection,
 }: {
   view: Destination;
   navigate: (view: Destination) => void;
   locked: boolean;
   preferences: Preferences;
   preference: (key: string, value: string) => void;
+  collection: Collection;
+  setCollection: (collection: Collection) => void;
 }) {
+  const button = (d: Item) => (
+    <Button
+      key={d.id}
+      appearance={view === d.id ? "primary" : "subtle"}
+      aria-current={view === d.id ? "page" : undefined}
+      disabled={locked}
+      icon={d.icon}
+      onClick={() => navigate(d.id)}
+    >
+      {d.name}
+    </Button>
+  );
   return (
     <header className="primary-toolbar">
       <div className="brand">XpieDB</div>
       <nav aria-label="Primary">
-        {destinations.map((d) => (
-          <Button
-            key={d.id}
-            appearance={view === d.id ? "primary" : "subtle"}
-            aria-current={view === d.id ? "page" : undefined}
-            disabled={locked}
-            icon={d.icon}
-            onClick={() => navigate(d.id)}
-          >
-            {d.name}
-          </Button>
-        ))}
+        {layout[collection].before.map(button)}
+        <Menu
+          checkedValues={{ collection: [collection] }}
+          onCheckedValueChange={(_, d) =>
+            setCollection(collectionOf(d.checkedItems[0]))
+          }
+        >
+          <MenuTrigger disableButtonEnhancement>
+            <Button
+              appearance="subtle"
+              disabled={locked}
+              icon={collectionIcon[collection]}
+              iconPosition="before"
+              aria-label={`Collection: ${collections.find((c) => c.id === collection)?.name}`}
+            >
+              {collections.find((c) => c.id === collection)?.name}
+              <ChevronDown16Regular style={{ marginLeft: 6 }} />
+            </Button>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList>
+              {collections.map((c) => (
+                <MenuItemRadio
+                  key={c.id}
+                  name="collection"
+                  value={c.id}
+                  icon={collectionIcon[c.id]}
+                >
+                  {c.name}
+                </MenuItemRadio>
+              ))}
+            </MenuList>
+          </MenuPopover>
+        </Menu>
+        {layout[collection].after.map(button)}
       </nav>
       {view === "library" && (
         <div className="presentation-controls">

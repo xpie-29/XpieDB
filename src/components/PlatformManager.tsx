@@ -6,6 +6,7 @@ import {
   Edit20Regular,
   Delete20Regular,
   ImageAdd20Regular,
+  ArrowLeft20Regular,
 } from "@fluentui/react-icons";
 import type { Platform } from "../types";
 import { Modal, PlatformIcon, Confirm } from "./Shared";
@@ -14,11 +15,13 @@ export function PlatformManager({
   refresh,
   iconStyle,
   setIconStyle,
+  back,
 }: {
   platforms: Platform[];
   refresh: () => Promise<void>;
   iconStyle: string;
   setIconStyle: (value: "color" | "mono") => void;
+  back: () => void;
 }) {
   const [draft, setDraft] = useState<{
     id: number | null;
@@ -45,7 +48,10 @@ export function PlatformManager({
   };
   return (
     <>
-      <header className="page-header">
+      <header className="page-header platforms-header">
+        <Button icon={<ArrowLeft20Regular />} onClick={back}>
+          Settings
+        </Button>
         <h1>Platforms</h1>
       </header>
       <section>

@@ -65,7 +65,8 @@ test("icons are tinted by default, and the setting switches them to mono and bac
     rowFor(page, "Atari 2600").first().locator(".glyph"),
   ).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Platforms" }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Manage platforms" }).click();
   const toggle = page.getByRole("switch", { name: "Colour the platform icons" });
   await expect(toggle).toBeChecked();
   await toggle.click();
