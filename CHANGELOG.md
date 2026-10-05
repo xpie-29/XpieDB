@@ -1,5 +1,11 @@
 # Changelog
 
+## In-app PDF reader - 2026-10-05
+
+- Read a PDF inside XpieDB (PDF.js): ranged loading by id through a `guidefile` URL scheme, zoom, search, contents,
+  bookmarks, night mode, full screen, resume where you stopped, and a panel to switch between guides. Migration 9
+  stores the position and bookmarks. Verified in the real app with a 2.4 MB real PDF and a 9.5 MB, 300-page one.
+
 ## Collections: Internet Archive lookup - 2026-10-04
 
 - Find on Internet Archive (guide panel) and Find guides online (game panel): review ranked matches, pick a PDF or

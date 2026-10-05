@@ -37,6 +37,7 @@ export function GuidesLibrary({
   openGame,
   attachFile,
   openFile,
+  readFile,
   revealFile,
   removeFile,
   findOnline,
@@ -61,6 +62,8 @@ export function GuidesLibrary({
   /** Digital copies: attach one (the app asks for the file), open it, show it, or remove it. */
   attachFile: (guide: Guide) => void;
   openFile: (file: GuideFile) => void;
+  /** Read a PDF in the app's own reader. */
+  readFile: (file: GuideFile) => void;
   revealFile: (file: GuideFile) => void;
   removeFile: (file: GuideFile) => void;
   /** Look for a digital copy on the Internet Archive. */
@@ -257,6 +260,7 @@ export function GuidesLibrary({
             openGame={openGame}
             attachFile={() => attachFile(current)}
             openFile={openFile}
+            readFile={readFile}
             revealFile={revealFile}
             removeFile={removeFile}
             findOnline={() => findOnline(current)}
@@ -277,6 +281,7 @@ function GuideDetail({
   openGame,
   attachFile,
   openFile,
+  readFile,
   revealFile,
   removeFile,
   findOnline,
@@ -290,6 +295,7 @@ function GuideDetail({
   openGame: (id: number) => void;
   attachFile: () => void;
   openFile: (file: GuideFile) => void;
+  readFile: (file: GuideFile) => void;
   revealFile: (file: GuideFile) => void;
   removeFile: (file: GuideFile) => void;
   findOnline: () => void;
@@ -394,7 +400,20 @@ function GuideDetail({
                     Remove it and attach it again.
                   </p>
                 ) : null}
+                {f.last_page ? (
+                  <div className="muted">Last read: page {f.last_page}</div>
+                ) : null}
                 <div className="file-actions">
+                  {f.kind === "pdf" && (
+                    <Button
+                      size="small"
+                      appearance="primary"
+                      disabled={f.missing}
+                      onClick={() => readFile(f)}
+                    >
+                      Read
+                    </Button>
+                  )}
                   <Button
                     size="small"
                     disabled={f.missing}

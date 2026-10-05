@@ -280,7 +280,12 @@ lists each item's downloadable PDF and ePub files (searchable-text PDFs recommen
 with a progress bar and a Cancel button. From a game it makes a new guide for it, or attaches to one it already has.
 Borrow-only (lending library) items cannot be downloaded and show **Open on archive.org** instead. Matching is by
 title, so always check a result before keeping it; XpieDB lists what the Archive offers and you decide what you may
-keep. Guide files are large, so they are **not included in backups**; after restoring a backup on another
+keep. **Read** (on a PDF) opens it in XpieDB's own reader: pages load a few at a time, so even a few hundred megabytes
+is fine. The reader has page turning and jump-to-page, zoom (fit width, fit page, steps), text search with next and
+previous, the PDF's own table of contents, bookmarks (one per page, nameable, remembered), night mode (inverts the
+page colours), full screen, and it reopens each file where you stopped. A side panel lists your other guides with
+PDFs (most recently read first) so you can switch without leaving the reader. It is PDF.js running inside the app,
+entirely offline; ePubs open in your default reader for now. Guide files are large, so they are **not included in backups**; after restoring a backup on another
 computer they show as missing and can be attached again. The Copy column reads Physical, Digital or Both.
 
 Hardware holds **systems** (consoles, PCs, handhelds) and **accessories**. An accessory can belong to one system

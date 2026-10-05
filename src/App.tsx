@@ -60,6 +60,9 @@ const HardwareForm = lazy(() =>
     default: m.HardwareForm,
   })),
 );
+const Reader = lazy(() =>
+  import("./components/Reader").then((m) => ({ default: m.Reader })),
+);
 const GuideForm = lazy(() =>
   import("./components/GuideForm").then((m) => ({ default: m.GuideForm })),
 );
@@ -97,6 +100,8 @@ export function App() {
   const [guideDraft, setGuideDraft] = useState<GuideInput | undefined>();
   const [deletingGuide, setDeletingGuide] = useState<Guide | null>(null);
   const [removingFile, setRemovingFile] = useState<GuideFile | null>(null);
+  // The file being read in the in-app reader, if any; the reader replaces the whole workspace.
+  const [reading, setReading] = useState<number | null>(null);
   const [finder, setFinder] = useState<{
     query: string;
     target: FinderTarget;
@@ -307,6 +312,17 @@ export function App() {
       setError(String(e));
     }
   };
+  const notePosition = (fileId: number, page: number) =>
+    setGuides((current) =>
+      current.map((g) => ({
+        ...g,
+        files: g.files.map((f) =>
+          f.id === fileId
+            ? { ...f, last_page: page, last_opened_at: new Date().toISOString() }
+            : f,
+        ),
+      })),
+    );
   const finderDone = (guide: Guide) => {
     const fromGame = finder?.target.kind === "game";
     setGuides((current) => [...current.filter((x) => x.id !== guide.id), guide]);
@@ -339,7 +355,7 @@ export function App() {
     <main
       className={`app-shell ${preferences.platform_icon_style === "mono" ? "icons-mono" : "icons-color"}`}
     >
-      <PrimaryToolbar
+      {reading === null && <PrimaryToolbar
         view={view}
         navigate={navigate}
         locked={editing || loading || busy}
@@ -347,7 +363,7 @@ export function App() {
         preference={preference}
         collection={collection}
         setCollection={switchCollection}
-      />
+      />}
       {error && (
         <div role="alert" className="shell-error error">
           {error}
@@ -357,6 +373,19 @@ export function App() {
       <div className="workspace">
         {loading ? (
           <Spinner label="Opening library" />
+        ) : reading !== null ? (
+          <Suspense fallback={<Spinner label="Opening the reader" />}>
+            <Reader
+              guides={guides}
+              games={games}
+              startFileId={reading}
+              preferences={preferences}
+              setPreference={(key, value) => void preference(key, value)}
+              close={() => setReading(null)}
+              onPosition={notePosition}
+              error={setError}
+            />
+          </Suspense>
         ) : (
           <>
             {collection === "guides" && view === "library" && (
@@ -381,6 +410,7 @@ export function App() {
                 openGame={openGame}
                 attachFile={(guide) => void attachFile(guide)}
                 openFile={(file) => void fileAction("open_guide_file")(file)}
+                readFile={(file) => setReading(file.id)}
                 revealFile={(file) => void fileAction("reveal_guide_file")(file)}
                 removeFile={setRemovingFile}
                 findOnline={(guide) =>

@@ -40,10 +40,10 @@ file is what a new session needs to start working safely.
 ```bash
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
-cargo test --manifest-path src-tauri/Cargo.toml --locked     # 164 passed, 4 ignored
+cargo test --manifest-path src-tauri/Cargo.toml --locked     # 175 passed, 4 ignored
 npm test                                                      # 96 passed (node:test, TypeScript type-stripping)
 npm run build                                                 # tsc + vite
-npm run test:ui                                               # 165 passed (Playwright, Chromium, mocked IPC)
+npm run test:ui                                               # 186 passed (Playwright, Chromium, mocked IPC)
 ```
 Format TypeScript with `npx --no-install prettier --write <files>`; Rust with `cargo fmt`. If the project folder
 is ever moved or renamed, run `cargo clean --manifest-path src-tauri/Cargo.toml` first (Tauri caches absolute
@@ -55,9 +55,9 @@ paths and the build fails otherwise).
   (`src-tauri/src/igdb/store.rs` selects Windows Credential Manager or macOS Keychain), are never returned to the
   frontend, and never appear in logs or error text.
 - **Modules** (`src-tauri/src/`): `catalog.rs` (games, platforms, tags, preferences, backlog order),
-  `storage.rs` (migrations 1-8), `assets.rs` (managed images), `backup/` (zip backup and restore),
+  `storage.rs` (migrations 1-9), `assets.rs` (managed images), `backup/` (zip backup and restore),
   `report/` (PDF reports via `krilla`), `igdb/` (IGDB client, auth, models), `steam/` (Steam import),
-  `hardware.rs` (Hardware collection), `guides.rs` (Guides collection), `guide_files.rs` (PDF/ePub copies), `archive/` (Internet Archive lookup and download), `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
+  `hardware.rs` (Hardware collection), `guides.rs` (Guides collection), `guide_files.rs` (PDF/ePub copies), `file_server.rs` (the `guidefile` scheme), `archive/` (Internet Archive lookup and download), `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
   pure logic in `src/stats.ts`, `libraryQuery.ts`, `steamImport.ts`, `listOrder.ts` (kept free of Tauri so
   `node --test` can run it).
 - **Schema changes are migrations** (`src-tauri/migrations/NNN_*.sql`, registered in `storage.rs`), each applied
@@ -73,7 +73,11 @@ paths and the build fails otherwise).
   Guide photos reuse the `covers` folder like Hardware photos. **Guide files** (`guide_files.rs`) are PDFs/ePubs
   copied into `guide-files/<uuid>.<ext>` after checking their content (not their name); the frontend only ever
   names a file by id, Rust picks the file with a dialog, and files are **not in backups** (the owner chose that;
-  a restored database shows missing files as such). An in-app reader is only a plan (Part 3 of the plan doc).
+  a restored database shows missing files as such). **In-app PDF reader** (`src/components/Reader.tsx`, `src/pdfReader.ts`): PDF.js, lazy-loaded; the reader gives PDF.js
+  exact byte ranges itself (`RangeTransport`) because PDF.js treats a partial reply to its first request as the
+  whole file. Rust serves `guidefile://<id>` with Range, 4 MB per reply, id-only. PDF.js's fonts/decoders are copied
+  to `public/pdfjs` by `scripts/prepare-pdfjs.mjs` (predev/prebuild); the CSP allows `wasm-unsafe-eval`, workers and
+  the `guidefile` scheme. Pop-out window and ePub reading are not built (Part 3 of the plan doc).
   **Internet Archive** (`archive/`): the frontend names an item and a file by Archive id only (never a URL); Rust
   re-reads the item's metadata and downloads only a listed PDF or ePub of an item that is not borrow-only, follows
   redirects only within archive.org, one download at a time, with progress events and cancel. It only adds files to
@@ -105,8 +109,8 @@ report per milestone in `docs/` and a `CHANGELOG.md`.
 Collections work (plan in `docs/plan-collections-and-guides.md`): the collection selector and the **Hardware**
 collection (systems and accessories, grouped/flat list, add/edit, sale dialog) and the **Guides** collection
 (list, detail, add/edit, links to games both ways, attach/open PDF and ePub copies) are built; Internet
-Archive lookup (search, review, download) is built; an in-app reader and an option to include guide files in
-backups are still only a plan. Hardware and Guides list columns are fixed (not resizable) and have no grid view.
+Archive lookup (search, review, download) is built; the in-app PDF reader is built; ePub reading, a pop-out reader window and an
+option to include guide files in backups are still only a plan. Hardware and Guides list columns are fixed (not resizable) and have no grid view.
 
 ## Known gaps and open items
 - **Steam import has never run against the real Steam or IGDB services** (no API keys during development; the

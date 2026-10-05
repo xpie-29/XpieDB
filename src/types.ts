@@ -43,6 +43,10 @@ export type Preferences = {
   collection?: string;
   /** "grouped" (the default when absent) or "flat". */
   hardware_grouping?: string;
+  /** "true" turns the reader's night mode on. */
+  reader_night?: string;
+  /** The reader's zoom: "page-width" (the default), "page-fit", "auto", or a number such as "1.25". */
+  reader_zoom?: string;
   report_paper?: string;
   report_orientation?: string;
 };
@@ -184,6 +188,9 @@ export type GuideFile = {
   date_added: string;
   /** The copy in the app folder is gone (for example after restoring a backup without guide files). */
   missing: boolean;
+  /** Where the reader stopped, and when the file was last opened in it. */
+  last_page: number | null;
+  last_opened_at: string | null;
 };
 export type Guide = GuideInput & {
   id: number;

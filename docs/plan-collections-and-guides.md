@@ -232,3 +232,8 @@ reader window with two engines behind the same toolbar: PDF.js for `.pdf`, folia
 Finish file storage and "open in default reader" first (done), then the Internet Archive lookup, then decide on
 the reader with real guides in hand. If you want the reader sooner, start with the PDF half, since guides are
 mostly PDFs.
+
+### Status (2026-10-05)
+Built: the PDF half, inside the main window (PDF.js with our own toolbar; ranged loading through a `guidefile` scheme;
+zoom, search, contents, bookmarks, resume, night mode, full screen, switching between guides). Still to do: ePub
+(foliate-js), a pop-out reader window, and optionally thumbnails and two-page spreads.

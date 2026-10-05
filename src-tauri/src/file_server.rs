@@ -13,8 +13,9 @@ use std::{
 
 /// The most bytes sent for one request.
 pub const CHUNK: u64 = 4 * 1024 * 1024;
-/// A request with no Range for a file up to this size gets the whole file.
-pub const FULL_LIMIT: u64 = 64 * 1024 * 1024;
+/// A request with no Range for a file up to this size gets the whole file; a larger file gets its first
+/// chunk (PDF.js then asks for the parts it needs), so a big guide is never read into memory at once.
+pub const FULL_LIMIT: u64 = CHUNK;
 
 pub struct Served {
     pub status: u16,

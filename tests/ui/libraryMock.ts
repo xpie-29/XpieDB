@@ -209,11 +209,13 @@ export function sampleGuides() {
     source_url: null,
     date_added: "2026-01-02T00:00:00Z",
     missing,
+    last_page: null as number | null,
+    last_opened_at: null as string | null,
   });
   return [
     { ...base, id: 1, title: "Game 05 Official Guide", game_id: 5, platform_id: 1, publisher: "Prima", author: "J. Smith", purchase_price_cents: 1999, condition: "Good", files: [file(1, 1, "Game 05 Guide.pdf", "pdf", 13_002_342), file(2, 1, "Game 05 Guide.epub", "epub", 2_411_000, true)] },
     { ...base, id: 2, title: "Game 05 World Map", game_id: 5, platform_id: 1 },
-    { ...base, id: 3, title: "Game 12 Strategy Guide", game_id: 12, platform_id: 2, isbn: "978-0-7615-4010-7" },
+    { ...base, id: 3, title: "Game 12 Strategy Guide", game_id: 12, platform_id: 2, isbn: "978-0-7615-4010-7", files: [{ ...file(4, 3, "Game 12 Guide.pdf", "pdf", 40_000), last_page: 3, last_opened_at: "2026-09-01T00:00:00Z" }] },
     { ...base, id: 4, title: "Atlas of Somewhere", game_title: "Somewhere Quest", platform_id: 6, has_physical: false },
   ];
 }
@@ -309,7 +311,12 @@ export async function installMock(page: Page, options: MockOptions = {}) {
           .sort((a: any, b: any) => a.backlog_position - b.backlog_position);
       const renumber = () =>
         queue().forEach((g: any, i: number) => (g.backlog_position = i + 1));
+      w.readerCalls = [];
+      w.fullscreen = false;
+      const bookmarks: any[] = [];
       w.__TAURI_INTERNALS__ = {
+        metadata: { currentWindow: { label: "main" }, currentWebview: { windowLabel: "main", label: "main" } },
+        convertFileSrc: (path: string, protocol: string) => `http://${protocol}.localhost/${path}`,
         transformCallback: (callback: (e: unknown) => void) => {
           callbacks[nextCallback] = callback;
           return nextCallback++;
@@ -344,6 +351,43 @@ export async function installMock(page: Page, options: MockOptions = {}) {
             };
             guides.push(created);
             return JSON.parse(JSON.stringify(created));
+          }
+          if (command === "plugin:window|set_fullscreen") {
+            w.fullscreen = args.value;
+            w.readerCalls.push(["fullscreen", args.value]);
+            return;
+          }
+          if (command === "plugin:window|is_fullscreen") return w.fullscreen;
+          if (command === "set_guide_file_position") {
+            w.readerCalls.push(["position", args.id, args.page]);
+            for (const g of guides) for (const f of g.files) if (f.id === args.id) { f.last_page = args.page; f.last_opened_at = "2026-10-05T00:00:00Z"; }
+            return;
+          }
+          if (command === "list_guide_bookmarks") {
+            return bookmarks.filter((b) => b.file_id === args.fileId).sort((a, b) => a.page - b.page);
+          }
+          if (command === "add_guide_bookmark") {
+            if (bookmarks.some((b) => b.file_id === args.fileId && b.page === args.page)) throw "That page is already bookmarked.";
+            const created = {
+              id: Math.max(0, ...bookmarks.map((b) => b.id)) + 1,
+              file_id: args.fileId,
+              page: args.page,
+              label: (args.label ?? "").trim() || `Page ${args.page}`,
+              date_added: "2026-10-05T00:00:00Z",
+            };
+            bookmarks.push(created);
+            w.readerCalls.push(["bookmark-add", args.fileId, args.page]);
+            return created;
+          }
+          if (command === "rename_guide_bookmark") {
+            bookmarks.find((b) => b.id === args.id).label = args.label;
+            w.readerCalls.push(["bookmark-rename", args.id, args.label]);
+            return;
+          }
+          if (command === "delete_guide_bookmark") {
+            bookmarks.splice(bookmarks.findIndex((b) => b.id === args.id), 1);
+            w.readerCalls.push(["bookmark-delete", args.id]);
+            return;
           }
           if (command === "archive_search") {
             w.archiveCalls.push(["search", args.query]);
@@ -415,6 +459,7 @@ export async function installMock(page: Page, options: MockOptions = {}) {
             return created;
           }
           if (command === "open_guide_file" || command === "reveal_guide_file") {
+            w.readerCalls.push([command, args.id]);
             w.guideFileCalls.push([command === "open_guide_file" ? "open" : "reveal", args.id]);
             return;
           }
