@@ -551,3 +551,16 @@ fn a_backup_with_a_broken_backlog_is_repaired_on_restore() {
         ]
     );
 }
+
+#[test]
+fn hardware_photos_are_part_of_a_backup() {
+    let (dir, _cover) = library(5);
+    let c = connect(dir.path());
+    let photo = assets::import_bytes(dir.path(), &png(77), "covers").unwrap();
+    c.execute(
+        "INSERT INTO hardware (kind, name, status, photo_path) VALUES ('system', 'PS5', 'Owned', ?1)",
+        [&photo],
+    )
+    .unwrap();
+    assert!(referenced_images(&c).unwrap().contains(&photo));
+}

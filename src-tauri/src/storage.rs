@@ -39,6 +39,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "more_platforms",
         sql: include_str!("../migrations/005_more_platforms.sql"),
     },
+    Migration {
+        version: 6,
+        name: "hardware",
+        sql: include_str!("../migrations/006_hardware.sql"),
+    },
 ];
 
 /// Highest schema version this build understands.
@@ -346,6 +351,29 @@ mod tests {
             .unwrap();
         run_migrations(&connection).unwrap();
         assert_eq!(platform_rows(&connection).len(), 35);
+    }
+
+    #[test]
+    fn hardware_tables_roll_back_when_bookkeeping_fails() {
+        let connection = Connection::open_in_memory().unwrap();
+        apply_migrations(&connection, &MIGRATIONS[..5]).unwrap();
+        connection.execute_batch("CREATE TRIGGER reject_hardware BEFORE INSERT ON schema_migrations WHEN NEW.version=6 BEGIN SELECT RAISE(ABORT,'test failure'); END;").unwrap();
+        assert!(run_migrations(&connection).is_err());
+        let tables = |connection: &Connection| -> i64 {
+            connection
+                .query_row(
+                    "SELECT count(*) FROM sqlite_master WHERE name IN ('hardware','hardware_compat')",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap()
+        };
+        assert_eq!(tables(&connection), 0);
+        connection
+            .execute_batch("DROP TRIGGER reject_hardware;")
+            .unwrap();
+        run_migrations(&connection).unwrap();
+        assert_eq!(tables(&connection), 2);
     }
 
     #[test]

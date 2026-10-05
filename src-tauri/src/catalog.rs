@@ -83,6 +83,35 @@ fn clean_optional(value: &mut Option<String>) -> Result<()> {
     }
     Ok(())
 }
+/// True for a real calendar date written YYYY-MM-DD.
+pub(crate) fn valid_date(date: &str) -> bool {
+    let parts: Vec<_> = date.split('-').collect();
+    (|| {
+        if parts.len() != 3 || parts[0].len() != 4 || parts[1].len() != 2 || parts[2].len() != 2 {
+            return None;
+        }
+        let y: u32 = parts[0].parse().ok()?;
+        let m: u32 = parts[1].parse().ok()?;
+        let d: u32 = parts[2].parse().ok()?;
+        let max = match m {
+            1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+            4 | 6 | 9 | 11 => 30,
+            2 => {
+                if y.is_multiple_of(4) && (!y.is_multiple_of(100) || y.is_multiple_of(400)) {
+                    29
+                } else {
+                    28
+                }
+            }
+            _ => 0,
+        };
+        Some(y > 0 && d > 0 && d <= max)
+    })()
+    .unwrap_or(false)
+}
+pub(crate) fn clean_optional_field(value: &mut Option<String>) -> Result<()> {
+    clean_optional(value)
+}
 fn validate(input: &mut GameInput) -> Result<()> {
     if input.igdb_id.is_some_and(|id| id <= 0) {
         return Err("Invalid IGDB identifier.".into());
@@ -109,34 +138,10 @@ fn validate(input: &mut GameInput) -> Result<()> {
     ] {
         clean_optional(value)?;
     }
-    if let Some(date) = &input.release_date {
-        let parts: Vec<_> = date.split('-').collect();
-        let valid = (|| {
-            if parts.len() != 3 || parts[0].len() != 4 || parts[1].len() != 2 || parts[2].len() != 2
-            {
-                return None;
-            }
-            let y: u32 = parts[0].parse().ok()?;
-            let m: u32 = parts[1].parse().ok()?;
-            let d: u32 = parts[2].parse().ok()?;
-            let max = match m {
-                1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
-                4 | 6 | 9 | 11 => 30,
-                2 => {
-                    if y.is_multiple_of(4) && (!y.is_multiple_of(100) || y.is_multiple_of(400)) {
-                        29
-                    } else {
-                        28
-                    }
-                }
-                _ => 0,
-            };
-            Some(y > 0 && d > 0 && d <= max)
-        })()
-        .unwrap_or(false);
-        if !valid {
-            return Err("Use a valid release date (YYYY-MM-DD).".into());
-        }
+    if let Some(date) = &input.release_date
+        && !valid_date(date)
+    {
+        return Err("Use a valid release date (YYYY-MM-DD).".into());
     }
     if input.notes_html.len() > 100_000 {
         return Err("Notes are too long (maximum 100 KB).".into());
@@ -394,7 +399,7 @@ pub fn save_platform(
     Ok(())
 }
 pub fn delete_platform(c: &Connection, id: i64) -> Result<()> {
-    let changed=c.execute("DELETE FROM platforms WHERE id=? AND is_builtin=0 AND NOT EXISTS(SELECT 1 FROM games WHERE platform_id=platforms.id)",[id]).map_err(db)?;
+    let changed=c.execute("DELETE FROM platforms WHERE id=? AND is_builtin=0 AND NOT EXISTS(SELECT 1 FROM games WHERE platform_id=platforms.id) AND NOT EXISTS(SELECT 1 FROM hardware WHERE platform_id=platforms.id)",[id]).map_err(db)?;
     if changed == 0 {
         return Err("Only unused custom platforms can be deleted.".into());
     }

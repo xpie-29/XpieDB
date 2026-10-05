@@ -38,7 +38,7 @@ file is what a new session needs to start working safely.
 ```bash
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
-cargo test --manifest-path src-tauri/Cargo.toml --locked     # 119 passed, 3 ignored
+cargo test --manifest-path src-tauri/Cargo.toml --locked     # 132 passed, 3 ignored
 npm test                                                      # 78 passed (node:test, TypeScript type-stripping)
 npm run build                                                 # tsc + vite
 npm run test:ui                                               # 105 passed (Playwright, Chromium, mocked IPC)
@@ -53,9 +53,9 @@ paths and the build fails otherwise).
   (`src-tauri/src/igdb/store.rs` selects Windows Credential Manager or macOS Keychain), are never returned to the
   frontend, and never appear in logs or error text.
 - **Modules** (`src-tauri/src/`): `catalog.rs` (games, platforms, tags, preferences, backlog order),
-  `storage.rs` (migrations 1-5), `assets.rs` (managed images), `backup/` (zip backup and restore),
+  `storage.rs` (migrations 1-6), `assets.rs` (managed images), `backup/` (zip backup and restore),
   `report/` (PDF reports via `krilla`), `igdb/` (IGDB client, auth, models), `steam/` (Steam import),
-  `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
+  `hardware.rs` (Hardware collection), `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
   pure logic in `src/stats.ts`, `libraryQuery.ts`, `steamImport.ts`, `listOrder.ts` (kept free of Tauri so
   `node --test` can run it).
 - **Schema changes are migrations** (`src-tauri/migrations/NNN_*.sql`, registered in `storage.rs`), each applied
@@ -63,6 +63,9 @@ paths and the build fails otherwise).
   schemas forward and refuse newer ones; `catalog::normalize_backlog` runs at startup and on restore.
 - **Backlog invariant** (Rust-enforced): a game has `backlog_position` exactly when its status is `Backlog`, and
   positions are 1..N with no gaps. Keep every write path consistent with it.
+- **Hardware invariants** (Rust-enforced in `hardware.rs`): a parent is always a `system`, systems have no
+  parent or compatibility list, accessories are never deleted with their system (they go with it when it is sold,
+  or become loose and remember `former_parent_name`). Hardware photos reuse the `covers` folder.
 - **Preferences** are an allow-listed key/value table (`catalog::set_preference`); add new keys there.
 - **Steam/IGDB import is add-only**: never modify an existing game. Bulk metadata refresh was deliberately
   rejected by the owner because it could overwrite personal edits; do not build it.

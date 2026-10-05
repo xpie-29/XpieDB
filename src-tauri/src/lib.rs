@@ -2,6 +2,7 @@ mod assets;
 mod backup;
 mod catalog;
 mod commands;
+mod hardware;
 mod igdb;
 mod menu;
 mod report;
@@ -63,6 +64,9 @@ pub fn run() {
             commands::backlog_set_order,
             commands::backlog_add,
             commands::backlog_remove,
+            commands::list_hardware,
+            commands::save_hardware,
+            commands::delete_hardware,
             commands::list_platforms,
             commands::save_platform,
             commands::delete_platform,

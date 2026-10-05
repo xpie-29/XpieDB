@@ -1,6 +1,7 @@
 use crate::{
     assets,
     catalog::{self, Game, GameInput, Platform, Result},
+    hardware::{self, Hardware, HardwareInput},
 };
 use std::collections::HashMap;
 use tauri::{AppHandle, Manager};
@@ -66,6 +67,43 @@ pub fn backlog_add(app: AppHandle, ids: Vec<i64>) -> Result<usize> {
 #[tauri::command]
 pub fn backlog_remove(app: AppHandle, id: i64, status: String) -> Result<()> {
     catalog::remove_from_backlog(&connection(&app)?, id, &status)
+}
+#[tauri::command]
+pub fn list_hardware(app: AppHandle) -> Result<Vec<Hardware>> {
+    hardware::list_hardware(&connection(&app)?)
+}
+#[tauri::command]
+pub fn save_hardware(
+    app: AppHandle,
+    id: Option<i64>,
+    input: HardwareInput,
+    with_accessories: Option<Vec<i64>>,
+) -> Result<Hardware> {
+    let root = root(&app)?;
+    let c = connection(&app)?;
+    assets::validate_reference(&root, input.photo_path.as_deref(), "covers")?;
+    let old = id
+        .map(|id| hardware::get_hardware(&c, id))
+        .transpose()?
+        .and_then(|h| h.data.photo_path);
+    let item = hardware::save_hardware(&c, id, input, &with_accessories.unwrap_or_default())?;
+    if let Some(old) = old
+        && item.data.photo_path.as_ref() != Some(&old)
+        && let Err(e) = assets::remove_unused(&c, &root, &old)
+    {
+        eprintln!("{e}");
+    }
+    Ok(item)
+}
+#[tauri::command]
+pub fn delete_hardware(app: AppHandle, id: i64) -> Result<()> {
+    let c = connection(&app)?;
+    if let Some(old) = hardware::delete_hardware(&c, id)?
+        && let Err(e) = assets::remove_unused(&c, &root(&app)?, &old)
+    {
+        eprintln!("{e}");
+    }
+    Ok(())
 }
 #[tauri::command]
 pub fn list_platforms(app: AppHandle) -> Result<Vec<Platform>> {
