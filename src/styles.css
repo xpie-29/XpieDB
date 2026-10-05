@@ -365,7 +365,7 @@ button:focus-visible,
 .platform-icon {
   display: inline-grid;
   width: 40px;
-  height: 24px;
+  height: 30px;
   place-items: center;
   border: 0;
   border-radius: 0;
@@ -375,6 +375,30 @@ button:focus-visible,
   font-weight: 600;
   color: var(--colorNeutralForeground2);
   flex-shrink: 0;
+}
+.platform-glyph {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  width: 100%;
+}
+.glyph {
+  display: block;
+  width: 20px;
+  height: 15px;
+  background: currentColor;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+.glyph-label {
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
 }
 .platform-icon img {
   width: 100%;

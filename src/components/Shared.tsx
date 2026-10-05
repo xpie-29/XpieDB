@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@fluentui/react-components";
 import type { Platform } from "../types";
 import placeholder from "../placeholder.svg";
+import { bundledIconFor } from "../platformIcons";
 
 export function ManagedImage({
   path,
@@ -37,13 +38,24 @@ export function ManagedImage({
   );
 }
 export function PlatformIcon({ platform }: { platform?: Platform }) {
+  const name = platform?.name ?? "Unknown platform";
+  const bundled = platform && !platform.icon_path && bundledIconFor(platform);
   return (
-    <span
-      className="platform-icon"
-      title={platform?.name ?? "Unknown platform"}
-    >
+    <span className="platform-icon" title={name}>
       {platform?.icon_path ? (
-        <ManagedImage path={platform.icon_path} alt={platform.name} />
+        <ManagedImage path={platform.icon_path} alt={name} />
+      ) : bundled ? (
+        <span className="platform-glyph" role="img" aria-label={name}>
+          <span
+            className="glyph"
+            style={{
+              maskImage: `url("${bundled.url}")`,
+              WebkitMaskImage: `url("${bundled.url}")`,
+            }}
+            aria-hidden="true"
+          />
+          {bundled.label && <span className="glyph-label">{bundled.label}</span>}
+        </span>
       ) : (
         <span>{platform?.short_name ?? "?"}</span>
       )}
