@@ -1,4 +1,11 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@fluentui/react-components";
 import type { Platform } from "../types";
@@ -48,10 +55,13 @@ export function PlatformIcon({ platform }: { platform?: Platform }) {
         <span className="platform-glyph" role="img" aria-label={name}>
           <span
             className="glyph"
-            style={{
-              maskImage: `url("${bundled.url}")`,
-              WebkitMaskImage: `url("${bundled.url}")`,
-            }}
+            style={
+              {
+                maskImage: `url("${bundled.url}")`,
+                WebkitMaskImage: `url("${bundled.url}")`,
+                "--icon-tint": bundled.tint,
+              } as CSSProperties
+            }
             aria-hidden="true"
           />
           {bundled.label && <span className="glyph-label">{bundled.label}</span>}

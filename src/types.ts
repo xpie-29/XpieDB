@@ -37,6 +37,8 @@ export type Preferences = {
   stats_open?: string;
   /** JSON of list-view column widths in pixels. */
   list_columns?: string;
+  /** "color" (the default when absent) or "mono". */
+  platform_icon_style?: string;
   report_paper?: string;
   report_orientation?: string;
 };

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Button, Field, Input } from "@fluentui/react-components";
+import { Button, Field, Input, Switch } from "@fluentui/react-components";
 import {
   Add20Regular,
   Edit20Regular,
@@ -12,9 +12,13 @@ import { Modal, PlatformIcon, Confirm } from "./Shared";
 export function PlatformManager({
   platforms,
   refresh,
+  iconStyle,
+  setIconStyle,
 }: {
   platforms: Platform[];
   refresh: () => Promise<void>;
+  iconStyle: string;
+  setIconStyle: (value: "color" | "mono") => void;
 }) {
   const [draft, setDraft] = useState<{
     id: number | null;
@@ -46,6 +50,11 @@ export function PlatformManager({
       </header>
       <section>
         <div className="section-header">
+          <Switch
+            label="Colour the platform icons"
+            checked={iconStyle !== "mono"}
+            onChange={(_, d) => setIconStyle(d.checked ? "color" : "mono")}
+          />
           <Button
             icon={<Add20Regular />}
             onClick={() => {

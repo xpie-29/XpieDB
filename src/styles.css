@@ -394,6 +394,10 @@ button:focus-visible,
   -webkit-mask-position: center;
   -webkit-mask-size: contain;
 }
+/* Colour mode (the default): bundled icons take their tint; "mono" keeps the text colour. */
+.icons-color .glyph {
+  background: var(--icon-tint, currentColor);
+}
 .glyph-label {
   font-size: 8px;
   font-weight: 600;

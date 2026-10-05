@@ -129,7 +129,9 @@ export function App() {
     setView(next);
   };
   return (
-    <main className="app-shell">
+    <main
+      className={`app-shell ${preferences.platform_icon_style === "mono" ? "icons-mono" : "icons-color"}`}
+    >
       <PrimaryToolbar
         view={view}
         navigate={navigate}
@@ -270,7 +272,14 @@ export function App() {
             )}
             {view === "platforms" && (
               <section className="page-scroll">
-                <PlatformManager platforms={platforms} refresh={refresh} />
+                <PlatformManager
+                  platforms={platforms}
+                  refresh={refresh}
+                  iconStyle={preferences.platform_icon_style ?? "color"}
+                  setIconStyle={(value) =>
+                    void preference("platform_icon_style", value)
+                  }
+                />
               </section>
             )}
             {view === "reports" && (

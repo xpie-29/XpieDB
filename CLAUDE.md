@@ -38,10 +38,10 @@ file is what a new session needs to start working safely.
 ```bash
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
-cargo test --manifest-path src-tauri/Cargo.toml --locked     # 114 passed, 3 ignored
-npm test                                                      # 76 passed (node:test, TypeScript type-stripping)
+cargo test --manifest-path src-tauri/Cargo.toml --locked     # 115 passed, 3 ignored
+npm test                                                      # 77 passed (node:test, TypeScript type-stripping)
 npm run build                                                 # tsc + vite
-npm run test:ui                                               # 104 passed (Playwright, Chromium, mocked IPC)
+npm run test:ui                                               # 105 passed (Playwright, Chromium, mocked IPC)
 ```
 Format TypeScript with `npx --no-install prettier --write <files>`; Rust with `cargo fmt`. If the project folder
 is ever moved or renamed, run `cargo clean --manifest-path src-tauri/Cargo.toml` first (Tauri caches absolute

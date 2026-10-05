@@ -546,3 +546,19 @@ fn list_column_widths_accept_only_known_columns_and_sane_sizes() {
     }
     assert_eq!(preferences(&c).unwrap()["list_columns"], good);
 }
+
+#[test]
+fn platform_icon_style_accepts_only_color_or_mono() {
+    let (_dir, c) = database();
+    for value in ["mono", "color"] {
+        set_preference(&c, "platform_icon_style", value).unwrap();
+        assert_eq!(preferences(&c).unwrap()["platform_icon_style"], value);
+    }
+    for bad in ["", "colour", "Mono", "rainbow"] {
+        assert!(
+            set_preference(&c, "platform_icon_style", bad).is_err(),
+            "{bad}"
+        );
+    }
+    assert_eq!(preferences(&c).unwrap()["platform_icon_style"], "color");
+}
