@@ -346,6 +346,17 @@ export async function installMock(page: Page, options: MockOptions = {}) {
             renumber();
             return;
           }
+          if (command === "save_game") {
+            // Edits only (id given); the saved record replaces the old one in place.
+            const index = games.findIndex((x: any) => x.id === args.id);
+            games[index] = {
+              ...games[index],
+              ...args.input,
+              date_modified: "2026-10-04T00:00:00Z",
+            };
+            return JSON.parse(JSON.stringify(games[index]));
+          }
+          if (command === "discard_image") return;
           throw `Unexpected mocked command: ${command}`;
         },
       };

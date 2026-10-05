@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Button, Spinner } from "@fluentui/react-components";
@@ -43,6 +43,10 @@ export function App() {
   // Where Cancel and Save return to after editing a game.
   const [editReturn, setEditReturn] = useState<Destination>("library");
   const [selected, setSelected] = useState<number | null>(null);
+  // Library scroll position, kept while another screen (such as the editor) is shown.
+  const libraryScroll = useRef(0);
+  // The game just saved, flashed briefly in the Library so the owner can find their place.
+  const [highlight, setHighlight] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
@@ -112,7 +116,13 @@ export function App() {
     setPreferences(await invoke<Preferences>("get_preferences"));
     setFilters(emptyFilters());
     setSelected(null);
+    libraryScroll.current = 0;
   };
+  useEffect(() => {
+    if (highlight === null || view !== "library") return;
+    const timer = window.setTimeout(() => setHighlight(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [highlight, view]);
   const editing = view === "add" || view === "edit";
   const navigate = (next: Destination) => {
     setError("");
@@ -149,6 +159,8 @@ export function App() {
                 selected={visibleId}
                 select={setSelected}
                 add={() => navigate("add")}
+                scroll={libraryScroll}
+                highlight={highlight}
                 statsPanel={
                   games.length > 0 ? (
                     <StatsPanel
@@ -205,6 +217,7 @@ export function App() {
                       saved={(saved) => {
                         setGames((current) => [...current, saved]);
                         setSelected(saved.id);
+                        setHighlight(saved.id);
                         navigate("library");
                         void refresh().catch((e) => setError(String(e)));
                       }}
@@ -221,6 +234,7 @@ export function App() {
                           saved,
                         ]);
                         setSelected(saved.id);
+                        setHighlight(saved.id);
                         navigate(editReturn);
                         void refresh().catch((e) => setError(String(e)));
                       }}

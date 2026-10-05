@@ -296,6 +296,33 @@ button:focus-visible,
   background: var(--colorNeutralBackground2);
   z-index: 1;
 }
+@keyframes just-edited-row {
+  from {
+    background: var(--colorBrandBackground2);
+  }
+}
+@keyframes just-edited-cover {
+  from {
+    outline: 3px solid var(--colorBrandStroke1);
+    outline-offset: 3px;
+  }
+  to {
+    outline: 3px solid transparent;
+    outline-offset: 3px;
+  }
+}
+.list-row.just-edited {
+  animation: just-edited-row 2.4s ease-out;
+}
+.game-card.just-edited .cover {
+  animation: just-edited-cover 2.4s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .list-row.just-edited,
+  .game-card.just-edited .cover {
+    animation: none;
+  }
+}
 .list-row:not(.list-heading):hover {
   background: var(--colorNeutralBackground1Hover);
 }

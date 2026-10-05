@@ -1,4 +1,9 @@
-import { useRef, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { Button } from "@fluentui/react-components";
 import { Add20Regular, Note20Regular } from "@fluentui/react-icons";
 import type { Game, Platform, Preferences } from "../types";
@@ -16,6 +21,8 @@ export function Library({
   selected,
   select,
   add,
+  scroll,
+  highlight,
   utilityBar,
   statsPanel,
   details,
@@ -29,12 +36,22 @@ export function Library({
   selected: number | null;
   select: (id: number) => void;
   add: () => void;
+  /** Remembers the pane's scroll position across visits to other screens. */
+  scroll: { current: number };
+  /** A game to flash briefly, e.g. the one just edited. */
+  highlight?: number | null;
   utilityBar?: ReactNode;
   statsPanel?: ReactNode;
   details: ReactNode;
 }) {
   const entries = useRef<Array<HTMLElement | null>>([]);
   const grid = useRef<HTMLDivElement>(null);
+  const pane = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    if (pane.current) pane.current.scrollTop = scroll.current;
+    // Restore once, when the Library is shown again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   function keyboard(e: KeyboardEvent, index: number, isGrid: boolean) {
     let columns = 1;
     if (isGrid && grid.current)
@@ -90,6 +107,10 @@ export function Library({
           className="library-pane"
           aria-label="Library content"
           tabIndex={-1}
+          ref={pane}
+          onScroll={(e) => {
+            scroll.current = e.currentTarget.scrollTop;
+          }}
         >
           <div className="library-summary">
             <h1>Library</h1>
@@ -126,7 +147,7 @@ export function Library({
                     entries.current[i] = el;
                   }}
                   key={g.id}
-                  className={`game-card ${selected === g.id ? "selected" : ""}`}
+                  className={`game-card ${selected === g.id ? "selected" : ""} ${highlight === g.id ? "just-edited" : ""}`}
                   aria-pressed={selected === g.id}
                   tabIndex={selected === g.id ? 0 : -1}
                   onClick={() => select(g.id)}
@@ -164,7 +185,7 @@ export function Library({
                     entries.current[i] = el;
                   }}
                   key={g.id}
-                  className={`list-row ${selected === g.id ? "selected" : ""}`}
+                  className={`list-row ${selected === g.id ? "selected" : ""} ${highlight === g.id ? "just-edited" : ""}`}
                   role="row"
                   aria-selected={selected === g.id}
                   tabIndex={selected === g.id ? 0 : -1}
