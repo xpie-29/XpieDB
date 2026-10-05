@@ -19,6 +19,18 @@ file is what a new session needs to start working safely.
   directories for experiments, and make a copy before any manual database edit.
 - Screen capture is enabled for this app: `screencapture -x -o -l <windowid>` after finding the window id with
   CoreGraphics (a small Swift snippet) lets you check the real native window.
+- **Real-window testing is a standard step for UI changes** (the owner expects it; mocked Playwright tests alone
+  missed a horizontal-scrollbar bug). Never use the installed app or the real library for it. Build with
+  `npm run tauri build -- --bundles app`, then `scripts/mac-test-run.sh` launches that build with `HOME` pointed at
+  `/tmp/xpiedb-sandbox`, seeded with a **copy** of the real library (`--empty` for a blank one, `--stop` to quit and
+  delete it). `swift scripts/mac-window.swift` prints the window id and origin (screen points);
+  `screencapture -x -o -l <id> out.png` captures it (2x scale, so screenshot pixels / 2 = points; a screenshot
+  displayed at 2000 px wide from a 2360 px original needs x1.18). `swift scripts/mac-click.swift click|dblclick|drag|scroll|type`
+  sends real mouse and keyboard events (screen point = window origin + point in window); bring the window forward
+  first with `osascript -e 'tell application "System Events" to tell process "xpiedb" to set frontmost to true'`.
+  AppleScript `click at` does not work on the web content. Look at the screenshot after each step, and check
+  preference/db effects with `sqlite3` on the sandbox copy. The owner may be using the computer, so tell them
+  before taking over the mouse.
 - The shell is zsh: quoting and word-splitting differ from bash. Rust and Node come from Homebrew, and Rust is
   not on the default PATH: use `export PATH="/opt/homebrew/opt/rustup/bin:$PATH"`.
 
