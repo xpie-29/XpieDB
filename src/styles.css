@@ -1509,3 +1509,6 @@ button:focus-visible,
     animation: none;
   }
 }
+.detail-links {
+  margin-bottom: 20px;
+}

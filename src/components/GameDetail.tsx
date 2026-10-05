@@ -92,7 +92,7 @@ export function GameDetail({
         </div>
       </dl>
       {(guides.length > 0 || addGuide) && (
-        <section aria-label="Guides">
+        <section aria-label="Guides" className="detail-links">
           <h3>Guides ({guides.length})</h3>
           {guides.length > 0 && (
             <ul className="accessory-list">

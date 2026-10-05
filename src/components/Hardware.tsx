@@ -483,7 +483,7 @@ function HardwareDetail({
         ))}
       </dl>
       {item.kind === "system" && (
-        <section aria-label="Accessories">
+        <section aria-label="Accessories" className="detail-links">
           <h3>Accessories ({accessories.length})</h3>
           {accessories.length ? (
             <ul className="accessory-list">
