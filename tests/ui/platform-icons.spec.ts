@@ -57,7 +57,7 @@ test("icons are tinted by default, and the setting switches them to mono and bac
   await installMock(page, { preferences: { library_view: "list" } });
   // Tints from the colour chart.
   expect(await glyphColor(page, "PC")).toBe(rgb("#00B7C3"));
-  expect(await glyphColor(page, "PlayStation 4")).toBe(rgb("#1450B8"));
+  expect(await glyphColor(page, "PlayStation 4")).toBe(rgb("#397AEA"));
   expect(await glyphColor(page, "Nintendo Switch")).toBe(rgb("#E60012"));
   expect(await glyphColor(page, "Xbox 360")).toBe(rgb("#7AC143"));
   // The platform with no bundled icon is unaffected.

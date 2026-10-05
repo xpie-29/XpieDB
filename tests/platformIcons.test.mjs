@@ -37,22 +37,22 @@ test("every imported icon file exists and carries no script", () => {
   }
 });
 
-// Colours from the owner's chart (platform_icon_colors.xlsx), by the app's platform names.
+// Colours from the owner (six under 3:1 on the dark background were lightened, same hue)'s chart (platform_icon_colors.xlsx), by the app's platform names.
 const chart = {
-  "Nintendo Entertainment System": "#B5121B",
+  "Nintendo Entertainment System": "#EB333D",
   "Super Nintendo": "#9A8AC8",
   "Nintendo 64": "#1F9D55",
-  GameCube: "#6A5FBB",
+  GameCube: "#7C73C3",
   Wii: "#8FD3F4",
   "Wii U": "#009AC7",
   "Nintendo Switch": "#E60012",
   "Nintendo Switch 2": "#FF5F55",
-  "Nintendo 3DS": "#D4145A",
+  "Nintendo 3DS": "#EB296F",
   PlayStation: "#9C9FA5",
-  "PlayStation 2": "#3B46C4",
+  "PlayStation 2": "#6C74D3",
   "PlayStation 3": "#5C7FA8",
-  "PlayStation 4": "#1450B8",
-  "PlayStation 5": "#0070D1",
+  "PlayStation 4": "#397AEA",
+  "PlayStation 5": "#007EEB",
   Xbox: "#A6D608",
   "Xbox 360": "#7AC143",
   "Xbox Series S/X": "#2FA84F",
