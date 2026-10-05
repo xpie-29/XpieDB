@@ -1,5 +1,12 @@
 # Changelog
 
+## Collections: Internet Archive lookup - 2026-10-04
+
+- Find on Internet Archive (guide panel) and Find guides online (game panel): review ranked matches, pick a PDF or
+  ePub (searchable text recommended), download with progress and Cancel, and attach it to a guide or a new guide
+  for the game. Borrow-only items are recognised and never downloaded. Verified once against the real service
+  (`cargo test live_archive -- --ignored --nocapture`).
+
 ## Collections: guide files - 2026-10-04
 
 - Migration 8 and `guide_files`: attach a PDF or ePub to a guide (content-checked, copied into `guide-files`,

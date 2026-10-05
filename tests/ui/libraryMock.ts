@@ -226,6 +226,35 @@ export async function installMock(page: Page, options: MockOptions = {}) {
       w.guideCalls = [];
       w.guideFileCalls = [];
       w.attachResult = "file";
+      // ---- Internet Archive: mirrors the Rust client's results and rules ----
+      w.archiveCalls = [];
+      w.archiveMode = "ok";
+      const hit = (id: string, title: string, extra: any = {}) => ({
+        identifier: id, title, creator: null, year: null, has_pdf: true, has_epub: false,
+        borrow_only: false, downloads: 1, score: 10, ...extra,
+      });
+      const archiveHits = [
+        hit("doom-3-official-strategy-guide", "Doom 3 Official Strategy Guide", { creator: "BradyGames", year: "2004" }),
+        hit("doom3-prima-lending", "Doom 3 Prima Guide", { borrow_only: true, has_pdf: false }),
+        hit("doom-3-epub", "Doom 3 Companion", { has_pdf: false, has_epub: true, year: "2005" }),
+        hit("empty-item", "Doom 3 Posters"),
+      ];
+      const file = (name: string, kind: string, detail: string, size: number, too = false) => ({
+        name, kind, detail, size_bytes: size, too_large: too,
+      });
+      const archiveItems: any = {
+        "doom-3-official-strategy-guide": { identifier: "doom-3-official-strategy-guide", title: "Doom 3 Official Strategy Guide", borrow_only: false, files: [
+          file("doom3.pdf", "pdf", "Searchable text", 12_900_000),
+          file("doom3_bw.pdf", "pdf", "Scanned pages", 90_000_000),
+          file("doom3_huge.pdf", "pdf", "", 2_000_000_000, true),
+        ] },
+        "doom3-prima-lending": { identifier: "doom3-prima-lending", title: "Doom 3 Prima Guide", borrow_only: true, files: [] },
+        "doom-3-epub": { identifier: "doom-3-epub", title: "Doom 3 Companion", borrow_only: false, files: [file("companion.epub", "epub", "", 800_000)] },
+        "empty-item": { identifier: "empty-item", title: "Doom 3 Posters", borrow_only: false, files: [] },
+      };
+      let finishDownload: ((guide?: unknown) => void) | null = null;
+      let failDownload: ((error: string) => void) | null = null;
+      w.finishDownload = () => finishDownload?.();
       w.preferenceWrites = [];
       w.backlogCalls = [];
       // ---- Steam import: mirrors the backend's add-only rules ----
@@ -315,6 +344,57 @@ export async function installMock(page: Page, options: MockOptions = {}) {
             };
             guides.push(created);
             return JSON.parse(JSON.stringify(created));
+          }
+          if (command === "archive_search") {
+            w.archiveCalls.push(["search", args.query]);
+            if (w.archiveMode === "error") throw "Unable to reach the Internet Archive. Check your connection and try again.";
+            if (w.archiveMode === "empty") return { hits: [], broadened: true };
+            return { hits: archiveHits, broadened: w.archiveMode === "wide" };
+          }
+          if (command === "archive_item") {
+            w.archiveCalls.push(["item", args.identifier]);
+            return JSON.parse(JSON.stringify(archiveItems[args.identifier]));
+          }
+          if (command === "archive_open_page") {
+            w.archiveCalls.push(["page", args.identifier]);
+            return;
+          }
+          if (command === "archive_cancel") {
+            w.archiveCalls.push(["cancel"]);
+            failDownload?.("Download cancelled.");
+            return;
+          }
+          if (command === "archive_download") {
+            const r = args.request;
+            w.archiveCalls.push(["download", r]);
+            if (w.archiveMode === "slow") {
+              await new Promise<void>((resolve, reject) => {
+                finishDownload = resolve;
+                failDownload = (e) => reject(e);
+              });
+            }
+            let guide = guides.find((x: any) => x.id === r.guide_id);
+            if (!guide) {
+              guide = {
+                ...r.new_guide,
+                id: Math.max(0, ...guides.map((x: any) => x.id)) + 1,
+                files: [],
+                date_added: "2026-10-04T00:00:00Z",
+                date_modified: "2026-10-04T00:00:00Z",
+              };
+              guides.push(guide);
+            }
+            guide.files.push({
+              id: 500 + guide.files.length,
+              guide_id: guide.id,
+              file_name: r.file_name,
+              kind: r.file_name.endsWith(".epub") ? "epub" : "pdf",
+              size_bytes: 12_900_000,
+              source_url: `https://archive.org/details/${r.identifier}`,
+              date_added: "2026-10-04T00:00:00Z",
+              missing: false,
+            });
+            return JSON.parse(JSON.stringify(guide));
           }
           if (command === "attach_guide_file") {
             w.guideFileCalls.push(["attach", args.guideId]);

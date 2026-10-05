@@ -274,7 +274,13 @@ Guides live in the `guides` table (migration 7); photos use the covers folder an
 A guide can also have **digital copies**: Attach PDF or ePub in its detail panel copies the file into the app's
 `guide-files` folder after checking that it really is a PDF or ePub (by content, not by name; up to 1 GB), and
 Open sends it to your default reader. Show in folder reveals the copy, and Remove deletes the copy but never your
-original. Guide files are large, so they are **not included in backups**; after restoring a backup on another
+original. **Find on Internet Archive** (in a guide's panel, or **Find guides online** in a game's panel) searches
+archive.org for matching books, ranks the matches for you to review (guide-like titles first, borrow-only items last),
+lists each item's downloadable PDF and ePub files (searchable-text PDFs recommended), and downloads the one you pick
+with a progress bar and a Cancel button. From a game it makes a new guide for it, or attaches to one it already has.
+Borrow-only (lending library) items cannot be downloaded and show **Open on archive.org** instead. Matching is by
+title, so always check a result before keeping it; XpieDB lists what the Archive offers and you decide what you may
+keep. Guide files are large, so they are **not included in backups**; after restoring a backup on another
 computer they show as missing and can be attached again. The Copy column reads Physical, Digital or Both.
 
 Hardware holds **systems** (consoles, PCs, handhelds) and **accessories**. An accessory can belong to one system

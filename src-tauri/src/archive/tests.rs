@@ -411,3 +411,80 @@ fn a_downloaded_file_that_is_not_a_book_is_refused_and_removed() {
     assert!(!again.exists());
     let _ = leak(String::new());
 }
+
+/// Opt-in check against the real service: `cargo test live_archive -- --ignored --nocapture`.
+#[test]
+#[ignore = "talks to the real Internet Archive"]
+fn live_archive_search_item_and_download() {
+    let client = ArchiveClient::new().unwrap();
+    let found = run(client.search("final fantasy vii strategy guide")).unwrap();
+    println!("broadened={} hits={}", found.broadened, found.hits.len());
+    for hit in found.hits.iter().take(8) {
+        println!(
+            "{:>4} {:<45} pdf={} epub={} borrow={} dl={} {}",
+            hit.score,
+            hit.identifier,
+            hit.has_pdf,
+            hit.has_epub,
+            hit.borrow_only,
+            hit.downloads,
+            hit.title
+        );
+    }
+    assert!(!found.hits.is_empty());
+    let open = found
+        .hits
+        .iter()
+        .find(|h| !h.borrow_only && h.has_pdf)
+        .expect("an open PDF item");
+    let item = run(client.item(&open.identifier, 1 << 30)).unwrap();
+    println!("item {} borrow_only={}", item.identifier, item.borrow_only);
+    for file in &item.files {
+        println!(
+            "  {:<50} {} {:<16} {} too_large={}",
+            file.name, file.kind, file.detail, file.size_bytes, file.too_large
+        );
+    }
+    let lent = found.hits.iter().find(|h| h.borrow_only);
+    if let Some(lent) = lent {
+        let item = run(client.item(&lent.identifier, 1 << 30)).unwrap();
+        println!(
+            "lending item {} borrow_only={} files={}",
+            item.identifier,
+            item.borrow_only,
+            item.files.len()
+        );
+    }
+    // Download the smallest listed file (limited to 3 MB) to prove the redirect and streaming work.
+    if let Some(small) = item
+        .files
+        .iter()
+        .filter(|f| f.size_bytes > 0 && f.size_bytes < 3_000_000)
+        .min_by_key(|f| f.size_bytes)
+    {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("x.part");
+        let cancel = AtomicBool::new(false);
+        let mut last = 0;
+        let written = run(client.download(
+            &open.identifier,
+            &small.name,
+            &dest,
+            3_000_000,
+            &cancel,
+            |got, _| last = got,
+        ))
+        .unwrap();
+        println!(
+            "downloaded {} bytes ({}), progress ended at {}",
+            written, small.name, last
+        );
+        let mut file = fs::File::open(&dest).unwrap();
+        println!(
+            "kind detected: {:?}",
+            crate::guide_files::detect_kind(&mut file).unwrap()
+        );
+    } else {
+        println!("no file under 3 MB to download in this item");
+    }
+}

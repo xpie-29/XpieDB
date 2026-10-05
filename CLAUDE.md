@@ -40,10 +40,10 @@ file is what a new session needs to start working safely.
 ```bash
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
-cargo test --manifest-path src-tauri/Cargo.toml --locked     # 152 passed, 3 ignored
+cargo test --manifest-path src-tauri/Cargo.toml --locked     # 164 passed, 4 ignored
 npm test                                                      # 96 passed (node:test, TypeScript type-stripping)
 npm run build                                                 # tsc + vite
-npm run test:ui                                               # 154 passed (Playwright, Chromium, mocked IPC)
+npm run test:ui                                               # 165 passed (Playwright, Chromium, mocked IPC)
 ```
 Format TypeScript with `npx --no-install prettier --write <files>`; Rust with `cargo fmt`. If the project folder
 is ever moved or renamed, run `cargo clean --manifest-path src-tauri/Cargo.toml` first (Tauri caches absolute
@@ -78,6 +78,8 @@ paths and the build fails otherwise).
   re-reads the item's metadata and downloads only a listed PDF or ePub of an item that is not borrow-only, follows
   redirects only within archive.org, one download at a time, with progress events and cancel. It only adds files to
   guides (or creates a guide for the download); search results are ranked candidates for the owner to review.
+  The client was checked against the real service on 2026-10-04 with an opt-in test: `cargo test live_archive --
+  --ignored --nocapture` (needs network; counted among the 4 ignored tests).
 - **Preferences** are an allow-listed key/value table (`catalog::set_preference`); add new keys there.
 - **Steam/IGDB import is add-only**: never modify an existing game. Bulk metadata refresh was deliberately
   rejected by the owner because it could overwrite personal edits; do not build it.
@@ -102,8 +104,9 @@ IGDB; Help > About; macOS and Windows builds. History is one linear branch, `mas
 report per milestone in `docs/` and a `CHANGELOG.md`.
 Collections work (plan in `docs/plan-collections-and-guides.md`): the collection selector and the **Hardware**
 collection (systems and accessories, grouped/flat list, add/edit, sale dialog) and the **Guides** collection
-(list, detail, add/edit, links to games both ways, attach/open PDF and ePub copies) are built; the Internet
-Archive lookup, an in-app reader and an option to include guide files in backups are still only a plan. Hardware and Guides list columns are fixed (not resizable) and have no grid view.
+(list, detail, add/edit, links to games both ways, attach/open PDF and ePub copies) are built; Internet
+Archive lookup (search, review, download) is built; an in-app reader and an option to include guide files in
+backups are still only a plan. Hardware and Guides list columns are fixed (not resizable) and have no grid view.
 
 ## Known gaps and open items
 - **Steam import has never run against the real Steam or IGDB services** (no API keys during development; the

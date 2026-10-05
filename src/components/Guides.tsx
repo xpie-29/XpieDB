@@ -39,6 +39,7 @@ export function GuidesLibrary({
   openFile,
   revealFile,
   removeFile,
+  findOnline,
   error,
   scroll,
   highlight,
@@ -62,6 +63,8 @@ export function GuidesLibrary({
   openFile: (file: GuideFile) => void;
   revealFile: (file: GuideFile) => void;
   removeFile: (file: GuideFile) => void;
+  /** Look for a digital copy on the Internet Archive. */
+  findOnline: (guide: Guide) => void;
   error: (message: string) => void;
   scroll: { current: number };
   highlight: number | null;
@@ -256,6 +259,7 @@ export function GuidesLibrary({
             openFile={openFile}
             revealFile={revealFile}
             removeFile={removeFile}
+            findOnline={() => findOnline(current)}
             error={error}
           />
         )}
@@ -275,6 +279,7 @@ function GuideDetail({
   openFile,
   revealFile,
   removeFile,
+  findOnline,
   error,
 }: {
   guide: Guide;
@@ -287,6 +292,7 @@ function GuideDetail({
   openFile: (file: GuideFile) => void;
   revealFile: (file: GuideFile) => void;
   removeFile: (file: GuideFile) => void;
+  findOnline: () => void;
   error: (message: string) => void;
 }) {
   const panel = useRef<HTMLElement>(null);
@@ -419,9 +425,14 @@ function GuideDetail({
         ) : (
           <p className="muted">No digital copy</p>
         )}
-        <Button icon={<Add20Regular />} onClick={attachFile}>
-          Attach PDF or ePub
-        </Button>
+        <div className="file-actions">
+          <Button icon={<Add20Regular />} onClick={attachFile}>
+            Attach PDF or ePub
+          </Button>
+          <Button icon={<Search20Regular />} onClick={findOnline}>
+            Find on Internet Archive
+          </Button>
+        </div>
       </section>
       <section className="detail-notes">
         <h3>Notes</h3>

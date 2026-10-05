@@ -18,9 +18,11 @@ import {
 } from "./types";
 import { HardwareLibrary } from "./components/Hardware";
 import { GuidesLibrary } from "./components/Guides";
+import { ArchiveFinder, type FinderTarget } from "./components/ArchiveFinder";
 import {
   emptyGuideFilters,
   gamesWithGuides,
+  guideGameName,
   guidesForGame,
   queryGuides,
   visibleGuide,
@@ -95,6 +97,10 @@ export function App() {
   const [guideDraft, setGuideDraft] = useState<GuideInput | undefined>();
   const [deletingGuide, setDeletingGuide] = useState<Guide | null>(null);
   const [removingFile, setRemovingFile] = useState<GuideFile | null>(null);
+  const [finder, setFinder] = useState<{
+    query: string;
+    target: FinderTarget;
+  } | null>(null);
   const guideScroll = useRef(0);
   // Set when another screen sends the owner to a game, so the Library scrolls to it once.
   const revealGame = useRef(false);
@@ -301,6 +307,13 @@ export function App() {
       setError(String(e));
     }
   };
+  const finderDone = (guide: Guide) => {
+    const fromGame = finder?.target.kind === "game";
+    setGuides((current) => [...current.filter((x) => x.id !== guide.id), guide]);
+    setFinder(null);
+    if (fromGame) openGuide(guide.id);
+    else setGuideHighlight(guide.id);
+  };
   const guideSaved = (saved: Guide) => {
     setGuides((current) => [...current.filter((x) => x.id !== saved.id), saved]);
     setGuideSelected(saved.id);
@@ -370,6 +383,12 @@ export function App() {
                 openFile={(file) => void fileAction("open_guide_file")(file)}
                 revealFile={(file) => void fileAction("reveal_guide_file")(file)}
                 removeFile={setRemovingFile}
+                findOnline={(guide) =>
+                  setFinder({
+                    query: guideGameName(guide, games) ?? guide.title,
+                    target: { kind: "guide", guide },
+                  })
+                }
                 error={setError}
                 scroll={guideScroll}
                 highlight={guideHighlight}
@@ -523,6 +542,16 @@ export function App() {
                       guides={guidesForGame(guides, game.id)}
                       openGuide={openGuide}
                       addGuide={() => addGuideFor(game)}
+                      findGuides={() =>
+                        setFinder({
+                          query: game.title,
+                          target: {
+                            kind: "game",
+                            game,
+                            guides: guidesForGame(guides, game.id),
+                          },
+                        })
+                      }
                       error={setError}
                     />
                   ) : null
@@ -642,6 +671,15 @@ export function App() {
         )}
       </div>
       {about && <About close={() => setAbout(false)} />}
+      {finder && (
+        <ArchiveFinder
+          key={`${finder.target.kind}-${finder.query}`}
+          initialQuery={finder.query}
+          target={finder.target}
+          close={() => setFinder(null)}
+          done={finderDone}
+        />
+      )}
       {removingFile && (
         <Confirm
           title="Remove this file?"

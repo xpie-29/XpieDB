@@ -5,6 +5,7 @@ import {
   Book16Regular,
   Edit20Regular,
   Delete20Regular,
+  Search20Regular,
 } from "@fluentui/react-icons";
 import type { Game, Guide, Platform } from "../types";
 import { ManagedImage, PlatformIcon } from "./Shared";
@@ -19,6 +20,7 @@ export function GameDetail({
   guides = [],
   openGuide,
   addGuide,
+  findGuides,
   error,
 }: {
   game: Game;
@@ -28,6 +30,8 @@ export function GameDetail({
   guides?: Guide[];
   openGuide?: (id: number) => void;
   addGuide?: () => void;
+  /** Look for guides for this game on the Internet Archive. */
+  findGuides?: () => void;
   error: (e: string) => void;
 }) {
   const panel = useRef<HTMLElement>(null);
@@ -110,11 +114,18 @@ export function GameDetail({
               ))}
             </ul>
           )}
-          {addGuide && (
-            <Button icon={<Add20Regular />} onClick={addGuide}>
-              Add guide
-            </Button>
-          )}
+          <div className="file-actions">
+            {addGuide && (
+              <Button icon={<Add20Regular />} onClick={addGuide}>
+                Add guide
+              </Button>
+            )}
+            {findGuides && (
+              <Button icon={<Search20Regular />} onClick={findGuides}>
+                Find guides online
+              </Button>
+            )}
+          </div>
         </section>
       )}
       <section>

@@ -77,11 +77,14 @@ export function Modal({
   children,
   actions,
   close,
+  wide = false,
 }: {
   title: string;
   children: ReactNode;
   actions: ReactNode;
   close: () => void;
+  /** A roomier dialog, for lists. */
+  wide?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -93,7 +96,7 @@ export function Modal({
   return (
     <dialog
       ref={dialog}
-      className="modal"
+      className={`modal ${wide ? "wide" : ""}`}
       aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
