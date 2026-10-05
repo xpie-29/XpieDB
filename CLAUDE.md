@@ -43,7 +43,7 @@ cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D w
 cargo test --manifest-path src-tauri/Cargo.toml --locked     # 175 passed, 4 ignored
 npm test                                                      # 96 passed (node:test, TypeScript type-stripping)
 npm run build                                                 # tsc + vite
-npm run test:ui                                               # 186 passed (Playwright, Chromium, mocked IPC)
+npm run test:ui                                               # 187 passed (Playwright, Chromium, mocked IPC)
 ```
 Format TypeScript with `npx --no-install prettier --write <files>`; Rust with `cargo fmt`. If the project folder
 is ever moved or renamed, run `cargo clean --manifest-path src-tauri/Cargo.toml` first (Tauri caches absolute
