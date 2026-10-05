@@ -41,6 +41,8 @@ export type Preferences = {
   platform_icon_style?: string;
   /** Which collection is shown: "games" (the default when absent), "guides" or "hardware". */
   collection?: string;
+  /** "grouped" (the default when absent) or "flat". */
+  hardware_grouping?: string;
   report_paper?: string;
   report_orientation?: string;
 };
@@ -77,3 +79,75 @@ export const collections: Array<{ id: Collection; name: string }> = [
 ];
 export const collectionOf = (value: string | undefined): Collection =>
   collections.find((c) => c.id === value)?.id ?? "games";
+
+export type HardwareKind = "system" | "accessory";
+export type HardwareInput = {
+  kind: HardwareKind;
+  name: string;
+  platform_id: number | null;
+  parent_id: number | null;
+  manufacturer: string | null;
+  model: string | null;
+  region: string | null;
+  serial: string | null;
+  color: string | null;
+  condition: string | null;
+  completeness: string | null;
+  status: string;
+  is_working: boolean;
+  is_modded: boolean;
+  purchase_date: string | null;
+  purchase_price_cents: number | null;
+  purchase_source: string | null;
+  sale_date: string | null;
+  sale_price_cents: number | null;
+  photo_path: string | null;
+  notes_html: string;
+  /** Extra platforms an accessory works with, besides its own platform. */
+  compat_platform_ids: number[];
+};
+export type Hardware = HardwareInput & {
+  id: number;
+  /** Set when the accessory's system was deleted, or kept while the system went away. */
+  former_parent_name: string | null;
+  date_added: string;
+  date_modified: string;
+};
+export const hardwareStatuses = ["Owned", "Sold", "Gifted", "Lost"];
+export const hardwareConditions = [
+  "New",
+  "Like New",
+  "Good",
+  "Fair",
+  "Poor",
+  "For Parts",
+];
+export const hardwareCompleteness = [
+  "Complete in box",
+  "Missing box or manual",
+  "Loose",
+];
+export const emptyHardware = (kind: HardwareKind): HardwareInput => ({
+  kind,
+  name: "",
+  platform_id: null,
+  parent_id: null,
+  manufacturer: null,
+  model: null,
+  region: null,
+  serial: null,
+  color: null,
+  condition: null,
+  completeness: null,
+  status: "Owned",
+  is_working: true,
+  is_modded: false,
+  purchase_date: null,
+  purchase_price_cents: null,
+  purchase_source: null,
+  sale_date: null,
+  sale_price_cents: null,
+  photo_path: null,
+  notes_html: "",
+  compat_platform_ids: [],
+});

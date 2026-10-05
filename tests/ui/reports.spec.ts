@@ -196,6 +196,7 @@ async function mock(
       w.__TAURI_INTERNALS__ = {
         invoke: async (command: string, args: any) => {
           if (command === "list_games") return games;
+          if (command === "list_hardware") return [];
           if (command === "list_platforms")
             return [
               {

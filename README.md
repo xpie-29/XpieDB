@@ -258,6 +258,22 @@ whole collection. It works on Windows and macOS, and a backup made on one opens 
 See [Milestone 5 verification](docs/milestone-5-verification.md) for the test evidence
 and remaining manual checks.
 
+## Collections And Hardware
+
+The toolbar's collection selector (the button after Add) switches between **Games**, **Guides** and **Hardware**;
+the last choice is remembered. Platforms are managed from Settings > Manage platforms. Guides is a placeholder
+for now (see `docs/plan-collections-and-guides.md`).
+
+Hardware holds **systems** (consoles, PCs, handhelds) and **accessories**. An accessory can belong to one system
+(chosen when adding it, or from the system's detail panel > Add accessory), stay loose, and list extra platforms it
+works with. The list is Grouped (accessories nested under their system, with expand and collapse; loose ones last)
+or Flat (every item with its system's name); searching or filtering opens the groups and keeps a system, dimmed,
+when only its accessory matches. Each item has one photo, condition, completeness, purchase and sale details and
+notes. Deleting a system keeps its accessories as loose ones. Selling, gifting or losing a system asks, for each
+accessory, whether it went with it; the others become loose and remember where they came from. Hardware is stored
+in the `hardware` and `hardware_compat` tables (migration 6), its photos live in the covers folder, and both are
+part of backups.
+
 ## Backlog
 
 **Backlog** is a play status. Games with it appear on the **Backlog** page as a numbered list

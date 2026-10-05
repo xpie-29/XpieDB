@@ -135,7 +135,7 @@ export function PrimaryToolbar({
         </Menu>
         {layout[collection].after.map(button)}
       </nav>
-      {view === "library" && (
+      {collection === "games" && view === "library" && (
         <div className="presentation-controls">
           <div className="view-toggle" role="group" aria-label="Library view">
             <Button

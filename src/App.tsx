@@ -2,7 +2,22 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Button, Spinner } from "@fluentui/react-components";
-import { collectionOf, type Collection, type Game, type Platform, type Preferences } from "./types";
+import {
+  collectionOf,
+  emptyHardware,
+  type Collection,
+  type Game,
+  type Hardware,
+  type HardwareInput,
+  type Platform,
+  type Preferences,
+} from "./types";
+import { HardwareLibrary } from "./components/Hardware";
+import {
+  emptyHardwareFilters,
+  hardwareRows,
+  visibleHardware,
+} from "./hardwareQuery";
 import { Library } from "./components/Library";
 import { GameDetail } from "./components/GameDetail";
 import { PlatformManager } from "./components/PlatformManager";
@@ -26,6 +41,11 @@ import {
   queryLibrary,
   visibleSelection,
 } from "./libraryQuery";
+const HardwareForm = lazy(() =>
+  import("./components/HardwareForm").then((m) => ({
+    default: m.HardwareForm,
+  })),
+);
 const GameForm = lazy(() =>
   import("./components/GameForm").then((m) => ({ default: m.GameForm })),
 );
@@ -39,6 +59,19 @@ export function App() {
     library_sort: "title_asc",
   });
   const [filters, setFilters] = useState(emptyFilters);
+  // Hardware collection state (kept here so it survives visits to the editor).
+  const [hardware, setHardware] = useState<Hardware[]>([]);
+  const [hardwareFilters, setHardwareFilters] = useState(emptyHardwareFilters);
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
+  const [hardwareSelected, setHardwareSelected] = useState<number | null>(null);
+  const [hardwareHighlight, setHardwareHighlight] = useState<number | null>(
+    null,
+  );
+  const [hardwareDraft, setHardwareDraft] = useState<HardwareInput | undefined>();
+  const [deletingHardware, setDeletingHardware] = useState<Hardware | null>(
+    null,
+  );
+  const hardwareScroll = useRef(0);
   const [view, setView] = useState<Destination>("library");
   // Where Cancel and Save return to after editing a game.
   const [editReturn, setEditReturn] = useState<Destination>("library");
@@ -74,12 +107,14 @@ export function App() {
     }
   };
   const refresh = async () => {
-    const [g, p] = await Promise.all([
+    const [g, p, h] = await Promise.all([
       invoke<Game[]>("list_games"),
       invoke<Platform[]>("list_platforms"),
+      invoke<Hardware[]>("list_hardware"),
     ]);
     setGames(g);
     setPlatforms(p);
+    setHardware(h);
   };
   const load = async () => {
     setLoading(true);
@@ -117,6 +152,9 @@ export function App() {
     setFilters(emptyFilters());
     setSelected(null);
     libraryScroll.current = 0;
+    setHardwareFilters(emptyHardwareFilters());
+    setHardwareSelected(null);
+    hardwareScroll.current = 0;
   };
   useEffect(() => {
     if (highlight === null || view !== "library") return;
@@ -124,6 +162,28 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [highlight, view]);
   const collection = collectionOf(preferences.collection);
+  const grouping = preferences.hardware_grouping === "flat" ? "flat" : "grouped";
+  const hardwareList = useMemo(
+    () => hardwareRows(hardware, platforms, hardwareFilters, grouping, collapsed),
+    [hardware, platforms, hardwareFilters, grouping, collapsed],
+  );
+  // Dimmed rows are only context (a system shown for its matching accessory), not matches.
+  const hardwareShown = hardwareList.filter(
+    (r) => r.type === "item" && !r.dimmed,
+  ).length;
+  const hardwareId = visibleHardware(hardwareList, hardwareSelected);
+  const hardwareItem =
+    hardware.find((h) => h.id === (view === "library" ? hardwareId : hardwareSelected)) ??
+    null;
+  useEffect(() => {
+    if (view === "library" && !loading && hardwareSelected !== hardwareId)
+      setHardwareSelected(hardwareId);
+  }, [view, loading, hardwareSelected, hardwareId]);
+  useEffect(() => {
+    if (hardwareHighlight === null || view !== "library") return;
+    const timer = window.setTimeout(() => setHardwareHighlight(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [hardwareHighlight, view]);
   // Switching collection always lands on that collection's list.
   const switchCollection = (next: Collection) => {
     if (next === collection) return;
@@ -132,6 +192,14 @@ export function App() {
     void preference("collection", next);
   };
   const editing = view === "add" || view === "edit";
+  const hardwareSaved = (saved: Hardware) => {
+    setHardware((current) => [...current.filter((h) => h.id !== saved.id), saved]);
+    setHardwareSelected(saved.id);
+    setHardwareHighlight(saved.id);
+    setHardwareDraft(undefined);
+    navigate("library");
+    void refresh().catch((e) => setError(String(e)));
+  };
   const navigate = (next: Destination) => {
     setError("");
     setView(next);
@@ -169,11 +237,76 @@ export function App() {
               </section>
             )}
             {collection === "hardware" && view === "library" && (
+              <HardwareLibrary
+                rows={hardwareList}
+                total={hardware.length}
+                shown={hardwareShown}
+                platforms={platforms}
+                all={hardware}
+                filters={hardwareFilters}
+                setFilters={setHardwareFilters}
+                grouping={grouping}
+                setGrouping={(value) =>
+                  void preference("hardware_grouping", value)
+                }
+                toggle={(id) =>
+                  setCollapsed((current) => {
+                    const next = new Set(current);
+                    if (!next.delete(id)) next.add(id);
+                    return next;
+                  })
+                }
+                setAllOpen={(open) =>
+                  setCollapsed(
+                    open
+                      ? new Set()
+                      : new Set(
+                          hardware
+                            .filter((h) => h.kind === "system")
+                            .map((h) => h.id),
+                        ),
+                  )
+                }
+                selected={hardwareId}
+                select={setHardwareSelected}
+                add={() => {
+                  setHardwareDraft(undefined);
+                  navigate("add");
+                }}
+                addAccessory={(system) => {
+                  setHardwareDraft({
+                    ...emptyHardware("accessory"),
+                    parent_id: system.id,
+                    platform_id: system.platform_id,
+                  });
+                  navigate("add");
+                }}
+                edit={(item) => {
+                  setHardwareSelected(item.id);
+                  navigate("edit");
+                }}
+                remove={setDeletingHardware}
+                error={setError}
+                scroll={hardwareScroll}
+                highlight={hardwareHighlight}
+              />
+            )}
+            {collection === "hardware" && editing && (
               <section className="page-scroll">
-                <header className="page-header">
-                  <h1>Hardware</h1>
-                </header>
-                <p className="muted">Hardware is coming soon.</p>
+                <Suspense fallback={<Spinner label="Opening editor" />}>
+                  <HardwareForm
+                    key={view === "edit" ? hardwareItem?.id : "new"}
+                    item={view === "edit" ? (hardwareItem ?? undefined) : undefined}
+                    initial={view === "add" ? hardwareDraft : undefined}
+                    all={hardware}
+                    platforms={platforms}
+                    saved={hardwareSaved}
+                    cancel={() => {
+                      setHardwareDraft(undefined);
+                      navigate("library");
+                    }}
+                  />
+                </Suspense>
               </section>
             )}
             {collection === "games" && view === "library" && (
@@ -347,6 +480,40 @@ export function App() {
         )}
       </div>
       {about && <About close={() => setAbout(false)} />}
+      {deletingHardware && (
+        <Confirm
+          title="Delete hardware?"
+          text={`Delete "${deletingHardware.name}" from your collection? ${
+            hardware.some((h) => h.parent_id === deletingHardware.id)
+              ? "Its accessories are kept and become loose accessories. "
+              : ""
+          }This cannot be undone.`}
+          busy={busy}
+          close={() => setDeletingHardware(null)}
+          confirm={async () => {
+            setBusy(true);
+            try {
+              const next = hardwareList
+                .flatMap((r) => (r.type === "item" ? [r.item.id] : []))
+                .filter((id) => id !== deletingHardware.id);
+              const at = hardwareList
+                .flatMap((r) => (r.type === "item" ? [r.item.id] : []))
+                .indexOf(deletingHardware.id);
+              await invoke("delete_hardware", { id: deletingHardware.id });
+              setHardware((current) =>
+                current.filter((h) => h.id !== deletingHardware.id),
+              );
+              setHardwareSelected(next[at] ?? next[at - 1] ?? null);
+              setDeletingHardware(null);
+              await refresh();
+            } catch (e) {
+              setError(String(e));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
       {deleting && game && (
         <Confirm
           title="Delete game?"

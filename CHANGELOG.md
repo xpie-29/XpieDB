@@ -1,11 +1,14 @@
 # Changelog
 
-## Collections: switcher and Hardware (in progress) - 2026-10-04
+## Collections: switcher and Hardware - 2026-10-04
 
 - The toolbar's Platforms button is now a collection selector (Games, Guides, Hardware); Platforms moved to
   Settings > Manage platforms.
 - Migration 6 adds `hardware` (systems and accessories, with an optional parent system and per-accessory
   compatible platforms) and `hardware_compat`. Hardware photos are included in backups.
+- Hardware screens: grouped (expand/collapse) or flat list, search and type/status filters, detail panel with
+  accessories, add/edit form with one photo, "Add accessory" from a system, and a per-accessory question when a
+  system is sold, gifted or lost. Deleting a system keeps its accessories as loose ones.
 
 ## Platform icons, colours and 15 more platforms - 2026-10-04
 

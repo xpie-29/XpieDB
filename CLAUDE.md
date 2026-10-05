@@ -38,10 +38,10 @@ file is what a new session needs to start working safely.
 ```bash
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
-cargo test --manifest-path src-tauri/Cargo.toml --locked     # 132 passed, 3 ignored
-npm test                                                      # 78 passed (node:test, TypeScript type-stripping)
+cargo test --manifest-path src-tauri/Cargo.toml --locked     # 133 passed, 3 ignored
+npm test                                                      # 88 passed (node:test, TypeScript type-stripping)
 npm run build                                                 # tsc + vite
-npm run test:ui                                               # 105 passed (Playwright, Chromium, mocked IPC)
+npm run test:ui                                               # 133 passed (Playwright, Chromium, mocked IPC)
 ```
 Format TypeScript with `npx --no-install prettier --write <files>`; Rust with `cargo fmt`. If the project folder
 is ever moved or renamed, run `cargo clean --manifest-path src-tauri/Cargo.toml` first (Tauri caches absolute
@@ -88,6 +88,10 @@ search, filters, sorting; Statistics ribbon; ordered Backlog (new `Backlog` stat
 by platform, backlog; Letter/A4); backup and restore; IGDB search and import; Steam library import matched to
 IGDB; Help > About; macOS and Windows builds. History is one linear branch, `master`, with a verification
 report per milestone in `docs/` and a `CHANGELOG.md`.
+Collections work (plan in `docs/plan-collections-and-guides.md`): the collection selector and the **Hardware**
+collection (systems and accessories, grouped/flat list, add/edit, sale dialog) are built; **Guides** is a
+placeholder screen, and the guide files / Internet Archive parts are still only a plan. Hardware list columns are
+fixed (not yet resizable) and it has no grid view.
 
 ## Known gaps and open items
 - **Steam import has never run against the real Steam or IGDB services** (no API keys during development; the

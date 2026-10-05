@@ -576,3 +576,18 @@ fn collection_preference_accepts_only_the_three_collections() {
     }
     assert_eq!(preferences(&c).unwrap()["collection"], "games");
 }
+
+#[test]
+fn hardware_grouping_preference_accepts_only_grouped_or_flat() {
+    let (_dir, c) = database();
+    for value in ["flat", "grouped"] {
+        set_preference(&c, "hardware_grouping", value).unwrap();
+        assert_eq!(preferences(&c).unwrap()["hardware_grouping"], value);
+    }
+    for bad in ["", "tree", "Flat"] {
+        assert!(
+            set_preference(&c, "hardware_grouping", bad).is_err(),
+            "{bad}"
+        );
+    }
+}

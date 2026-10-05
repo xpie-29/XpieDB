@@ -108,6 +108,7 @@ async function mock(page: Page, mode = "results", add = true) {
           if (command === "igdb_save_credentials") throw "Windows could not save IGDB credentials.";
           if (command === "list_games") return games;
           if (command === "list_platforms") return platforms;
+          if (command === "list_hardware") return [];
           if (command === "get_preferences")
             return {
               library_view: "grid",

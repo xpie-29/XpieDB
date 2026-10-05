@@ -1326,3 +1326,119 @@ button:focus-visible,
 .platforms-header {
   justify-content: flex-start;
 }
+.hardware-list {
+  width: 100%;
+  min-width: 640px;
+}
+.hw-row {
+  display: grid;
+  grid-template-columns: 56px minmax(160px, 1fr) 110px 120px 70px 90px;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+  font-size: 12px;
+  cursor: default;
+}
+.hw-row > span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hw-row:focus-visible {
+  outline: 2px solid var(--colorStrokeFocus2);
+  outline-offset: -2px;
+}
+.hw-heading {
+  font-size: 10px;
+  color: var(--colorNeutralForeground3);
+  min-height: 30px;
+  position: sticky;
+  top: -16px;
+  background: var(--colorNeutralBackground2);
+  z-index: 1;
+}
+.hw-row:not(.hw-heading):hover {
+  background: var(--colorNeutralBackground1Hover);
+}
+.hw-row.selected {
+  background: var(--colorNeutralBackground1Selected);
+  box-shadow: inset 3px 0 var(--colorBrandStroke1);
+}
+.hw-row.dimmed {
+  opacity: 0.55;
+}
+.hw-row.just-edited {
+  animation: just-edited-row 2.4s ease-out;
+}
+.hw-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+.hw-name.depth-1 {
+  padding-left: 24px;
+}
+.hw-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hw-count {
+  font-size: 11px;
+}
+.hw-toggle,
+.hw-toggle-space {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+}
+.hw-toggle {
+  display: grid;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.hw-toggle:hover {
+  background: var(--colorNeutralBackground1Pressed);
+}
+.hw-group {
+  padding: 14px 8px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--colorNeutralForeground3);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+.accessory-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.compat {
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: 4px;
+  padding: 8px 12px 12px;
+}
+.compat-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  max-height: 200px;
+  overflow-y: auto;
+}
+.checks {
+  display: flex;
+  gap: 24px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hw-row.just-edited {
+    animation: none;
+  }
+}

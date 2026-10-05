@@ -144,6 +144,7 @@ async function mock(page: Page, mode: Mode) {
           w.calls.push(command);
           if (command === "list_games") return games;
           if (command === "list_platforms") return platforms;
+          if (command === "list_hardware") return [];
           if (command === "get_preferences")
             return {
               library_view: "grid",

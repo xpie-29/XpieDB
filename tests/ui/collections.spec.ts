@@ -33,13 +33,13 @@ test("choosing a collection switches the screen and the toolbar, and is remember
   await selector(page).click();
   await page.getByRole("menuitemradio", { name: "Hardware" }).click();
   await expect(selector(page)).toHaveAccessibleName("Collection: Hardware");
-  await expect(page.getByRole("heading", { name: "Hardware" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hardware", level: 1 })).toBeVisible();
   expect(await writes(page)).toContainEqual(["collection", "hardware"]);
   // Games-only buttons are gone; the collection's own buttons appear.
   for (const name of ["Backlog", "Reports"])
     await expect(nav(page).getByRole("button", { name, exact: true })).toHaveCount(0);
   await expect(nav(page).getByRole("button", { name: "Add Hardware" })).toBeVisible();
-  await expect(page.locator(".library-view")).toHaveCount(0);
+  await expect(page.locator(".library-view:not(.hardware-view)")).toHaveCount(0);
 
   await selector(page).click();
   await page.getByRole("menuitemradio", { name: "Guides" }).click();
@@ -54,7 +54,7 @@ test("choosing a collection switches the screen and the toolbar, and is remember
 test("the saved collection is used at startup", async ({ page }) => {
   await installMock(page, { preferences: { collection: "hardware" } });
   await expect(selector(page)).toHaveAccessibleName("Collection: Hardware");
-  await expect(page.getByRole("heading", { name: "Hardware" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hardware", level: 1 })).toBeVisible();
 });
 
 test("an unknown saved collection falls back to Games", async ({ page }) => {

@@ -441,6 +441,7 @@ pub fn set_preference(c: &Connection, key: &str, value: &str) -> Result<()> {
         "list_columns" => valid_list_columns(value),
         "platform_icon_style" => ["color", "mono"].contains(&value),
         "collection" => ["games", "guides", "hardware"].contains(&value),
+        "hardware_grouping" => ["grouped", "flat"].contains(&value),
         "library_sort" => [
             "title_asc",
             "title_desc",

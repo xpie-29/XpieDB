@@ -40,6 +40,8 @@ export type MockOptions = {
     configured?: boolean;
     library?: ReturnType<typeof sampleSteamLibrary>;
   };
+  /** Hardware items (see `sampleHardware`); empty by default. */
+  hardware?: Array<Record<string, unknown>>;
   /** Replaces the generated library. */
   games?: Array<Record<string, unknown>>;
   /** Extra saved preferences, e.g. { stats_open: "false" }. */
@@ -130,10 +132,50 @@ export function sampleGames() {
   }));
 }
 
+/** A small Hardware collection: three families (one sold) plus a loose accessory. */
+export function sampleHardware() {
+  const base = {
+    parent_id: null,
+    manufacturer: null,
+    model: null,
+    region: null,
+    serial: null,
+    color: null,
+    condition: null,
+    completeness: null,
+    status: "Owned",
+    is_working: true,
+    is_modded: false,
+    purchase_date: null,
+    purchase_price_cents: null,
+    purchase_source: null,
+    sale_date: null,
+    sale_price_cents: null,
+    photo_path: null,
+    notes_html: "",
+    compat_platform_ids: [] as number[],
+    former_parent_name: null,
+    date_added: "2026-01-01T00:00:00Z",
+    date_modified: "2026-01-01T00:00:00Z",
+  };
+  return [
+    { ...base, id: 1, kind: "system", name: "PlayStation 4 Pro", platform_id: 2, manufacturer: "Sony", condition: "Good", purchase_price_cents: 29999 },
+    { ...base, id: 2, kind: "accessory", name: "DualShock 4", platform_id: 2, parent_id: 1, color: "Black", purchase_price_cents: 5999 },
+    { ...base, id: 3, kind: "accessory", name: "PlayStation Camera", platform_id: 2, parent_id: 1 },
+    { ...base, id: 4, kind: "system", name: "Nintendo Switch", platform_id: 3, manufacturer: "Nintendo" },
+    { ...base, id: 5, kind: "accessory", name: "Joy-Con (pair)", platform_id: 3, parent_id: 4 },
+    { ...base, id: 6, kind: "accessory", name: "Pro Controller", platform_id: 3, parent_id: 4, compat_platform_ids: [1] },
+    { ...base, id: 7, kind: "accessory", name: "8BitDo SN30", platform_id: 6, compat_platform_ids: [1, 3] },
+    { ...base, id: 8, kind: "system", name: "Super Nintendo", platform_id: 6, status: "Sold", sale_date: "2025-06-01", sale_price_cents: 12000 },
+    { ...base, id: 9, kind: "accessory", name: "SNES Controller", platform_id: 6, parent_id: 8, status: "Sold" },
+  ];
+}
+
 export async function installMock(page: Page, options: MockOptions = {}) {
   await page.addInitScript(
-    ({ platforms, games, saved, steam }) => {
+    ({ platforms, games, hardware, saved, steam }) => {
       const w = window as any;
+      w.hardwareCalls = [];
       w.preferenceWrites = [];
       w.backlogCalls = [];
       // ---- Steam import: mirrors the backend's add-only rules ----
@@ -198,6 +240,76 @@ export async function installMock(page: Page, options: MockOptions = {}) {
           if (command === "list_games")
             return JSON.parse(JSON.stringify(games));
           if (command === "list_platforms") return platforms;
+          if (command === "list_hardware")
+            return JSON.parse(JSON.stringify(hardware));
+          if (command === "save_hardware") {
+            // Mirrors hardware.rs: parents are systems, systems have none, selling asks per accessory.
+            w.hardwareCalls.push(["save", args.id, args.input, args.withAccessories]);
+            const input = { ...args.input };
+            if (!input.name.trim()) throw "Enter a name of 1 to 300 characters.";
+            if (input.kind === "system") {
+              input.parent_id = null;
+              input.compat_platform_ids = [];
+            } else if (
+              input.parent_id !== null &&
+              !hardware.some((h: any) => h.id === input.parent_id && h.kind === "system")
+            )
+              throw "An accessory's parent must be a system you have added.";
+            if (input.status === "Owned") {
+              input.sale_date = null;
+              input.sale_price_cents = null;
+            }
+            input.compat_platform_ids = [...new Set<number>(input.compat_platform_ids)]
+              .filter((p) => p !== input.platform_id)
+              .sort((a, b) => a - b);
+            const now = "2026-10-04T00:00:00Z";
+            const previous = hardware.find((h: any) => h.id === args.id);
+            if (
+              previous?.kind === "system" &&
+              previous.status === "Owned" &&
+              input.kind === "system" &&
+              input.status !== "Owned"
+            ) {
+              const going = args.withAccessories ?? [];
+              for (const child of hardware.filter((h: any) => h.parent_id === previous.id)) {
+                if (going.includes(child.id)) {
+                  if (child.status === "Owned") {
+                    child.status = input.status;
+                    child.sale_date = input.sale_date;
+                  }
+                } else {
+                  child.former_parent_name = input.name;
+                  child.parent_id = null;
+                }
+              }
+            }
+            if (previous) {
+              Object.assign(previous, input, {
+                former_parent_name: input.parent_id === null ? previous.former_parent_name : null,
+                date_modified: now,
+              });
+              return JSON.parse(JSON.stringify(previous));
+            }
+            const created = {
+              ...input,
+              id: Math.max(0, ...hardware.map((h: any) => h.id)) + 1,
+              former_parent_name: null,
+              date_added: now,
+              date_modified: now,
+            };
+            hardware.push(created);
+            return JSON.parse(JSON.stringify(created));
+          }
+          if (command === "delete_hardware") {
+            w.hardwareCalls.push(["delete", args.id]);
+            const gone = hardware.find((h: any) => h.id === args.id);
+            for (const child of hardware.filter((h: any) => h.parent_id === args.id)) {
+              child.former_parent_name = gone.name;
+              child.parent_id = null;
+            }
+            hardware.splice(hardware.indexOf(gone), 1);
+            return;
+          }
           if (command === "get_preferences")
             return {
               library_view: "grid",
@@ -364,6 +476,7 @@ export async function installMock(page: Page, options: MockOptions = {}) {
     {
       platforms,
       games: options.games ?? sampleGames(),
+      hardware: options.hardware ?? [],
       saved: options.preferences ?? {},
       steam: {
         configured: options.steam?.configured ?? true,
