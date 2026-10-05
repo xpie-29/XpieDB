@@ -3,6 +3,7 @@
 //! A guide can be linked to a game in the Library (`game_id`), or name a game you do not own
 //! (`game_title`). Deleting a game keeps its guides (see `catalog::delete_game`).
 use crate::catalog::{Result, clean_optional_field, sanitize_notes, valid_date};
+use crate::guide_files::{self, GuideFile};
 use crate::hardware::CONDITIONS;
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
@@ -41,6 +42,17 @@ pub struct Guide {
     pub data: GuideInput,
     pub date_added: String,
     pub date_modified: String,
+    /// Digital copies (PDF/ePub) attached to this guide; filled in by `with_files`.
+    pub files: Vec<GuideFile>,
+}
+
+/// Adds each guide's attached files (and whether their copies still exist).
+pub fn with_files(c: &Connection, root: &std::path::Path, guides: &mut [Guide]) -> Result<()> {
+    let mut files = guide_files::all_by_guide(c, root)?;
+    for guide in guides {
+        guide.files = files.remove(&guide.id).unwrap_or_default();
+    }
+    Ok(())
 }
 
 /// ISBN-10 or ISBN-13, written with optional hyphens or spaces. Only the shape is checked, because
@@ -139,6 +151,7 @@ fn row(r: &rusqlite::Row) -> rusqlite::Result<Guide> {
         },
         date_added: r.get(18)?,
         date_modified: r.get(19)?,
+        files: vec![],
     })
 }
 pub fn get_guide(c: &Connection, id: i64) -> Result<Guide> {
@@ -239,6 +252,18 @@ pub fn delete_guide(c: &Connection, id: i64) -> Result<Option<String>> {
     let photo = get_guide(c, id)?.data.photo_path;
     c.execute("DELETE FROM guides WHERE id=?", [id])
         .map_err(db)?;
+    Ok(photo)
+}
+
+/// Deletes a guide, its attached files and their copies. Returns its photo, if any.
+pub fn delete_guide_with_files(
+    c: &Connection,
+    root: &std::path::Path,
+    id: i64,
+) -> Result<Option<String>> {
+    let names = guide_files::stored_names_for_guide(c, id)?;
+    let photo = delete_guide(c, id)?;
+    guide_files::delete_copies(root, &names);
     Ok(photo)
 }
 

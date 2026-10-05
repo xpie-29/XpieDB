@@ -4,12 +4,16 @@ import {
   Add20Regular,
   Delete20Regular,
   Dismiss16Regular,
+  Document20Regular,
   Edit20Regular,
+  Folder20Regular,
   Search20Regular,
 } from "@fluentui/react-icons";
-import type { Game, Guide, Platform } from "../types";
+import type { Game, Guide, GuideFile, Platform } from "../types";
 import { formatPrice } from "../hardwareQuery";
 import {
+  copyLabel,
+  fileLabel,
   guideFiltersActive,
   guideGameName,
   type GuideFilters,
@@ -31,6 +35,10 @@ export function GuidesLibrary({
   edit,
   remove,
   openGame,
+  attachFile,
+  openFile,
+  revealFile,
+  removeFile,
   error,
   scroll,
   highlight,
@@ -49,6 +57,11 @@ export function GuidesLibrary({
   remove: (guide: Guide) => void;
   /** Jump to a game in the Games collection. */
   openGame: (id: number) => void;
+  /** Digital copies: attach one (the app asks for the file), open it, show it, or remove it. */
+  attachFile: (guide: Guide) => void;
+  openFile: (file: GuideFile) => void;
+  revealFile: (file: GuideFile) => void;
+  removeFile: (file: GuideFile) => void;
   error: (message: string) => void;
   scroll: { current: number };
   highlight: number | null;
@@ -221,9 +234,7 @@ export function GuidesLibrary({
                   >
                     {guideGameName(g, games) ?? "-"}
                   </span>
-                  <span role="gridcell">
-                    {g.has_physical ? "Physical" : "-"}
-                  </span>
+                  <span role="gridcell">{copyLabel(g)}</span>
                   <span role="gridcell">{g.condition ?? "-"}</span>
                   <span role="gridcell">
                     {formatPrice(g.purchase_price_cents)}
@@ -241,6 +252,10 @@ export function GuidesLibrary({
             edit={() => edit(current)}
             remove={() => remove(current)}
             openGame={openGame}
+            attachFile={() => attachFile(current)}
+            openFile={openFile}
+            revealFile={revealFile}
+            removeFile={removeFile}
             error={error}
           />
         )}
@@ -256,6 +271,10 @@ function GuideDetail({
   edit,
   remove,
   openGame,
+  attachFile,
+  openFile,
+  revealFile,
+  removeFile,
   error,
 }: {
   guide: Guide;
@@ -264,6 +283,10 @@ function GuideDetail({
   edit: () => void;
   remove: () => void;
   openGame: (id: number) => void;
+  attachFile: () => void;
+  openFile: (file: GuideFile) => void;
+  revealFile: (file: GuideFile) => void;
+  removeFile: (file: GuideFile) => void;
   error: (message: string) => void;
 }) {
   const panel = useRef<HTMLElement>(null);
@@ -347,6 +370,59 @@ function GuideDetail({
           </div>
         ))}
       </dl>
+      <section aria-label="Digital copies" className="detail-links">
+        <h3>Digital copies ({guide.files.length})</h3>
+        {guide.files.length > 0 ? (
+          <ul className="file-list">
+            {guide.files.map((f) => (
+              <li key={f.id}>
+                <div className="file-name">
+                  <Document20Regular aria-hidden />
+                  <span title={f.file_name}>{f.file_name}</span>
+                </div>
+                <span className="muted">{fileLabel(f)}</span>
+                {f.missing ? (
+                  <p className="error" role="alert">
+                    This file is no longer in the app&apos;s folder (guide
+                    files are not part of backups unless you include them).
+                    Remove it and attach it again.
+                  </p>
+                ) : null}
+                <div className="file-actions">
+                  <Button
+                    size="small"
+                    disabled={f.missing}
+                    onClick={() => openFile(f)}
+                  >
+                    Open
+                  </Button>
+                  <Button
+                    size="small"
+                    icon={<Folder20Regular />}
+                    disabled={f.missing}
+                    aria-label={`Show ${f.file_name} in folder`}
+                    title="Show in folder"
+                    onClick={() => revealFile(f)}
+                  />
+                  <Button
+                    size="small"
+                    icon={<Delete20Regular />}
+                    appearance="subtle"
+                    aria-label={`Remove ${f.file_name}`}
+                    title="Remove this file"
+                    onClick={() => removeFile(f)}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">No digital copy</p>
+        )}
+        <Button icon={<Add20Regular />} onClick={attachFile}>
+          Attach PDF or ePub
+        </Button>
+      </section>
       <section className="detail-notes">
         <h3>Notes</h3>
         {meaningfulNotes(guide.notes_html) ? (

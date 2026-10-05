@@ -172,10 +172,24 @@ export type GuideInput = {
   photo_path: string | null;
   notes_html: string;
 };
+/** A digital copy (PDF or ePub) of a guide, kept in the app's own folder. */
+export type GuideFile = {
+  id: number;
+  guide_id: number;
+  /** The original file name, for display. */
+  file_name: string;
+  kind: "pdf" | "epub";
+  size_bytes: number;
+  source_url: string | null;
+  date_added: string;
+  /** The copy in the app folder is gone (for example after restoring a backup without guide files). */
+  missing: boolean;
+};
 export type Guide = GuideInput & {
   id: number;
   date_added: string;
   date_modified: string;
+  files: GuideFile[];
 };
 export const emptyGuide = (): GuideInput => ({
   title: "",

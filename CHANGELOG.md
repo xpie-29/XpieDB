@@ -1,5 +1,11 @@
 # Changelog
 
+## Collections: guide files - 2026-10-04
+
+- Migration 8 and `guide_files`: attach a PDF or ePub to a guide (content-checked, copied into `guide-files`,
+  deduplicated per guide), open it in the default reader, show it in the folder, or remove the copy. Missing
+  copies are flagged. Not part of backups. A feasibility note for an in-app reader is in the plan document.
+
 ## Collections: Guides - 2026-10-04
 
 - Guides collection (migration 7): list with search and platform/link filters, detail panel, add/edit form with

@@ -173,3 +173,62 @@ download. This feature follows the add-only rule: it only adds a file to a guide
 2. Guide files are not included in backups by default.
 3. Selling a system asks per accessory.
 4. Build order above is still awaiting approval before any work starts.
+
+## Part 3. An in-app guide reader (feasibility, asked 2026-10-04)
+
+**Short answer: yes, it is feasible, and the building blocks are open source.** The recommended path is to
+keep "open in your default reader" (built now) and add an in-app reader as a separate, later stage that can reuse
+the same stored files.
+
+### Building blocks (licences and activity checked on npm on 2026-10-04)
+
+| Need | Library | Licence | Notes |
+|---|---|---|---|
+| PDF | **PDF.js** (`pdfjs-dist` 6.4, Mozilla) | Apache-2.0 | Updated this month. The engine behind Firefox's reader: page rendering, text layer (selection, search), outline, zoom, range requests for big files. Ships a ready-made viewer page, but its look is Firefox's, so a custom toolbar over the API is better. |
+| PDF in React | `react-pdf` 11 (wrapper over PDF.js) | MIT | Optional convenience; we would still write our own controls. |
+| ePub | **foliate-js** 1.0 (the engine of the Foliate reader) | MIT | Paginated or scrolling layout, themes and fonts, table of contents, search, position as an ePub CFI; also reads MOBI/KF8/FB2/CBZ. Small (about 375 KB). Plain web code, not React. |
+| ePub, alternative | **Readium** `@readium/navigator` 2.11 | BSD-3 | Industry toolkit (used by Thorium); actively maintained, heavier, more standards-complete. |
+| ePub, older | `epubjs` 0.3.93 | BSD-2 | Popular but last released in 2023; I would avoid starting new work on it. |
+
+There is no single plug-in that is both a PDF and an ePub reader with a finished look. The realistic design is one
+reader window with two engines behind the same toolbar: PDF.js for `.pdf`, foliate-js (or Readium) for `.epub`.
+
+### What it would take
+
+- **Looks like part of the app:** our own toolbar and side panel in the existing Fluent theme, light and dark. PDF
+  pages are images, so dark mode is a CSS inversion option ("night mode") rather than true re-colouring; ePub text
+  recolours properly.
+- **Reader controls:** page next/previous and jump, zoom and fit width/page, two-page spread, thumbnails, table
+  of contents (a PDF's own outline when it has one, an ePub's TOC), search, text selection and copy, font size and
+  theme for ePub. Remember the last position per file and resume there.
+- **Bookmarks:** easy, because we own the database. A `guide_bookmarks` table (file, location, label, date):
+  location is a page number for PDF and a CFI for ePub. A bookmarks panel and "resume where I stopped" come with it.
+- **Full screen:** the browser Fullscreen API, or Tauri's window fullscreen call.
+- **Pop-out window:** Tauri 2 supports extra windows, so the reader can open in its own window (for a second
+  monitor) or stay inside the main window as a full-pane mode. Both talk to the same backend commands, so a
+  pop-out reader can still list your guides.
+- **A guide library inside the reader:** a side panel listing guides (all, or for the game you are reading about)
+  to switch without closing the reader. The data is already local; this is a UI panel plus "recently opened".
+- **Serving big files safely:** guides can be 50 to 300 MB. Do not pass them through IPC as base64. Register a
+  custom URL scheme in Rust that serves a guide file by id with range requests (PDF.js loads pages on demand that
+  way). The frontend still never supplies a path.
+- **Security settings to loosen carefully:** the app's content policy needs a worker allowance for PDF.js and the
+  custom scheme for files, and nothing else.
+
+### Limits and risks
+
+- **Scans:** many Internet Archive PDFs are page photographs with no text; they read fine but search and copy only
+  work if the file has an OCR text layer (the Archive often offers one).
+- **Borrow-only items** from the Archive are DRM-encrypted ("LCP"); no reader can open them, so they stay
+  "Open on archive.org".
+- **ePub variety:** fixed-layout and badly built ePubs render unevenly in every engine.
+- **Effort:** roughly the size of the Hardware work: a PDF reader with bookmarks and resume, an ePub reader on
+  the same toolbar, the file-serving scheme, then pop-out and the in-reader guide list. I would build it in that
+  order, each step usable on its own.
+- **No new network access** is needed; everything runs locally and offline.
+
+### Recommendation
+
+Finish file storage and "open in default reader" first (done), then the Internet Archive lookup, then decide on
+the reader with real guides in hand. If you want the reader sooner, start with the PDF half, since guides are
+mostly PDFs.

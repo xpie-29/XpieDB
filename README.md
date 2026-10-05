@@ -271,6 +271,12 @@ links to the other. Fields: title, author, publisher, edition, ISBN, language, p
 purchase details, one photo and notes. Deleting a game keeps its guides, which then show the game's name as text.
 Guides live in the `guides` table (migration 7); photos use the covers folder and are part of backups.
 
+A guide can also have **digital copies**: Attach PDF or ePub in its detail panel copies the file into the app's
+`guide-files` folder after checking that it really is a PDF or ePub (by content, not by name; up to 1 GB), and
+Open sends it to your default reader. Show in folder reveals the copy, and Remove deletes the copy but never your
+original. Guide files are large, so they are **not included in backups**; after restoring a backup on another
+computer they show as missing and can be attached again. The Copy column reads Physical, Digital or Both.
+
 Hardware holds **systems** (consoles, PCs, handhelds) and **accessories**. An accessory can belong to one system
 (chosen when adding it, or from the system's detail panel > Add accessory), stay loose, and list extra platforms it
 works with. The list is Grouped (accessories nested under their system, with expand and collapse; loose ones last)

@@ -9,6 +9,7 @@ import {
   type Collection,
   type Game,
   type Guide,
+  type GuideFile,
   type GuideInput,
   type Hardware,
   type HardwareInput,
@@ -93,6 +94,7 @@ export function App() {
   const [guideHighlight, setGuideHighlight] = useState<number | null>(null);
   const [guideDraft, setGuideDraft] = useState<GuideInput | undefined>();
   const [deletingGuide, setDeletingGuide] = useState<Guide | null>(null);
+  const [removingFile, setRemovingFile] = useState<GuideFile | null>(null);
   const guideScroll = useRef(0);
   // Set when another screen sends the owner to a game, so the Library scrolls to it once.
   const revealGame = useRef(false);
@@ -267,6 +269,38 @@ export function App() {
     setView("add");
     showCollection("guides");
   };
+  const withFile = (file: GuideFile, keep: boolean) =>
+    setGuides((current) =>
+      current.map((x) =>
+        x.id !== file.guide_id
+          ? x
+          : {
+              ...x,
+              files: keep
+                ? [...x.files.filter((f) => f.id !== file.id), file]
+                : x.files.filter((f) => f.id !== file.id),
+            },
+      ),
+    );
+  const attachFile = async (guide: Guide) => {
+    setError("");
+    try {
+      const file = await invoke<GuideFile | null>("attach_guide_file", {
+        guideId: guide.id,
+      });
+      if (file) withFile(file, true);
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+  const fileAction = (command: string) => async (file: GuideFile) => {
+    setError("");
+    try {
+      await invoke(command, { id: file.id });
+    } catch (e) {
+      setError(String(e));
+    }
+  };
   const guideSaved = (saved: Guide) => {
     setGuides((current) => [...current.filter((x) => x.id !== saved.id), saved]);
     setGuideSelected(saved.id);
@@ -332,6 +366,10 @@ export function App() {
                 }}
                 remove={setDeletingGuide}
                 openGame={openGame}
+                attachFile={(guide) => void attachFile(guide)}
+                openFile={(file) => void fileAction("open_guide_file")(file)}
+                revealFile={(file) => void fileAction("reveal_guide_file")(file)}
+                removeFile={setRemovingFile}
                 error={setError}
                 scroll={guideScroll}
                 highlight={guideHighlight}
@@ -604,6 +642,27 @@ export function App() {
         )}
       </div>
       {about && <About close={() => setAbout(false)} />}
+      {removingFile && (
+        <Confirm
+          title="Remove this file?"
+          text={`Remove "${removingFile.file_name}" from this guide? The copy kept by XpieDB is deleted; your original file is not touched.`}
+          label="Remove"
+          busy={busy}
+          close={() => setRemovingFile(null)}
+          confirm={async () => {
+            setBusy(true);
+            try {
+              await invoke("remove_guide_file", { id: removingFile.id });
+              withFile(removingFile, false);
+              setRemovingFile(null);
+            } catch (e) {
+              setError(String(e));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
       {deletingGuide && (
         <Confirm
           title="Delete guide?"

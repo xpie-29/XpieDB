@@ -81,7 +81,7 @@ test("the detail panel shows the guide and links to its game", async ({ page }) 
   await expect(panel).toContainText("J. Smith");
   await expect(panel).toContainText("$19.99");
   await expect(panel).toContainText("Good");
-  await panel.getByRole("button", { name: "Game 05" }).click();
+  await panel.getByRole("button", { name: "Game 05", exact: true }).click();
   // Jumps to the Games collection with that game selected and in view.
   await expect(page.locator(".library-view .game-card.selected")).toContainText("Game 05");
   await expect(page.getByRole("complementary", { name: "Selected game details" })).toContainText("Game 05");
@@ -234,4 +234,79 @@ test("returning from the editor keeps the scroll position", async ({ page }) => 
 test("a game with no guides shows no book mark and an empty guides section", async ({ page }) => {
   await installMock(page, { games: sampleGames(), guides: [] });
   await expect(page.getByLabel("Has a guide")).toHaveCount(0);
+});
+
+const fileCalls = (page: Page) => page.evaluate(() => (window as any).guideFileCalls);
+const section = (page: Page) => detail(page).getByRole("region", { name: "Digital copies" });
+
+test("the Copy column says Physical, Digital, Both or nothing", async ({ page }) => {
+  const guides = [
+    ...sampleGuides(),
+    { ...sampleGuides()[3], id: 5, title: "Digital Only Guide", has_physical: false, files: [{ id: 9, guide_id: 5, file_name: "Only.pdf", kind: "pdf", size_bytes: 500, source_url: null, date_added: "x", missing: false }] },
+  ];
+  await open(page, guides);
+  const copy = (title: string) => row(page, title).getByRole("gridcell").nth(3);
+  await expect(copy("Game 05 Official Guide")).toHaveText("Both");
+  await expect(copy("Game 05 World Map")).toHaveText("Physical");
+  await expect(copy("Digital Only Guide")).toHaveText("Digital");
+  await expect(copy("Atlas of Somewhere")).toHaveText("-");
+});
+
+test("the guide panel lists digital copies with their type and size, and flags a missing one", async ({ page }) => {
+  await open(page);
+  await row(page, "Game 05 Official Guide").click();
+  await expect(section(page).getByRole("heading", { name: "Digital copies (2)" })).toBeVisible();
+  await expect(section(page)).toContainText("Game 05 Guide.pdf");
+  await expect(section(page)).toContainText("PDF · 12.4 MB");
+  await expect(section(page)).toContainText("ePub · 2.3 MB");
+  await expect(section(page).getByRole("alert")).toContainText("no longer in the app");
+  // The missing copy cannot be opened or shown, but can be removed.
+  await expect(section(page).getByRole("button", { name: "Open" }).nth(1)).toBeDisabled();
+  await expect(section(page).getByRole("button", { name: "Show Game 05 Guide.epub in folder" })).toBeDisabled();
+  await expect(section(page).getByRole("button", { name: "Remove Game 05 Guide.epub" })).toBeEnabled();
+  await row(page, "Game 05 World Map").click();
+  await expect(section(page).getByRole("heading", { name: "Digital copies (0)" })).toBeVisible();
+  await expect(section(page)).toContainText("No digital copy");
+});
+
+test("Open and Show in folder act on the chosen file by id", async ({ page }) => {
+  await open(page);
+  await row(page, "Game 05 Official Guide").click();
+  await section(page).getByRole("button", { name: "Open" }).first().click();
+  await section(page).getByRole("button", { name: "Show Game 05 Guide.pdf in folder" }).click();
+  expect(await fileCalls(page)).toEqual([["open", 1], ["reveal", 1]]);
+});
+
+test("Attach adds a file to the guide, a cancelled dialog changes nothing, and a refusal is shown", async ({ page }) => {
+  await open(page);
+  await row(page, "Game 05 World Map").click();
+  await page.evaluate(() => ((window as any).attachResult = "cancel"));
+  await section(page).getByRole("button", { name: "Attach PDF or ePub" }).click();
+  await expect(section(page).getByRole("heading", { name: "Digital copies (0)" })).toBeVisible();
+  await page.evaluate(() => ((window as any).attachResult = "error"));
+  await section(page).getByRole("button", { name: "Attach PDF or ePub" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Choose a PDF or ePub file." })).toBeVisible();
+  await page.evaluate(() => ((window as any).attachResult = "file"));
+  await section(page).getByRole("button", { name: "Attach PDF or ePub" }).click();
+  await expect(section(page).getByRole("heading", { name: "Digital copies (1)" })).toBeVisible();
+  await expect(section(page)).toContainText("Attached.pdf");
+  await expect(section(page)).toContainText("PDF · 1.0 MB");
+  // The list now shows the guide as having a digital copy as well.
+  await expect(row(page, "Game 05 World Map").getByRole("gridcell").nth(3)).toHaveText("Both");
+  expect((await fileCalls(page)).filter((c: any[]) => c[0] === "attach")).toEqual([["attach", 2], ["attach", 2], ["attach", 2]]);
+});
+
+test("Remove asks first, deletes only the chosen file, and Cancel keeps it", async ({ page }) => {
+  await open(page);
+  await row(page, "Game 05 Official Guide").click();
+  await section(page).getByRole("button", { name: "Remove Game 05 Guide.pdf" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("your original file is not touched");
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  expect(await fileCalls(page)).toEqual([]);
+  await section(page).getByRole("button", { name: "Remove Game 05 Guide.pdf" }).click();
+  await dialog.getByRole("button", { name: "Remove" }).click();
+  expect(await fileCalls(page)).toEqual([["remove", 1]]);
+  await expect(section(page).getByRole("heading", { name: "Digital copies (1)" })).toBeVisible();
+  await expect(section(page)).not.toContainText("Game 05 Guide.pdf");
 });

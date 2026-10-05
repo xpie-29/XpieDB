@@ -2,6 +2,7 @@ mod assets;
 mod backup;
 mod catalog;
 mod commands;
+mod guide_files;
 mod guides;
 mod hardware;
 mod igdb;
@@ -71,6 +72,10 @@ pub fn run() {
             commands::list_guides,
             commands::save_guide,
             commands::delete_guide,
+            commands::attach_guide_file,
+            commands::remove_guide_file,
+            commands::open_guide_file,
+            commands::reveal_guide_file,
             commands::list_platforms,
             commands::save_platform,
             commands::delete_platform,

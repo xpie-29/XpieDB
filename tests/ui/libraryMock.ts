@@ -178,6 +178,7 @@ export function sampleHardware() {
  * is not in the Library.
  */
 export function sampleGuides() {
+  // Guide 1 also has two digital copies (the ePub's copy is missing from disk).
   const base = {
     game_id: null as number | null,
     game_title: null as string | null,
@@ -197,9 +198,20 @@ export function sampleGuides() {
     notes_html: "",
     date_added: "2026-01-01T00:00:00Z",
     date_modified: "2026-01-01T00:00:00Z",
+    files: [] as Array<Record<string, unknown>>,
   };
+  const file = (id: number, guide: number, name: string, kind: string, size: number, missing = false) => ({
+    id,
+    guide_id: guide,
+    file_name: name,
+    kind,
+    size_bytes: size,
+    source_url: null,
+    date_added: "2026-01-02T00:00:00Z",
+    missing,
+  });
   return [
-    { ...base, id: 1, title: "Game 05 Official Guide", game_id: 5, platform_id: 1, publisher: "Prima", author: "J. Smith", purchase_price_cents: 1999, condition: "Good" },
+    { ...base, id: 1, title: "Game 05 Official Guide", game_id: 5, platform_id: 1, publisher: "Prima", author: "J. Smith", purchase_price_cents: 1999, condition: "Good", files: [file(1, 1, "Game 05 Guide.pdf", "pdf", 13_002_342), file(2, 1, "Game 05 Guide.epub", "epub", 2_411_000, true)] },
     { ...base, id: 2, title: "Game 05 World Map", game_id: 5, platform_id: 1 },
     { ...base, id: 3, title: "Game 12 Strategy Guide", game_id: 12, platform_id: 2, isbn: "978-0-7615-4010-7" },
     { ...base, id: 4, title: "Atlas of Somewhere", game_title: "Somewhere Quest", platform_id: 6, has_physical: false },
@@ -212,6 +224,8 @@ export async function installMock(page: Page, options: MockOptions = {}) {
       const w = window as any;
       w.hardwareCalls = [];
       w.guideCalls = [];
+      w.guideFileCalls = [];
+      w.attachResult = "file";
       w.preferenceWrites = [];
       w.backlogCalls = [];
       // ---- Steam import: mirrors the backend's add-only rules ----
@@ -294,12 +308,40 @@ export async function installMock(page: Page, options: MockOptions = {}) {
             }
             const created = {
               ...input,
+              files: [],
               id: Math.max(0, ...guides.map((x: any) => x.id)) + 1,
               date_added: now,
               date_modified: now,
             };
             guides.push(created);
             return JSON.parse(JSON.stringify(created));
+          }
+          if (command === "attach_guide_file") {
+            w.guideFileCalls.push(["attach", args.guideId]);
+            if (w.attachResult === "cancel") return null;
+            if (w.attachResult === "error") throw "Choose a PDF or ePub file.";
+            const guide = guides.find((x: any) => x.id === args.guideId);
+            const created = {
+              id: 100 + guide.files.length + 1,
+              guide_id: guide.id,
+              file_name: "Attached.pdf",
+              kind: "pdf",
+              size_bytes: 1_048_576,
+              source_url: null,
+              date_added: "2026-10-04T00:00:00Z",
+              missing: false,
+            };
+            guide.files.push(created);
+            return created;
+          }
+          if (command === "open_guide_file" || command === "reveal_guide_file") {
+            w.guideFileCalls.push([command === "open_guide_file" ? "open" : "reveal", args.id]);
+            return;
+          }
+          if (command === "remove_guide_file") {
+            w.guideFileCalls.push(["remove", args.id]);
+            for (const g of guides) g.files = g.files.filter((f: any) => f.id !== args.id);
+            return;
           }
           if (command === "delete_guide") {
             w.guideCalls.push(["delete", args.id]);

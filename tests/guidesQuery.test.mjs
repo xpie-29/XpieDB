@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  copyLabel,
+  formatBytes,
   emptyGuideFilters,
   gamesWithGuides,
   guideGameName,
@@ -29,6 +31,7 @@ const guide = (title, extra = {}) => ({
   edition: null,
   isbn: null,
   language: null,
+  files: [],
   ...extra,
 });
 const ct = guide("Chrono Trigger Official Guide", { game_id: 1, platform_id: 6, publisher: "Nintendo Power" });
@@ -87,4 +90,22 @@ test("the selection stays when listed, else falls to the first guide", () => {
   assert.equal(visibleGuide(all, ct.id), ct.id);
   assert.equal(visibleGuide(all, 4242), unowned.id);
   assert.equal(visibleGuide([], 1), null);
+});
+
+test("a guide's copy label is Physical, Digital, Both or a dash", () => {
+  const f = [{ id: 1 }];
+  assert.equal(copyLabel({ has_physical: true, files: [] }), "Physical");
+  assert.equal(copyLabel({ has_physical: false, files: f }), "Digital");
+  assert.equal(copyLabel({ has_physical: true, files: f }), "Both");
+  assert.equal(copyLabel({ has_physical: false, files: [] }), "-");
+});
+
+test("file sizes read naturally", () => {
+  assert.equal(formatBytes(0), "0 B");
+  assert.equal(formatBytes(1023), "1023 B");
+  assert.equal(formatBytes(1024), "1.0 KB");
+  assert.equal(formatBytes(1_048_576), "1.0 MB");
+  assert.equal(formatBytes(13_002_342), "12.4 MB");
+  assert.equal(formatBytes(250 * 1024 * 1024), "250 MB");
+  assert.equal(formatBytes(1_610_612_736), "1.5 GB");
 });

@@ -1,6 +1,7 @@
 use crate::{
     assets,
     catalog::{self, Game, GameInput, Platform, Result},
+    guide_files::{self, GuideFile},
     guides::{self, Guide, GuideInput},
     hardware::{self, Hardware, HardwareInput},
 };
@@ -108,7 +109,10 @@ pub fn delete_hardware(app: AppHandle, id: i64) -> Result<()> {
 }
 #[tauri::command]
 pub fn list_guides(app: AppHandle) -> Result<Vec<Guide>> {
-    guides::list_guides(&connection(&app)?)
+    let c = connection(&app)?;
+    let mut list = guides::list_guides(&c)?;
+    guides::with_files(&c, &root(&app)?, &mut list)?;
+    Ok(list)
 }
 #[tauri::command]
 pub fn save_guide(app: AppHandle, id: Option<i64>, input: GuideInput) -> Result<Guide> {
@@ -119,7 +123,8 @@ pub fn save_guide(app: AppHandle, id: Option<i64>, input: GuideInput) -> Result<
         .map(|id| guides::get_guide(&c, id))
         .transpose()?
         .and_then(|g| g.data.photo_path);
-    let guide = guides::save_guide(&c, id, input)?;
+    let mut guide = guides::save_guide(&c, id, input)?;
+    guides::with_files(&c, &root, std::slice::from_mut(&mut guide))?;
     if let Some(old) = old
         && guide.data.photo_path.as_ref() != Some(&old)
         && let Err(e) = assets::remove_unused(&c, &root, &old)
@@ -131,12 +136,49 @@ pub fn save_guide(app: AppHandle, id: Option<i64>, input: GuideInput) -> Result<
 #[tauri::command]
 pub fn delete_guide(app: AppHandle, id: i64) -> Result<()> {
     let c = connection(&app)?;
-    if let Some(old) = guides::delete_guide(&c, id)?
-        && let Err(e) = assets::remove_unused(&c, &root(&app)?, &old)
+    let root = root(&app)?;
+    if let Some(old) = guides::delete_guide_with_files(&c, &root, id)?
+        && let Err(e) = assets::remove_unused(&c, &root, &old)
     {
         eprintln!("{e}");
     }
     Ok(())
+}
+/// Lets the owner pick a PDF or ePub and copies it into the app's folder as a digital copy of the guide.
+#[tauri::command]
+pub async fn attach_guide_file(app: AppHandle, guide_id: i64) -> Result<Option<GuideFile>> {
+    let source = app
+        .dialog()
+        .file()
+        .add_filter("Guides (PDF or ePub)", &["pdf", "epub"])
+        .blocking_pick_file();
+    let Some(source) = source else {
+        return Ok(None);
+    };
+    let path = source.into_path().map_err(|e| e.to_string())?;
+    let root = root(&app)?;
+    let c = connection(&app)?;
+    guide_files::attach(&c, &root, guide_id, &path, None, guide_files::MAX_BYTES).map(Some)
+}
+#[tauri::command]
+pub fn remove_guide_file(app: AppHandle, id: i64) -> Result<()> {
+    guide_files::remove(&connection(&app)?, &root(&app)?, id)
+}
+/// Opens a guide file in the default app for its type (by id only).
+#[tauri::command]
+pub fn open_guide_file(app: AppHandle, id: i64) -> Result<()> {
+    let path = guide_files::path_of(&connection(&app)?, &root(&app)?, id)?;
+    app.opener()
+        .open_path(path.to_string_lossy(), None::<&str>)
+        .map_err(|e| e.to_string())
+}
+/// Shows a guide file in Finder (or the system file manager).
+#[tauri::command]
+pub fn reveal_guide_file(app: AppHandle, id: i64) -> Result<()> {
+    let path = guide_files::path_of(&connection(&app)?, &root(&app)?, id)?;
+    app.opener()
+        .reveal_item_in_dir(path)
+        .map_err(|e| e.to_string())
 }
 #[tauri::command]
 pub fn list_platforms(app: AppHandle) -> Result<Vec<Platform>> {

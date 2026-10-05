@@ -40,10 +40,10 @@ file is what a new session needs to start working safely.
 ```bash
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
-cargo test --manifest-path src-tauri/Cargo.toml --locked     # 142 passed, 3 ignored
-npm test                                                      # 94 passed (node:test, TypeScript type-stripping)
+cargo test --manifest-path src-tauri/Cargo.toml --locked     # 152 passed, 3 ignored
+npm test                                                      # 96 passed (node:test, TypeScript type-stripping)
 npm run build                                                 # tsc + vite
-npm run test:ui                                               # 149 passed (Playwright, Chromium, mocked IPC)
+npm run test:ui                                               # 154 passed (Playwright, Chromium, mocked IPC)
 ```
 Format TypeScript with `npx --no-install prettier --write <files>`; Rust with `cargo fmt`. If the project folder
 is ever moved or renamed, run `cargo clean --manifest-path src-tauri/Cargo.toml` first (Tauri caches absolute
@@ -55,9 +55,9 @@ paths and the build fails otherwise).
   (`src-tauri/src/igdb/store.rs` selects Windows Credential Manager or macOS Keychain), are never returned to the
   frontend, and never appear in logs or error text.
 - **Modules** (`src-tauri/src/`): `catalog.rs` (games, platforms, tags, preferences, backlog order),
-  `storage.rs` (migrations 1-7), `assets.rs` (managed images), `backup/` (zip backup and restore),
+  `storage.rs` (migrations 1-8), `assets.rs` (managed images), `backup/` (zip backup and restore),
   `report/` (PDF reports via `krilla`), `igdb/` (IGDB client, auth, models), `steam/` (Steam import),
-  `hardware.rs` (Hardware collection), `guides.rs` (Guides collection), `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
+  `hardware.rs` (Hardware collection), `guides.rs` (Guides collection), `guide_files.rs` (PDF/ePub copies), `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
   pure logic in `src/stats.ts`, `libraryQuery.ts`, `steamImport.ts`, `listOrder.ts` (kept free of Tauri so
   `node --test` can run it).
 - **Schema changes are migrations** (`src-tauri/migrations/NNN_*.sql`, registered in `storage.rs`), each applied
@@ -70,7 +70,10 @@ paths and the build fails otherwise).
   or become loose and remember `former_parent_name`). Hardware photos reuse the `covers` folder.
 - **Guides** (`guides.rs`): a guide may link to a game (`game_id`) or name one you do not own (`game_title`).
   Deleting a game never deletes its guides: `catalog::delete_game` copies the title into `game_title` first.
-  Guide photos reuse the `covers` folder like Hardware photos.
+  Guide photos reuse the `covers` folder like Hardware photos. **Guide files** (`guide_files.rs`) are PDFs/ePubs
+  copied into `guide-files/<uuid>.<ext>` after checking their content (not their name); the frontend only ever
+  names a file by id, Rust picks the file with a dialog, and files are **not in backups** (the owner chose that;
+  a restored database shows missing files as such). An in-app reader is only a plan (Part 3 of the plan doc).
 - **Preferences** are an allow-listed key/value table (`catalog::set_preference`); add new keys there.
 - **Steam/IGDB import is add-only**: never modify an existing game. Bulk metadata refresh was deliberately
   rejected by the owner because it could overwrite personal edits; do not build it.
@@ -95,8 +98,8 @@ IGDB; Help > About; macOS and Windows builds. History is one linear branch, `mas
 report per milestone in `docs/` and a `CHANGELOG.md`.
 Collections work (plan in `docs/plan-collections-and-guides.md`): the collection selector and the **Hardware**
 collection (systems and accessories, grouped/flat list, add/edit, sale dialog) and the **Guides** collection
-(list, detail, add/edit, links to games both ways) are built; guide files (PDF/ePub) and the Internet Archive
-lookup are still only a plan. Hardware and Guides list columns are fixed (not resizable) and have no grid view.
+(list, detail, add/edit, links to games both ways, attach/open PDF and ePub copies) are built; the Internet
+Archive lookup, an in-app reader and an option to include guide files in backups are still only a plan. Hardware and Guides list columns are fixed (not resizable) and have no grid view.
 
 ## Known gaps and open items
 - **Steam import has never run against the real Steam or IGDB services** (no API keys during development; the

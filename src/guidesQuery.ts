@@ -1,4 +1,4 @@
-import type { Game, Guide, Platform } from "./types.ts";
+import type { Game, Guide, GuideFile, Platform } from "./types.ts";
 
 export type GuideFilters = { search: string; platform: string; link: string };
 export const emptyGuideFilters = (): GuideFilters => ({
@@ -68,3 +68,25 @@ export const gamesWithGuides = (guides: Guide[]) =>
 
 export const visibleGuide = (guides: Guide[], selected: number | null) =>
   guides.some((g) => g.id === selected) ? selected : (guides[0]?.id ?? null);
+
+/** What the owner has of a guide: a physical copy, digital files, or both. */
+export function copyLabel(guide: Guide): string {
+  const digital = guide.files.length > 0;
+  if (guide.has_physical && digital) return "Both";
+  if (guide.has_physical) return "Physical";
+  return digital ? "Digital" : "-";
+}
+
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return `${value >= 100 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+}
+export const fileLabel = (file: GuideFile) =>
+  `${file.kind === "pdf" ? "PDF" : "ePub"} · ${formatBytes(file.size_bytes)}`;

@@ -33,6 +33,7 @@ zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2
 krilla = { version = "0.6.0", default-features = false, features = ["simple-text"] }
 ttf-parser = "0.25"
 unicode-normalization = "0.1"
+sha2 = "0.10"
 
 [target.'cfg(windows)'.dependencies]
 windows-native-keyring-store = "1.1"
