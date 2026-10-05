@@ -642,7 +642,7 @@ export async function installMock(page: Page, options: MockOptions = {}) {
           if (command === "about_info")
             return {
               name: "XpieDB",
-              version: "0.1.0",
+              version: "0.2.0",
               repository: "https://github.com/xpie-29/XpieDB",
             };
           if (command === "open_link") {

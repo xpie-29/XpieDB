@@ -23,7 +23,7 @@ test("the Help menu event opens the About dialog with credits and the repository
   await expect(dialog(page)).toContainText(
     "Created by Xpie, ChatGPT, and Claude.",
   );
-  await expect(dialog(page)).toContainText("Version 0.1.0");
+  await expect(dialog(page)).toContainText("Version 0.2.0");
   await expect(
     dialog(page).getByRole("link", { name: "github.com/xpie-29/XpieDB" }),
   ).toHaveAttribute("href", REPO);

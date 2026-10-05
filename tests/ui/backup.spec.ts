@@ -173,7 +173,7 @@ async function mock(page: Page, mode: Mode) {
             return {
               file_name: "my-backup.zip",
               created_at: "2026-01-01T12:00:00Z",
-              app_version: "0.1.0",
+              app_version: "0.2.0",
               games: 3,
               images: 2,
               missing_images: 0,
