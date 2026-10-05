@@ -43,7 +43,7 @@ test("choosing a collection switches the screen and the toolbar, and is remember
 
   await selector(page).click();
   await page.getByRole("menuitemradio", { name: "Guides" }).click();
-  await expect(page.getByRole("heading", { name: "Guides" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Guides", level: 1 })).toBeVisible();
 
   await selector(page).click();
   await page.getByRole("menuitemradio", { name: "Games" }).click();

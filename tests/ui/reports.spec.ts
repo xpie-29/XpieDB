@@ -197,6 +197,7 @@ async function mock(
         invoke: async (command: string, args: any) => {
           if (command === "list_games") return games;
           if (command === "list_hardware") return [];
+          if (command === "list_guides") return [];
           if (command === "list_platforms")
             return [
               {

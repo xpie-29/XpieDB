@@ -9,7 +9,11 @@ import {
   type ReactNode,
 } from "react";
 import { Button } from "@fluentui/react-components";
-import { Add20Regular, Note20Regular } from "@fluentui/react-icons";
+import {
+  Add20Regular,
+  Book16Regular,
+  Note20Regular,
+} from "@fluentui/react-icons";
 import type { Game, Platform, Preferences } from "../types";
 import { ManagedImage, PlatformIcon } from "./Shared";
 import { meaningfulNotes } from "../notes";
@@ -37,6 +41,8 @@ export function Library({
   select,
   add,
   scroll,
+  reveal,
+  guideGameIds,
   highlight,
   setPreference,
   utilityBar,
@@ -54,6 +60,10 @@ export function Library({
   add: () => void;
   /** Remembers the pane's scroll position across visits to other screens. */
   scroll: { current: number };
+  /** Set by another screen to scroll the selected game into view once, on arrival. */
+  reveal?: { current: boolean };
+  /** Games that have at least one guide, for the book mark. */
+  guideGameIds?: ReadonlySet<number>;
   /** A game to flash briefly, e.g. the one just edited. */
   highlight?: number | null;
   setPreference: (key: string, value: string) => void;
@@ -67,6 +77,11 @@ export function Library({
   const list = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (pane.current) pane.current.scrollTop = scroll.current;
+    if (reveal?.current) {
+      reveal.current = false;
+      const at = games.findIndex((g) => g.id === selected);
+      entries.current[at]?.scrollIntoView({ block: "center" });
+    }
     // Restore once, when the Library is shown again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -248,6 +263,13 @@ export function Library({
                     alt={`${g.title} cover`}
                     className="cover"
                   />
+                  {guideGameIds?.has(g.id) && (
+                    <Book16Regular
+                      className="guide-badge"
+                      aria-label="Has a guide"
+                      title="Has a guide"
+                    />
+                  )}
                   <strong>{g.title}</strong>
                   <span className="muted">
                     {platforms.find((p) => p.id === g.platform_id)?.name}
@@ -311,6 +333,13 @@ export function Library({
                     />
                   </span>
                   <span role="gridcell" title={g.title}>
+                    {guideGameIds?.has(g.id) && (
+                      <Book16Regular
+                        className="guide-mark"
+                        aria-label="Has a guide"
+                        title="Has a guide"
+                      />
+                    )}
                     {g.title}
                   </span>
                   <span role="gridcell" title={g.genre ?? ""}>

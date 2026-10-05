@@ -151,3 +151,48 @@ export const emptyHardware = (kind: HardwareKind): HardwareInput => ({
   notes_html: "",
   compat_platform_ids: [],
 });
+
+export type GuideInput = {
+  title: string;
+  game_id: number | null;
+  /** The game's name when it is not one in the Library. */
+  game_title: string | null;
+  platform_id: number | null;
+  author: string | null;
+  publisher: string | null;
+  edition: string | null;
+  isbn: string | null;
+  language: string | null;
+  page_count: number | null;
+  has_physical: boolean;
+  condition: string | null;
+  purchase_date: string | null;
+  purchase_price_cents: number | null;
+  purchase_source: string | null;
+  photo_path: string | null;
+  notes_html: string;
+};
+export type Guide = GuideInput & {
+  id: number;
+  date_added: string;
+  date_modified: string;
+};
+export const emptyGuide = (): GuideInput => ({
+  title: "",
+  game_id: null,
+  game_title: null,
+  platform_id: null,
+  author: null,
+  publisher: null,
+  edition: null,
+  isbn: null,
+  language: null,
+  page_count: null,
+  has_physical: true,
+  condition: null,
+  purchase_date: null,
+  purchase_price_cents: null,
+  purchase_source: null,
+  photo_path: null,
+  notes_html: "",
+});

@@ -261,8 +261,15 @@ and remaining manual checks.
 ## Collections And Hardware
 
 The toolbar's collection selector (the button after Add) switches between **Games**, **Guides** and **Hardware**;
-the last choice is remembered. Platforms are managed from Settings > Manage platforms. Guides is a placeholder
-for now (see `docs/plan-collections-and-guides.md`).
+the last choice is remembered. Platforms are managed from Settings > Manage platforms. Design notes and the
+parts not built yet (guide files, Internet Archive lookup) are in `docs/plan-collections-and-guides.md`.
+
+**Guides** are strategy guides, manuals and similar books. Each can be linked to a game in the Library (chosen
+from a type-to-search box, or started from a game's detail panel > Add guide) or name a game you do not own. A
+game that has guides shows a book mark in the Library (grid and list), its detail panel lists them, and each side
+links to the other. Fields: title, author, publisher, edition, ISBN, language, pages, platform, condition,
+purchase details, one photo and notes. Deleting a game keeps its guides, which then show the game's name as text.
+Guides live in the `guides` table (migration 7); photos use the covers folder and are part of backups.
 
 Hardware holds **systems** (consoles, PCs, handhelds) and **accessories**. An accessory can belong to one system
 (chosen when adding it, or from the system's detail panel > Add accessory), stay loose, and list extra platforms it

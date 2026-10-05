@@ -145,6 +145,7 @@ async function mock(page: Page, mode: Mode) {
           if (command === "list_games") return games;
           if (command === "list_platforms") return platforms;
           if (command === "list_hardware") return [];
+          if (command === "list_guides") return [];
           if (command === "get_preferences")
             return {
               library_view: "grid",

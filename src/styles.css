@@ -1442,3 +1442,70 @@ button:focus-visible,
     animation: none;
   }
 }
+.guide-list {
+  width: 100%;
+  min-width: 640px;
+}
+.gd-row {
+  display: grid;
+  grid-template-columns: 56px minmax(160px, 1.3fr) minmax(120px, 1fr) 80px 110px 80px;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+  font-size: 12px;
+  cursor: default;
+}
+.gd-row > span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gd-row:focus-visible {
+  outline: 2px solid var(--colorStrokeFocus2);
+  outline-offset: -2px;
+}
+.gd-heading {
+  font-size: 10px;
+  color: var(--colorNeutralForeground3);
+  min-height: 30px;
+  position: sticky;
+  top: -16px;
+  background: var(--colorNeutralBackground2);
+  z-index: 1;
+}
+.gd-row:not(.gd-heading):hover {
+  background: var(--colorNeutralBackground1Hover);
+}
+.gd-row.selected {
+  background: var(--colorNeutralBackground1Selected);
+  box-shadow: inset 3px 0 var(--colorBrandStroke1);
+}
+.gd-row.just-edited {
+  animation: just-edited-row 2.4s ease-out;
+}
+.guide-mark {
+  vertical-align: -2px;
+  margin-right: 6px;
+  color: var(--colorBrandForeground1);
+}
+.game-card {
+  position: relative;
+}
+.guide-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 3px;
+  border-radius: 4px;
+  background: var(--colorNeutralBackground1);
+  color: var(--colorBrandForeground1);
+  box-shadow: 0 0 0 1px var(--colorNeutralStroke2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gd-row.just-edited {
+    animation: none;
+  }
+}

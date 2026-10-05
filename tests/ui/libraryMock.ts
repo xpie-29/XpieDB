@@ -40,6 +40,8 @@ export type MockOptions = {
     configured?: boolean;
     library?: ReturnType<typeof sampleSteamLibrary>;
   };
+  /** Guides (see `sampleGuides`); empty by default. */
+  guides?: Array<Record<string, unknown>>;
   /** Hardware items (see `sampleHardware`); empty by default. */
   hardware?: Array<Record<string, unknown>>;
   /** Replaces the generated library. */
@@ -171,11 +173,45 @@ export function sampleHardware() {
   ];
 }
 
+/**
+ * A few guides: two for Game 05 (one on a different platform), one for Game 12, and one for a game that
+ * is not in the Library.
+ */
+export function sampleGuides() {
+  const base = {
+    game_id: null as number | null,
+    game_title: null as string | null,
+    platform_id: null as number | null,
+    author: null,
+    publisher: null,
+    edition: null,
+    isbn: null,
+    language: null,
+    page_count: null,
+    has_physical: true,
+    condition: null,
+    purchase_date: null,
+    purchase_price_cents: null,
+    purchase_source: null,
+    photo_path: null,
+    notes_html: "",
+    date_added: "2026-01-01T00:00:00Z",
+    date_modified: "2026-01-01T00:00:00Z",
+  };
+  return [
+    { ...base, id: 1, title: "Game 05 Official Guide", game_id: 5, platform_id: 1, publisher: "Prima", author: "J. Smith", purchase_price_cents: 1999, condition: "Good" },
+    { ...base, id: 2, title: "Game 05 World Map", game_id: 5, platform_id: 1 },
+    { ...base, id: 3, title: "Game 12 Strategy Guide", game_id: 12, platform_id: 2, isbn: "978-0-7615-4010-7" },
+    { ...base, id: 4, title: "Atlas of Somewhere", game_title: "Somewhere Quest", platform_id: 6, has_physical: false },
+  ];
+}
+
 export async function installMock(page: Page, options: MockOptions = {}) {
   await page.addInitScript(
-    ({ platforms, games, hardware, saved, steam }) => {
+    ({ platforms, games, hardware, guides, saved, steam }) => {
       const w = window as any;
       w.hardwareCalls = [];
+      w.guideCalls = [];
       w.preferenceWrites = [];
       w.backlogCalls = [];
       // ---- Steam import: mirrors the backend's add-only rules ----
@@ -242,6 +278,34 @@ export async function installMock(page: Page, options: MockOptions = {}) {
           if (command === "list_platforms") return platforms;
           if (command === "list_hardware")
             return JSON.parse(JSON.stringify(hardware));
+          if (command === "list_guides") return JSON.parse(JSON.stringify(guides));
+          if (command === "save_guide") {
+            w.guideCalls.push(["save", args.id, args.input]);
+            const input = { ...args.input };
+            if (!input.title.trim()) throw "Enter a title of 1 to 300 characters.";
+            if (input.game_id !== null && !games.some((g: any) => g.id === input.game_id))
+              throw "Choose a game from your Library.";
+            if (input.game_id !== null) input.game_title = null;
+            const now = "2026-10-04T00:00:00Z";
+            const previous = guides.find((x: any) => x.id === args.id);
+            if (previous) {
+              Object.assign(previous, input, { date_modified: now });
+              return JSON.parse(JSON.stringify(previous));
+            }
+            const created = {
+              ...input,
+              id: Math.max(0, ...guides.map((x: any) => x.id)) + 1,
+              date_added: now,
+              date_modified: now,
+            };
+            guides.push(created);
+            return JSON.parse(JSON.stringify(created));
+          }
+          if (command === "delete_guide") {
+            w.guideCalls.push(["delete", args.id]);
+            guides.splice(guides.findIndex((x: any) => x.id === args.id), 1);
+            return;
+          }
           if (command === "save_hardware") {
             // Mirrors hardware.rs: parents are systems, systems have none, selling asks per accessory.
             w.hardwareCalls.push(["save", args.id, args.input, args.withAccessories]);
@@ -477,6 +541,7 @@ export async function installMock(page: Page, options: MockOptions = {}) {
       platforms,
       games: options.games ?? sampleGames(),
       hardware: options.hardware ?? [],
+      guides: options.guides ?? [],
       saved: options.preferences ?? {},
       steam: {
         configured: options.steam?.configured ?? true,

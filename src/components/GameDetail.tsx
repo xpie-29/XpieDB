@@ -1,7 +1,12 @@
 import { useEffect, useRef } from "react";
 import { Button } from "@fluentui/react-components";
-import { Edit20Regular, Delete20Regular } from "@fluentui/react-icons";
-import type { Game, Platform } from "../types";
+import {
+  Add20Regular,
+  Book16Regular,
+  Edit20Regular,
+  Delete20Regular,
+} from "@fluentui/react-icons";
+import type { Game, Guide, Platform } from "../types";
 import { ManagedImage, PlatformIcon } from "./Shared";
 import { meaningfulNotes } from "../notes";
 import { NotesView } from "./NotesView";
@@ -11,12 +16,18 @@ export function GameDetail({
   platform,
   edit,
   remove,
+  guides = [],
+  openGuide,
+  addGuide,
   error,
 }: {
   game: Game;
   platform?: Platform;
   edit: () => void;
   remove: () => void;
+  guides?: Guide[];
+  openGuide?: (id: number) => void;
+  addGuide?: () => void;
   error: (e: string) => void;
 }) {
   const panel = useRef<HTMLElement>(null);
@@ -80,6 +91,32 @@ export function GameDetail({
           </dd>
         </div>
       </dl>
+      {(guides.length > 0 || addGuide) && (
+        <section aria-label="Guides">
+          <h3>Guides ({guides.length})</h3>
+          {guides.length > 0 && (
+            <ul className="accessory-list">
+              {guides.map((g) => (
+                <li key={g.id}>
+                  <Button
+                    appearance="transparent"
+                    size="small"
+                    icon={<Book16Regular />}
+                    onClick={() => openGuide?.(g.id)}
+                  >
+                    {g.title}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {addGuide && (
+            <Button icon={<Add20Regular />} onClick={addGuide}>
+              Add guide
+            </Button>
+          )}
+        </section>
+      )}
       <section>
         <h3>Tags</h3>
         {game.tags.length ? (

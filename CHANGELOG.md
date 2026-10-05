@@ -1,5 +1,11 @@
 # Changelog
 
+## Collections: Guides - 2026-10-04
+
+- Guides collection (migration 7): list with search and platform/link filters, detail panel, add/edit form with
+  a type-to-search game picker and one photo. Guides link to Library games both ways (book mark on games, Guides
+  section and Add guide in the game panel, jump buttons). Deleting a game keeps its guides.
+
 ## Collections: switcher and Hardware - 2026-10-04
 
 - The toolbar's Platforms button is now a collection selector (Games, Guides, Hardware); Platforms moved to

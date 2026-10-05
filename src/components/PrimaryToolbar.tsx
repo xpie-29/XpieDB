@@ -50,7 +50,10 @@ const layout: Record<Collection, { before: Item[]; after: Item[] }> = {
     ],
   },
   guides: {
-    before: [item("library", "Library", <Grid20Regular />)],
+    before: [
+      item("library", "Library", <Grid20Regular />),
+      item("add", "Add Guide", <Add20Regular />),
+    ],
     after: [item("settings", "Settings", <Settings20Regular />)],
   },
   hardware: {

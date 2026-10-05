@@ -4,15 +4,26 @@ import { listen } from "@tauri-apps/api/event";
 import { Button, Spinner } from "@fluentui/react-components";
 import {
   collectionOf,
+  emptyGuide,
   emptyHardware,
   type Collection,
   type Game,
+  type Guide,
+  type GuideInput,
   type Hardware,
   type HardwareInput,
   type Platform,
   type Preferences,
 } from "./types";
 import { HardwareLibrary } from "./components/Hardware";
+import { GuidesLibrary } from "./components/Guides";
+import {
+  emptyGuideFilters,
+  gamesWithGuides,
+  guidesForGame,
+  queryGuides,
+  visibleGuide,
+} from "./guidesQuery";
 import {
   emptyHardwareFilters,
   hardwareRows,
@@ -46,6 +57,9 @@ const HardwareForm = lazy(() =>
     default: m.HardwareForm,
   })),
 );
+const GuideForm = lazy(() =>
+  import("./components/GuideForm").then((m) => ({ default: m.GuideForm })),
+);
 const GameForm = lazy(() =>
   import("./components/GameForm").then((m) => ({ default: m.GameForm })),
 );
@@ -72,6 +86,16 @@ export function App() {
     null,
   );
   const hardwareScroll = useRef(0);
+  // Guides collection state.
+  const [guides, setGuides] = useState<Guide[]>([]);
+  const [guideFilters, setGuideFilters] = useState(emptyGuideFilters);
+  const [guideSelected, setGuideSelected] = useState<number | null>(null);
+  const [guideHighlight, setGuideHighlight] = useState<number | null>(null);
+  const [guideDraft, setGuideDraft] = useState<GuideInput | undefined>();
+  const [deletingGuide, setDeletingGuide] = useState<Guide | null>(null);
+  const guideScroll = useRef(0);
+  // Set when another screen sends the owner to a game, so the Library scrolls to it once.
+  const revealGame = useRef(false);
   const [view, setView] = useState<Destination>("library");
   // Where Cancel and Save return to after editing a game.
   const [editReturn, setEditReturn] = useState<Destination>("library");
@@ -107,14 +131,16 @@ export function App() {
     }
   };
   const refresh = async () => {
-    const [g, p, h] = await Promise.all([
+    const [g, p, h, gd] = await Promise.all([
       invoke<Game[]>("list_games"),
       invoke<Platform[]>("list_platforms"),
       invoke<Hardware[]>("list_hardware"),
+      invoke<Guide[]>("list_guides"),
     ]);
     setGames(g);
     setPlatforms(p);
     setHardware(h);
+    setGuides(gd);
   };
   const load = async () => {
     setLoading(true);
@@ -155,6 +181,9 @@ export function App() {
     setHardwareFilters(emptyHardwareFilters());
     setHardwareSelected(null);
     hardwareScroll.current = 0;
+    setGuideFilters(emptyGuideFilters());
+    setGuideSelected(null);
+    guideScroll.current = 0;
   };
   useEffect(() => {
     if (highlight === null || view !== "library") return;
@@ -185,11 +214,66 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [hardwareHighlight, view]);
   // Switching collection always lands on that collection's list.
+  // The screen changes at once; saving the choice happens in the background.
+  const showCollection = (next: Collection) => {
+    setPreferences((p) => ({ ...p, collection: next }));
+    invoke("set_preference", { key: "collection", value: next }).catch((e) =>
+      setError(String(e)),
+    );
+  };
   const switchCollection = (next: Collection) => {
     if (next === collection) return;
     setError("");
     setView("library");
-    void preference("collection", next);
+    showCollection(next);
+  };
+  const guideList = useMemo(
+    () => queryGuides(guides, games, platforms, guideFilters),
+    [guides, games, platforms, guideFilters],
+  );
+  const guideId = visibleGuide(guideList, guideSelected);
+  const guideItem =
+    guides.find((x) => x.id === (view === "library" ? guideId : guideSelected)) ??
+    null;
+  const guideGameIds = useMemo(() => gamesWithGuides(guides), [guides]);
+  useEffect(() => {
+    if (view === "library" && !loading && guideSelected !== guideId)
+      setGuideSelected(guideId);
+  }, [view, loading, guideSelected, guideId]);
+  useEffect(() => {
+    if (guideHighlight === null || view !== "library") return;
+    const timer = window.setTimeout(() => setGuideHighlight(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [guideHighlight, view]);
+  const openGame = (id: number) => {
+    setFilters(emptyFilters());
+    setSelected(id);
+    revealGame.current = true;
+    setView("library");
+    showCollection("games");
+  };
+  const openGuide = (id: number) => {
+    setGuideFilters(emptyGuideFilters());
+    setGuideSelected(id);
+    setView("library");
+    showCollection("guides");
+  };
+  const addGuideFor = (game: Game) => {
+    setGuideDraft({
+      ...emptyGuide(),
+      game_id: game.id,
+      platform_id: game.platform_id,
+    });
+    setView("add");
+    showCollection("guides");
+  };
+  const guideSaved = (saved: Guide) => {
+    setGuides((current) => [...current.filter((x) => x.id !== saved.id), saved]);
+    setGuideSelected(saved.id);
+    setGuideHighlight(saved.id);
+    setGuideDraft(undefined);
+    navigate("library");
+    void refresh().catch((e) => setError(String(e)));
   };
   const editing = view === "add" || view === "edit";
   const hardwareSaved = (saved: Hardware) => {
@@ -229,11 +313,46 @@ export function App() {
         ) : (
           <>
             {collection === "guides" && view === "library" && (
+              <GuidesLibrary
+                guides={guideList}
+                all={guides}
+                games={games}
+                platforms={platforms}
+                filters={guideFilters}
+                setFilters={setGuideFilters}
+                selected={guideId}
+                select={setGuideSelected}
+                add={() => {
+                  setGuideDraft(undefined);
+                  navigate("add");
+                }}
+                edit={(item) => {
+                  setGuideSelected(item.id);
+                  navigate("edit");
+                }}
+                remove={setDeletingGuide}
+                openGame={openGame}
+                error={setError}
+                scroll={guideScroll}
+                highlight={guideHighlight}
+              />
+            )}
+            {collection === "guides" && editing && (
               <section className="page-scroll">
-                <header className="page-header">
-                  <h1>Guides</h1>
-                </header>
-                <p className="muted">Guides are coming soon.</p>
+                <Suspense fallback={<Spinner label="Opening editor" />}>
+                  <GuideForm
+                    key={view === "edit" ? guideItem?.id : "new"}
+                    guide={view === "edit" ? (guideItem ?? undefined) : undefined}
+                    initial={view === "add" ? guideDraft : undefined}
+                    games={games}
+                    platforms={platforms}
+                    saved={guideSaved}
+                    cancel={() => {
+                      setGuideDraft(undefined);
+                      navigate("library");
+                    }}
+                  />
+                </Suspense>
               </section>
             )}
             {collection === "hardware" && view === "library" && (
@@ -321,6 +440,8 @@ export function App() {
                 select={setSelected}
                 add={() => navigate("add")}
                 scroll={libraryScroll}
+                reveal={revealGame}
+                guideGameIds={guideGameIds}
                 highlight={highlight}
                 setPreference={(key, value) => void preference(key, value)}
                 statsPanel={
@@ -361,6 +482,9 @@ export function App() {
                         navigate("edit");
                       }}
                       remove={() => setDeleting(true)}
+                      guides={guidesForGame(guides, game.id)}
+                      openGuide={openGuide}
+                      addGuide={() => addGuideFor(game)}
                       error={setError}
                     />
                   ) : null
@@ -480,6 +604,33 @@ export function App() {
         )}
       </div>
       {about && <About close={() => setAbout(false)} />}
+      {deletingGuide && (
+        <Confirm
+          title="Delete guide?"
+          text={`Delete "${deletingGuide.title}" from your collection? This cannot be undone.`}
+          busy={busy}
+          close={() => setDeletingGuide(null)}
+          confirm={async () => {
+            setBusy(true);
+            try {
+              const ids = guideList.map((x) => x.id);
+              const at = ids.indexOf(deletingGuide.id);
+              const rest = ids.filter((id) => id !== deletingGuide.id);
+              await invoke("delete_guide", { id: deletingGuide.id });
+              setGuides((current) =>
+                current.filter((x) => x.id !== deletingGuide.id),
+              );
+              setGuideSelected(rest[at] ?? rest[at - 1] ?? null);
+              setDeletingGuide(null);
+              await refresh();
+            } catch (e) {
+              setError(String(e));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
       {deletingHardware && (
         <Confirm
           title="Delete hardware?"
