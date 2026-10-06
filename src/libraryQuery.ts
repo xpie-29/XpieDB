@@ -48,6 +48,25 @@ export function distinctValues(values: Array<string | null>) {
   return [...distinct].sort(([a], [b]) => a.localeCompare(b));
 }
 
+/**
+ * The games to show: hidden ones removed, and backlog places renumbered so hiding a game leaves no gap
+ * (the stored places still count hidden games).
+ */
+export function shownGames(games: readonly Game[]): Game[] {
+  const shown = games.filter((g) => !g.hidden);
+  const rank = new Map(
+    shown
+      .filter((g) => g.backlog_position != null)
+      .sort((a, b) => a.backlog_position! - b.backlog_position! || a.id - b.id)
+      .map((g, i) => [g.id, i + 1] as const),
+  );
+  return shown.map((g) =>
+    g.backlog_position == null
+      ? g
+      : { ...g, backlog_position: rank.get(g.id) ?? g.backlog_position },
+  );
+}
+
 export function visibleSelection(
   games: readonly Game[],
   selected: number | null,

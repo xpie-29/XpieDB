@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { moved, clampIndex } from "../src/listOrder.ts";
+import { moved, clampIndex, withHidden } from "../src/listOrder.ts";
 
 test("moved shifts an item down, up, and to the ends without touching the input", () => {
   const list = ["a", "b", "c", "d", "e"];
@@ -36,4 +36,17 @@ test("clampIndex stays inside the list", () => {
   assert.equal(clampIndex(2, 5), 2);
   assert.equal(clampIndex(9, 5), 4);
   assert.equal(clampIndex(0, 1), 0);
+});
+
+test("withHidden keeps hidden backlog games in their places and fills the rest in order", () => {
+  const all = [
+    { id: 1, hidden: false },
+    { id: 2, hidden: true },
+    { id: 3, hidden: false },
+    { id: 4, hidden: false },
+    { id: 5, hidden: true },
+  ];
+  assert.deepEqual(withHidden([4, 1, 3], all), [4, 2, 1, 3, 5]);
+  assert.deepEqual(withHidden([1, 3, 4], all), [1, 2, 3, 4, 5]);
+  assert.deepEqual(withHidden([], [{ id: 9, hidden: true }]), [9]);
 });

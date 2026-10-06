@@ -131,6 +131,7 @@ export function sampleGames() {
     date_modified: "2026-01-01T00:00:00Z",
     backlog_position:
       statuses[i % statuses.length] === "Backlog" ? ++queued : null,
+    hidden: false,
   }));
 }
 
@@ -288,6 +289,7 @@ export async function installMock(page: Page, options: MockOptions = {}) {
           date_added: "2026-09-21T00:00:00Z",
           date_modified: "2026-09-21T00:00:00Z",
           backlog_position: backlog ? queue.length + 1 : null,
+          hidden: false,
         });
       };
       w.openedLinks = [];
@@ -312,6 +314,7 @@ export async function installMock(page: Page, options: MockOptions = {}) {
       const renumber = () =>
         queue().forEach((g: any, i: number) => (g.backlog_position = i + 1));
       w.readerCalls = [];
+      w.hideCalls = [];
       w.fullscreen = false;
       const bookmarks: any[] = [];
       w.__TAURI_INTERNALS__ = {
@@ -667,6 +670,13 @@ export async function installMock(page: Page, options: MockOptions = {}) {
               games.find((g: any) => g.id === id).backlog_position = i + 1;
             });
             return;
+          }
+          if (command === "set_game_hidden") {
+            w.hideCalls.push([args.id, args.hidden]);
+            const g = games.find((x: any) => x.id === args.id);
+            if (!g) throw "This game no longer exists.";
+            g.hidden = args.hidden;
+            return JSON.parse(JSON.stringify(g));
           }
           if (command === "backlog_add") {
             w.backlogCalls.push([command, args.ids]);

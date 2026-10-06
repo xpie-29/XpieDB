@@ -18,7 +18,7 @@ import {
   ReOrderDotsVertical20Regular,
 } from "@fluentui/react-icons";
 import type { Game, Platform } from "../types";
-import { clampIndex, moved } from "../listOrder";
+import { clampIndex, moved, withHidden } from "../listOrder";
 import { ManagedImage, Modal, PlatformIcon } from "./Shared";
 
 const plural = (n: number, word = "game") =>
@@ -28,11 +28,15 @@ type Drag = { id: number; from: number; over: number };
 
 export function Backlog({
   games,
+  everyGame,
   platforms,
   refresh,
   edit,
 }: {
+  /** The games to show (hidden ones left out). */
   games: Game[];
+  /** Every game, hidden ones too: hidden backlog games keep their places when the order is saved. */
+  everyGame: Game[];
   platforms: Platform[];
   refresh: () => Promise<void>;
   edit: (id: number) => void;
@@ -49,6 +53,17 @@ export function Backlog({
         )
         .map((g) => g.id),
     [games],
+  );
+  const whole = useMemo(
+    () =>
+      everyGame
+        .filter((g) => g.backlog_position != null)
+        .sort(
+          (a, b) =>
+            (a.backlog_position ?? 0) - (b.backlog_position ?? 0) || a.id - b.id,
+        )
+        .map((g) => ({ id: g.id, hidden: g.hidden })),
+    [everyGame],
   );
   // While a change is being saved the screen shows the order the user asked for.
   const [pending, setPending] = useState<number[] | null>(null);
@@ -79,7 +94,7 @@ export function Backlog({
     setError("");
     const mine = ++version.current;
     saving.current = saving.current
-      .then(() => invoke("backlog_set_order", { ids: next }))
+      .then(() => invoke("backlog_set_order", { ids: withHidden(next, whole) }))
       .then(async () => {
         if (mine !== version.current) return;
         await refresh();

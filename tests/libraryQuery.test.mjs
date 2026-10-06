@@ -4,6 +4,7 @@ import {
   queryLibrary,
   emptyFilters,
   visibleSelection,
+  shownGames,
   distinctValues,
   hasFilters,
   filterCount,
@@ -208,4 +209,19 @@ test("selection and tie ordering are deterministic with duplicate titles", () =>
     ids(query({}, "title_desc", [game(8, "Same"), game(7, "Same")])),
     [7, 8],
   );
+});
+
+test("shownGames drops hidden games and renumbers backlog places without a gap", () => {
+  const games = [
+    game(1, "A", { backlog_position: 1 }),
+    game(2, "B", { backlog_position: 2, hidden: true }),
+    game(3, "C", { backlog_position: 3 }),
+    game(4, "D", { hidden: true }),
+    game(5, "E"),
+  ];
+  const shown = shownGames(games);
+  assert.deepEqual(shown.map((g) => g.id), [1, 3, 5]);
+  assert.deepEqual(shown.map((g) => g.backlog_position ?? null), [1, 2, null]);
+  // The input is not changed.
+  assert.equal(games[2].backlog_position, 3);
 });

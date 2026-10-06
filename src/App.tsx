@@ -33,6 +33,7 @@ import {
   visibleHardware,
 } from "./hardwareQuery";
 import { Library } from "./components/Library";
+import { HiddenGames } from "./components/HiddenGames";
 import { GameDetail } from "./components/GameDetail";
 import { PlatformManager } from "./components/PlatformManager";
 import { Confirm } from "./components/Shared";
@@ -54,6 +55,7 @@ import {
   hasFilters,
   queryLibrary,
   visibleSelection,
+  shownGames,
 } from "./libraryQuery";
 const HardwareForm = lazy(() =>
   import("./components/HardwareForm").then((m) => ({
@@ -123,18 +125,62 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [about, setAbout] = useState(false);
   const [dataPath, setDataPath] = useState("");
+  // Hidden games stay in `games` (guides and imports still need them) but are not shown.
+  const shown = useMemo(() => shownGames(games), [games]);
+  const hiddenGames = useMemo(() => games.filter((g) => g.hidden), [games]);
+  const [notice, setNotice] = useState<{ text: string; undo?: () => void } | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
   const visible = useMemo(
-    () => queryLibrary(games, platforms, filters, preferences.library_sort),
-    [games, platforms, filters, preferences.library_sort],
+    () => queryLibrary(shown, platforms, filters, preferences.library_sort),
+    [shown, platforms, filters, preferences.library_sort],
   );
   const visibleId = visibleSelection(visible, selected);
   const game =
-    games.find((g) => g.id === (view === "library" ? visibleId : selected)) ??
+    shown.find((g) => g.id === (view === "library" ? visibleId : selected)) ??
     null;
   useEffect(() => {
     if (view === "library" && !loading && selected !== visibleId)
       setSelected(visibleId);
   }, [view, loading, selected, visibleId]);
+  const setHidden = async (target: Game, hidden: boolean) => {
+    setError("");
+    try {
+      const saved = await invoke<Game>("set_game_hidden", {
+        id: target.id,
+        hidden,
+      });
+      setGames((current) => current.map((g) => (g.id === saved.id ? saved : g)));
+      return true;
+    } catch (e) {
+      setError(String(e));
+      return false;
+    }
+  };
+  const hideGame = async (target: Game) => {
+    // Move the selection to a neighbour, as when a game is deleted.
+    const index = visible.findIndex((g) => g.id === target.id);
+    const next = visible[index + 1] ?? visible[index - 1];
+    if (!(await setHidden(target, true))) return;
+    setSelected(next?.id ?? null);
+    setNotice({
+      text: `"${target.title}" is hidden. Find it under Settings > Hidden games.`,
+      undo: () => {
+        void setHidden(target, false).then((ok) => {
+          if (ok) setSelected(target.id);
+          setNotice(null);
+        });
+      },
+    });
+  };
+  const unhideGames = async (targets: Game[]) => {
+    for (const target of targets) if (!(await setHidden(target, false))) return;
+  };
   const preference = async (key: string, value: string) => {
     try {
       await invoke("set_preference", { key, value });
@@ -367,6 +413,15 @@ export function App() {
         collection={collection}
         setCollection={switchCollection}
       />}
+      {notice && (
+        <div role="status" className="shell-notice">
+          {notice.text}
+          {notice.undo && <Button onClick={notice.undo}>Undo</Button>}
+          <Button appearance="subtle" onClick={() => setNotice(null)}>
+            Dismiss
+          </Button>
+        </div>
+      )}
       {error && (
         <div role="alert" className="shell-error error">
           {error}
@@ -531,7 +586,7 @@ export function App() {
             {collection === "games" && view === "library" && (
               <Library
                 games={visible}
-                total={games.length}
+                total={shown.length}
                 filtered={hasFilters(filters)}
                 clear={() => setFilters(emptyFilters())}
                 platforms={platforms}
@@ -545,10 +600,10 @@ export function App() {
                 highlight={highlight}
                 setPreference={(key, value) => void preference(key, value)}
                 statsPanel={
-                  games.length > 0 ? (
+                  shown.length > 0 ? (
                     <StatsPanel
                       games={visible}
-                      allCount={games.length}
+                      allCount={shown.length}
                       platforms={platforms}
                       filtered={hasFilters(filters)}
                       open={preferences.stats_open !== "false"}
@@ -560,7 +615,7 @@ export function App() {
                 }
                 utilityBar={
                   <LibraryUtilityBar
-                    games={games}
+                    games={shown}
                     platforms={platforms}
                     filters={filters}
                     change={setFilters}
@@ -582,6 +637,7 @@ export function App() {
                         navigate("edit");
                       }}
                       remove={() => setDeleting(true)}
+                      hide={() => void hideGame(game)}
                       guides={guidesForGame(guides, game.id)}
                       openGuide={openGuide}
                       addGuide={() => addGuideFor(game)}
@@ -642,7 +698,8 @@ export function App() {
             {collection === "games" && view === "backlog" && (
               <section className="page-scroll">
                 <Backlog
-                  games={games}
+                  games={shown}
+                  everyGame={games}
                   platforms={platforms}
                   refresh={refresh}
                   edit={(id) => {
@@ -679,7 +736,7 @@ export function App() {
             {collection === "games" && view === "reports" && (
               <section className="page-scroll">
                 <Reports
-                  gameCount={games.length}
+                  gameCount={shown.length}
                   preferences={preferences}
                   preference={preference}
                   working={setBusy}
@@ -701,6 +758,11 @@ export function App() {
                     Manage platforms
                   </Button>
                 </section>
+                <HiddenGames
+                  games={hiddenGames}
+                  platforms={platforms}
+                  unhide={unhideGames}
+                />
                 <IgdbSettings />
                 <SteamSettings />
                 <BackupSettings restored={reloadRestored} working={setBusy} />

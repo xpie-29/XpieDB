@@ -20,6 +20,8 @@ export type Game = GameInput & {
   date_modified: string;
   /** Place in the manual backlog order (1 = first); set exactly when the status is Backlog. */
   backlog_position: number | null;
+  /** Kept out of the Library, Backlog and Reports until unhidden (Settings > Hidden games). */
+  hidden: boolean;
 };
 export type Platform = {
   id: number;

@@ -5,6 +5,7 @@ import {
   Book16Regular,
   Edit20Regular,
   Delete20Regular,
+  EyeOff20Regular,
   Search20Regular,
 } from "@fluentui/react-icons";
 import type { Game, Guide, Platform } from "../types";
@@ -17,6 +18,7 @@ export function GameDetail({
   platform,
   edit,
   remove,
+  hide,
   guides = [],
   openGuide,
   addGuide,
@@ -27,6 +29,8 @@ export function GameDetail({
   platform?: Platform;
   edit: () => void;
   remove: () => void;
+  /** Hide the game from the Library, Backlog and Reports. */
+  hide?: () => void;
   guides?: Guide[];
   openGuide?: (id: number) => void;
   addGuide?: () => void;
@@ -53,6 +57,16 @@ export function GameDetail({
           appearance="subtle"
           onClick={edit}
         />
+        {hide && (
+          <Button
+            title="Hide from library"
+            aria-label="Hide from library"
+            icon={<EyeOff20Regular />}
+            appearance="subtle"
+            onClick={hide}
+            className="detail-hide"
+          />
+        )}
         <Button
           title="Delete game"
           aria-label="Delete game"
