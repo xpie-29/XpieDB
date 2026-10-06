@@ -59,7 +59,7 @@ paths and the build fails otherwise).
   (`src-tauri/src/igdb/store.rs` selects Windows Credential Manager or macOS Keychain), are never returned to the
   frontend, and never appear in logs or error text.
 - **Modules** (`src-tauri/src/`): `catalog.rs` (games, platforms, tags, preferences, backlog order),
-  `storage.rs` (migrations 1-9), `assets.rs` (managed images), `backup/` (zip backup and restore),
+  `storage.rs` (migrations 1-11), `system_accent.rs` (the OS accent colour), `assets.rs` (managed images), `backup/` (zip backup and restore),
   `report/` (PDF reports via `krilla`), `igdb/` (IGDB client, auth, models), `steam/` (Steam import),
   `hardware.rs` (Hardware collection), `guides.rs` (Guides collection), `guide_files.rs` (PDF/ePub copies), `file_server.rs` (the `guidefile` scheme), `archive/` (Internet Archive lookup and download), `menu.rs` (Help menu and About), `commands.rs`. Frontend: `src/App.tsx` plus `src/components/`;
   pure logic in `src/stats.ts`, `libraryQuery.ts`, `steamImport.ts`, `listOrder.ts` (kept free of Tauri so
@@ -121,6 +121,17 @@ linear branch, `master`, with a verification report per milestone in `docs/` and
     matches to review, never borrow-only items), and an **in-app PDF reader** (ranged loading, zoom, search,
     contents, bookmarks, night mode, full screen, resume, switching between guides).
 - Dev tooling: `scripts/mac-test-run.sh` and the Swift helpers for testing the built app in a sandbox.
+
+Since 0.2.0 (unreleased, from the owner's notes; see CHANGELOG): a split view/collection selector toolbar, a Guides
+column, **hidden games** (`games.hidden`, migration 10; `list_games` still returns every game so imports and guide
+links see them, the frontend shows `shownGames(...)`, Reports use `list_shown_games`, and the Backlog saves the whole
+order with `withHidden` so hidden games keep their places), a **per-game details-panel background** (`panel_bg*`
+columns, migration 11; the image is a managed image in `covers`, included in backups and orphan checks), the
+**Backlog with a details panel**, Add Guide attach/find actions, and the **accent colour**: the theme is generated
+from one colour (`src/accent.ts`, luminance-based so white button text and brand-coloured text stay readable;
+`src/theme.ts`), orange `#f7821b` by default, or the OS accent when Settings > Appearance asks (`accent_source`
+preference). The OS accent comes from Rust (`system_accent.rs`: Windows registry `HKCU\...\DWM\AccentColor`,
+macOS `NSColor.controlAccentColor`) because the CSS `AccentColor` keyword is a fixed blue in both web views.
 
 The owner's next steps, in the order discussed: a **pop-out reader window**, **ePub reading** (foliate-js), an
 option to **include guide files in backups** (off by default), then resizable columns and grid views for Hardware

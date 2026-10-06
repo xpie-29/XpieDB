@@ -1,7 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Button, Spinner } from "@fluentui/react-components";
+import { Button, FluentProvider, Spinner } from "@fluentui/react-components";
+import { DEFAULT_ACCENT } from "./accent";
+import { findSystemAccent } from "./systemAccent";
+import { themeFor } from "./theme";
+import { AppearanceSettings } from "./components/AppearanceSettings";
 import {
   collectionOf,
   emptyGuide,
@@ -189,6 +193,24 @@ export function App() {
       return false;
     }
   };
+  // The highlight colour: XpieDB's own orange, or the system accent when the owner asks for it.
+  const [systemAccent, setSystemAccent] = useState<string | null>(null);
+  useEffect(() => {
+    // The accent can change while the app is open; look again whenever the window comes back.
+    const look = () => void findSystemAccent().then(setSystemAccent);
+    look();
+    window.addEventListener("focus", look);
+    document.addEventListener("visibilitychange", look);
+    return () => {
+      window.removeEventListener("focus", look);
+      document.removeEventListener("visibilitychange", look);
+    };
+  }, []);
+  const accent =
+    preferences.accent_source === "system" && systemAccent
+      ? systemAccent
+      : DEFAULT_ACCENT;
+  const theme = useMemo(() => themeFor(accent), [accent]);
   const gameDetails = (game: Game) => (
     <GameDetail
                       game={game}
@@ -459,6 +481,7 @@ export function App() {
     setView(next);
   };
   return (
+    <FluentProvider theme={theme} style={{ display: "contents" }}>
     <main
       className={`app-shell ${preferences.platform_icon_style === "mono" ? "icons-mono" : "icons-color"}`}
     >
@@ -781,6 +804,13 @@ export function App() {
                 <header className="page-header">
                   <h1>Settings</h1>
                 </header>
+                <AppearanceSettings
+                  useSystem={preferences.accent_source === "system"}
+                  systemAccent={systemAccent}
+                  setUseSystem={(on) =>
+                    void preference("accent_source", on ? "system" : "app")
+                  }
+                />
                 <section className="settings-platforms">
                   <h2>Platforms</h2>
                   <p>
@@ -926,5 +956,6 @@ export function App() {
         />
       )}
     </main>
+    </FluentProvider>
   );
 }

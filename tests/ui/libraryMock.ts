@@ -692,6 +692,8 @@ export async function installMock(page: Page, options: MockOptions = {}) {
             });
             return;
           }
+          // The operating system's accent colour; tests set w.systemAccent to a hex string (or leave it null).
+          if (command === "system_accent") return w.systemAccent ?? null;
           if (command === "delete_game") {
             const at = games.findIndex((x: any) => x.id === args.id);
             if (at < 0) throw "This game no longer exists.";

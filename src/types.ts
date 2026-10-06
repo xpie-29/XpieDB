@@ -62,6 +62,8 @@ export type Preferences = {
   collection?: string;
   /** "grouped" (the default when absent) or "flat". */
   hardware_grouping?: string;
+  /** "app" (the default when absent): XpieDB's own orange highlight; "system": the operating system's accent colour. */
+  accent_source?: string;
   /** "true" turns the reader's night mode on. */
   reader_night?: string;
   /** The reader's zoom: "page-width" (the default), "page-fit", "auto", or a number such as "1.25". */

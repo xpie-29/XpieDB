@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased - 2026-10-06 (the owner's notes from using 0.2.0)
+
+- **Toolbar:** the view button is a split selector (Games, Guides or Hardware; its arrow opens the menu) followed by
+  Backlog, Add and Reports; Settings is an icon at the far right.
+- **Games:** a Guides column beside Notes (same colour), platform icons on grid cards, bold labels in the details,
+  an icon-only Edit button.
+- **Hide games** from the Library, Backlog, statistics and reports (button in the details, Undo, and Settings >
+  Hidden games to unhide several at once). Migration 10.
+- **Details panel background** per game: default gray, the cover art (faded, desaturated) or the owner's own image
+  with fill, fit, stretch, center or tile. Migration 11.
+- **Backlog:** the details panel beside the list; clicking a row selects it with a highlight border.
+- **Guides:** Add Guide can save and then attach a file or search the Internet Archive; purchase date, price paid,
+  bought from and pages are no longer shown or edited.
+- **Highlight colour:** XpieDB's own orange by default; Settings > Appearance can follow the system accent
+  (read from Windows' registry and macOS' accent colour, because the web views report a fixed blue).
+- **Windows** was built and tested in a Windows 11 ARM VM (`docs/windows-verification-0.2.0.md`).
+- Tests: Rust 186 (4 ignored), JS 104, UI 213.
+
 ## 0.2.0 - 2026-10-05
 
 Library polish, platforms, and the collections work. Details are in the dated sections below.

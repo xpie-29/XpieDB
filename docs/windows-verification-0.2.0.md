@@ -24,6 +24,12 @@ Environment: the owner's Windows 11 **ARM64** VM in Parallels on an Apple-silico
 - Building on **Windows ARM** needs the Visual Studio "C++ Clang Compiler" component (for `aws-lc-sys`). An ordinary
   x64 Windows PC should not need it (it needs NASM or Clang, which the Tauri prerequisites usually cover). Untested.
 
+- **The web view's `AccentColor` is not the Windows accent.** WebView2 reported `#0075ff` while Windows' accent was
+  grey `#767676` (and WKWebView reported `#007aff` while macOS was set to orange), so the app reads the accent
+  from the OS itself (registry on Windows, `NSColor.controlAccentColor` on macOS). Verified in both: the Settings
+  note and the theme follow the real accent (`#767676` on Windows; `#f7821b` on the Mac).
+- A grey accent works but brand-coloured links look like plain grey text; that is inherent to a grey accent.
+
 ## Not covered
 - A real x64 Windows machine; the installer bundle (NSIS/MSI) and SmartScreen behaviour; the old `com.gamevault.desktop`
   data folder migration (still absent); system accent colour on Windows (next task).
