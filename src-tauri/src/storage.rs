@@ -64,6 +64,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "hidden_games",
         sql: include_str!("../migrations/010_hidden_games.sql"),
     },
+    Migration {
+        version: 11,
+        name: "panel_background",
+        sql: include_str!("../migrations/011_panel_background.sql"),
+    },
 ];
 
 /// Highest schema version this build understands.
@@ -508,6 +513,53 @@ mod tests {
             .unwrap();
         assert_eq!(hidden, 0);
         assert!(connection.execute("UPDATE games SET hidden=2", []).is_err());
+    }
+
+    #[test]
+    fn panel_background_columns_roll_back_when_bookkeeping_fails_and_default_to_gray() {
+        let connection = Connection::open_in_memory().unwrap();
+        apply_migrations(&connection, &MIGRATIONS[..10]).unwrap();
+        connection
+            .execute(
+                "INSERT INTO games(title,platform_id) VALUES ('Existing',1)",
+                [],
+            )
+            .unwrap();
+        connection.execute_batch("CREATE TRIGGER reject_panel BEFORE INSERT ON schema_migrations WHEN NEW.version=11 BEGIN SELECT RAISE(ABORT,'test failure'); END;").unwrap();
+        assert!(run_migrations(&connection).is_err());
+        let columns = |connection: &Connection| -> i64 {
+            connection
+                .query_row(
+                    "SELECT count(*) FROM pragma_table_info('games') WHERE name LIKE 'panel_bg%'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap()
+        };
+        assert_eq!(columns(&connection), 0);
+        connection
+            .execute_batch("DROP TRIGGER reject_panel;")
+            .unwrap();
+        run_migrations(&connection).unwrap();
+        assert_eq!(columns(&connection), 3);
+        let row: (String, Option<String>, String) = connection
+            .query_row(
+                "SELECT panel_bg,panel_bg_image,panel_bg_fit FROM games WHERE title='Existing'",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(row, ("default".into(), None, "fill".into()));
+        assert!(
+            connection
+                .execute("UPDATE games SET panel_bg='neon'", [])
+                .is_err()
+        );
+        assert!(
+            connection
+                .execute("UPDATE games SET panel_bg_fit='wide'", [])
+                .is_err()
+        );
     }
 
     #[test]

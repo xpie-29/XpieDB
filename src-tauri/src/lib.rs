@@ -98,6 +98,7 @@ pub fn run() {
             commands::save_game,
             commands::delete_game,
             commands::set_game_hidden,
+            commands::set_game_panel,
             commands::backlog_set_order,
             commands::backlog_add,
             commands::backlog_remove,

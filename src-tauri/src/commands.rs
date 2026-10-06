@@ -50,13 +50,29 @@ pub fn save_game(app: AppHandle, id: Option<i64>, input: GameInput) -> Result<Ga
 #[tauri::command]
 pub fn delete_game(app: AppHandle, id: i64) -> Result<()> {
     let c = connection(&app)?;
+    let panel_image = catalog::get_game(&c, id)?.panel.image;
     let old = catalog::delete_game(&c, id)?;
+    for path in old.into_iter().chain(panel_image) {
+        if let Err(e) = assets::remove_unused(&c, &root(&app)?, &path) {
+            eprintln!("{e}");
+        }
+    }
+    Ok(())
+}
+#[tauri::command]
+pub fn set_game_panel(app: AppHandle, id: i64, panel: catalog::Panel) -> Result<Game> {
+    let root = root(&app)?;
+    let c = connection(&app)?;
+    assets::validate_reference(&root, panel.image.as_deref(), "covers")?;
+    let old = catalog::get_game(&c, id)?.panel.image;
+    let game = catalog::set_game_panel(&c, id, &panel)?;
     if let Some(old) = old
-        && let Err(e) = assets::remove_unused(&c, &root(&app)?, &old)
+        && game.panel.image.as_ref() != Some(&old)
+        && let Err(e) = assets::remove_unused(&c, &root, &old)
     {
         eprintln!("{e}");
     }
-    Ok(())
+    Ok(game)
 }
 #[tauri::command]
 pub fn set_game_hidden(app: AppHandle, id: i64, hidden: bool) -> Result<Game> {

@@ -658,3 +658,81 @@ fn hidden_games_survive_a_backlog_reorder_and_deletion_renumbering() {
     );
     assert!(list_games(&c).unwrap().iter().any(|g| g.hidden));
 }
+
+fn panel(mode: &str, image: Option<&str>, fit: &str) -> Panel {
+    Panel {
+        mode: mode.into(),
+        image: image.map(String::from),
+        fit: fit.into(),
+    }
+}
+
+#[test]
+fn panel_background_defaults_to_gray_and_only_accepts_listed_choices() {
+    let (_dir, c) = database();
+    let mut with_cover = input();
+    with_cover.cover_path = Some("covers/a.png".into());
+    let game = save_game(&c, None, with_cover).unwrap();
+    assert_eq!(game.panel, panel("default", None, "fill"));
+    let set = set_game_panel(&c, game.id, &panel("cover", None, "fill")).unwrap();
+    assert_eq!(set.panel.mode, "cover");
+    let set = set_game_panel(&c, game.id, &panel("image", Some("covers/b.png"), "tile")).unwrap();
+    assert_eq!(set.panel, panel("image", Some("covers/b.png"), "tile"));
+    // Nothing else changed.
+    assert_eq!(set.data.title, game.data.title);
+    assert_eq!(set.date_modified, game.date_modified);
+    // Switching away keeps the chosen image so it can be switched back.
+    let back =
+        set_game_panel(&c, game.id, &panel("default", Some("covers/b.png"), "tile")).unwrap();
+    assert_eq!(back.panel.image.as_deref(), Some("covers/b.png"));
+    for bad in [
+        panel("neon", None, "fill"),
+        panel("default", None, "wide"),
+        panel("image", None, "fill"),
+    ] {
+        assert!(set_game_panel(&c, game.id, &bad).is_err(), "{bad:?}");
+    }
+    assert!(set_game_panel(&c, 9999, &panel("default", None, "fill")).is_err());
+    // Editing the game keeps its panel, and a game without a cover cannot use "cover".
+    let mut edit = game.data.clone();
+    edit.notes_html = "<p>Edited</p>".into();
+    assert_eq!(
+        save_game(&c, Some(game.id), edit).unwrap().panel,
+        back.panel
+    );
+    let plain = save_game(&c, None, input()).unwrap();
+    assert!(set_game_panel(&c, plain.id, &panel("cover", None, "fill")).is_err());
+}
+
+#[test]
+fn a_panel_image_is_kept_while_a_game_uses_it_and_is_backed_up() {
+    let dir = tempfile::tempdir().unwrap();
+    let c = Connection::open(dir.path().join("xpiedb.db")).unwrap();
+    storage::run_migrations(&c).unwrap();
+    let source = dir.path().join("source.png");
+    image::RgbaImage::from_pixel(2, 2, image::Rgba([7, 7, 7, 255]))
+        .save(&source)
+        .unwrap();
+    let path = assets::import(dir.path(), &source, "covers").unwrap();
+    let game = save_game(&c, None, input()).unwrap();
+    set_game_panel(&c, game.id, &panel("image", Some(&path), "fit")).unwrap();
+    // Not an orphan: a cleanup pass must leave it alone.
+    assets::remove_unused(&c, dir.path(), &path).unwrap();
+    let file = assets::resolve(dir.path(), &path).unwrap();
+    assert!(file.exists());
+    // It travels in a backup and comes back with the restore.
+    let out = tempfile::tempdir().unwrap();
+    let archive = out.path().join("backup.zip");
+    let made = crate::backup::create(dir.path(), &archive).unwrap();
+    assert_eq!((made.games, made.images, made.missing_images), (1, 1, 0));
+    std::fs::remove_file(&file).unwrap();
+    let restored = crate::backup::restore(dir.path(), &archive).unwrap();
+    assert_eq!((restored.images, restored.missing_images), (1, 0));
+    assert!(file.exists());
+    // Once no game uses it, it can be removed (the restore replaced the database file, so reconnect).
+    drop(c);
+    let c = Connection::open(dir.path().join("xpiedb.db")).unwrap();
+    set_game_panel(&c, game.id, &panel("default", None, "fit")).unwrap();
+    assets::remove_unused(&c, dir.path(), &path).unwrap();
+    assert!(!file.exists());
+}

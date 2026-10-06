@@ -35,6 +35,16 @@ pub struct GameInput {
     pub notes_html: String,
     pub tags: Vec<String>,
 }
+/// How a game's details panel is backed. `image` is a managed image in the covers folder; it is kept
+/// when the mode changes away from "image", so the owner can switch back.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct Panel {
+    pub mode: String,
+    pub image: Option<String>,
+    pub fit: String,
+}
+pub const PANEL_MODES: [&str; 3] = ["default", "cover", "image"];
+pub const PANEL_FITS: [&str; 5] = ["fill", "fit", "stretch", "center", "tile"];
 #[derive(Debug, Serialize)]
 pub struct Game {
     pub id: i64,
@@ -47,6 +57,7 @@ pub struct Game {
     pub backlog_position: Option<i64>,
     /// Kept out of the Library, Backlog and Reports until unhidden.
     pub hidden: bool,
+    pub panel: Panel,
 }
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Platform {
@@ -156,8 +167,8 @@ fn validate(input: &mut GameInput) -> Result<()> {
 }
 
 pub fn get_game(c: &Connection, id: i64) -> Result<Game> {
-    let mut game = c.query_row("SELECT id,igdb_id,title,platform_id,release_date,genre,developer,publisher,cover_path,media_type,play_status,rating,notes_html,date_added,date_modified,account,backlog_position,hidden FROM games WHERE id=?1", [id], |r| Ok(Game {
-        id:r.get(0)?, data:GameInput { igdb_id:r.get(1)?, title:r.get(2)?, platform_id:r.get(3)?, account:r.get(15)?, release_date:r.get(4)?, genre:r.get(5)?, developer:r.get(6)?, publisher:r.get(7)?, cover_path:r.get(8)?, media_type:r.get(9)?, play_status:r.get(10)?, rating:r.get(11)?, notes_html:r.get(12)?, tags:vec![] }, date_added:r.get(13)?, date_modified:r.get(14)?, backlog_position:r.get(16)?, hidden:r.get(17)?
+    let mut game = c.query_row("SELECT id,igdb_id,title,platform_id,release_date,genre,developer,publisher,cover_path,media_type,play_status,rating,notes_html,date_added,date_modified,account,backlog_position,hidden,panel_bg,panel_bg_image,panel_bg_fit FROM games WHERE id=?1", [id], |r| Ok(Game {
+        id:r.get(0)?, data:GameInput { igdb_id:r.get(1)?, title:r.get(2)?, platform_id:r.get(3)?, account:r.get(15)?, release_date:r.get(4)?, genre:r.get(5)?, developer:r.get(6)?, publisher:r.get(7)?, cover_path:r.get(8)?, media_type:r.get(9)?, play_status:r.get(10)?, rating:r.get(11)?, notes_html:r.get(12)?, tags:vec![] }, date_added:r.get(13)?, date_modified:r.get(14)?, backlog_position:r.get(16)?, hidden:r.get(17)?, panel:Panel { mode:r.get(18)?, image:r.get(19)?, fit:r.get(20)? }
     })).optional().map_err(db)?.ok_or("This game no longer exists.")?;
     game.data.notes_html = sanitize_notes(&game.data.notes_html);
     let mut statement = c.prepare("SELECT t.name FROM tags t JOIN game_tags gt ON gt.tag_id=t.id WHERE gt.game_id=? ORDER BY t.name COLLATE NOCASE").map_err(db)?;
@@ -191,6 +202,25 @@ pub fn set_game_hidden(c: &Connection, id: i64, hidden: bool) -> Result<Game> {
     c.execute(
         "UPDATE games SET hidden=?1 WHERE id=?2",
         params![hidden, id],
+    )
+    .map_err(db)?;
+    get_game(c, id)
+}
+/// Sets how the game's details panel is backed. Nothing else about the game changes.
+pub fn set_game_panel(c: &Connection, id: i64, panel: &Panel) -> Result<Game> {
+    if !PANEL_MODES.contains(&panel.mode.as_str()) || !PANEL_FITS.contains(&panel.fit.as_str()) {
+        return Err("Choose one of the listed panel backgrounds.".into());
+    }
+    if panel.mode == "image" && panel.image.is_none() {
+        return Err("Choose an image for the panel background.".into());
+    }
+    if panel.mode == "cover" && get_game(c, id)?.data.cover_path.is_none() {
+        return Err("This game has no cover art to use.".into());
+    }
+    get_game(c, id)?;
+    c.execute(
+        "UPDATE games SET panel_bg=?1,panel_bg_image=?2,panel_bg_fit=?3 WHERE id=?4",
+        params![panel.mode, panel.image, panel.fit, id],
     )
     .map_err(db)?;
     get_game(c, id)

@@ -26,6 +26,11 @@ fn game(id: i64, title: &str, platform: i64) -> Game {
         date_modified: String::new(),
         backlog_position: None,
         hidden: false,
+        panel: crate::catalog::Panel {
+            mode: "default".into(),
+            image: None,
+            fit: "fill".into(),
+        },
     }
 }
 fn platform(id: i64, name: &str) -> Platform {
