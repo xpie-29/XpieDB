@@ -426,8 +426,8 @@ pub fn preferences(c: &Connection) -> Result<HashMap<String, String>> {
 }
 /// List column widths: a JSON object of known column names to whole pixel widths.
 fn valid_list_columns(value: &str) -> bool {
-    const KEYS: [&str; 7] = [
-        "platform", "title", "genre", "media", "status", "rating", "notes",
+    const KEYS: [&str; 8] = [
+        "platform", "title", "genre", "media", "status", "rating", "notes", "guides",
     ];
     let Ok(serde_json::Value::Object(map)) = serde_json::from_str::<serde_json::Value>(value)
     else {

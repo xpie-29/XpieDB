@@ -11,7 +11,7 @@ test("list: dragging a column border resizes it, keeps a minimum, and saves the 
   const head = page.getByRole("columnheader", { name: "Genre" });
   const width = async () => (await head.boundingBox())!.width;
   const start = await width();
-  expect(Math.round(start)).toBe(140);
+  expect(Math.round(start)).toBe(120);
   const handle = page.getByRole("separator", { name: "Resize Genre column" });
   const box = (await handle.boundingBox())!;
   const x = box.x + box.width / 2;
@@ -20,13 +20,13 @@ test("list: dragging a column border resizes it, keeps a minimum, and saves the 
   await page.mouse.down();
   await page.mouse.move(x + 60, y, { steps: 5 });
   await page.mouse.up();
-  expect(Math.round(await width())).toBe(200);
+  expect(Math.round(await width())).toBe(180);
   // Cells follow the header.
   const cell = page.locator(".list-row:not(.list-heading) > :nth-child(3)").first();
-  expect(Math.round((await cell.boundingBox())!.width)).toBe(200);
+  expect(Math.round((await cell.boundingBox())!.width)).toBe(180);
   const saved = (await writes(page)).filter((w: string[]) => w[0] === "list_columns");
   expect(saved).toHaveLength(1);
-  expect(JSON.parse(saved[0][1]).genre).toBe(200);
+  expect(JSON.parse(saved[0][1]).genre).toBe(180);
   // Dragging far to the left stops at the minimum.
   const box2 = (await handle.boundingBox())!;
   await page.mouse.move(box2.x + 5, box2.y + 10);
@@ -49,7 +49,7 @@ test("list: widths come back from saved preferences, with bad values ignored", a
     Math.round((await page.getByRole("columnheader", { name }).boundingBox())!.width);
   expect(await w("Title")).toBe(400);
   expect(await w("Genre")).toBe(50); // clamped to the minimum
-  expect(await w("Status")).toBe(100); // invalid, so the default
+  expect(await w("Status")).toBe(90); // invalid, so the default
 });
 
 test("list: double-clicking a border fits the column; Reset columns restores defaults", async ({
@@ -59,15 +59,15 @@ test("list: double-clicking a border fits the column; Reset columns restores def
   const head = page.getByRole("columnheader", { name: "Title" });
   await expect(page.getByRole("button", { name: "Reset columns" })).toHaveCount(0);
   await page.getByRole("separator", { name: "Resize Title column" }).dblclick();
-  // "Game 01" is much shorter than the 220px default.
+  // "Game 01" is much shorter than the 200px default.
   const fitted = (await head.boundingBox())!.width;
-  expect(fitted).toBeLessThan(200);
+  expect(fitted).toBeLessThan(180);
   expect(fitted).toBeGreaterThanOrEqual(80);
   await page.getByRole("button", { name: "Reset columns" }).click();
-  expect(Math.round((await head.boundingBox())!.width)).toBe(220);
+  expect(Math.round((await head.boundingBox())!.width)).toBe(200);
   const last = (await writes(page)).at(-1);
   expect(last[0]).toBe("list_columns");
-  expect(JSON.parse(last[1]).title).toBe(220);
+  expect(JSON.parse(last[1]).title).toBe(200);
 });
 
 test("list: arrow keys resize a focused border", async ({ page }) => {
@@ -77,5 +77,20 @@ test("list: arrow keys resize a focused border", async ({ page }) => {
   await page.keyboard.press("ArrowRight");
   await expect(
     page.getByRole("columnheader", { name: "Media" }),
-  ).toHaveJSProperty("offsetWidth", 90);
+  ).toHaveJSProperty("offsetWidth", 80);
+});
+
+test("list: Guides has its own column after Notes and the default widths do not scroll sideways", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1180, height: 800 });
+  await installMock(page, { preferences: { library_view: "list" } });
+  const heads = await page.getByRole("columnheader").allInnerTexts();
+  const names = await page
+    .getByRole("columnheader")
+    .evaluateAll((els) => els.map((e) => e.querySelector("svg")?.getAttribute("aria-label") ?? e.textContent));
+  expect(names.slice(-2)).toEqual(["Notes", "Guides"]);
+  expect(heads.length).toBe(8);
+  const pane = page.locator(".library-pane");
+  expect(await pane.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
 });

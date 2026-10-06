@@ -476,7 +476,11 @@ button:focus-visible,
 }
 .metadata dt {
   font-size: 12px;
+  font-weight: 600;
   margin-bottom: 5px;
+}
+.metadata dd {
+  font-weight: 400;
 }
 .metadata dd {
   margin: 0;
@@ -1491,10 +1495,11 @@ button:focus-visible,
 .gd-row.just-edited {
   animation: just-edited-row 2.4s ease-out;
 }
-.guide-mark {
-  vertical-align: -2px;
-  margin-right: 6px;
-  color: var(--colorBrandForeground1);
+.card-platform {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
 }
 .game-card {
   position: relative;
@@ -1747,4 +1752,13 @@ button:focus-visible,
 .guide-switch li > span {
   font-size: 12px;
   margin-bottom: 2px;
+}
+.card-platform .platform-icon {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  margin-left: -4px;
+}
+.list-row > span svg {
+  vertical-align: middle;
 }

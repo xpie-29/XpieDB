@@ -1,12 +1,13 @@
 /** Columns of the Library list view: their default and minimum widths, and how widths are stored. */
 export const listColumns = [
   { key: "platform", label: "Platform", width: 56, min: 40 },
-  { key: "title", label: "Title", width: 220, min: 80 },
-  { key: "genre", label: "Genre", width: 140, min: 50 },
-  { key: "media", label: "Media", width: 80, min: 50 },
-  { key: "status", label: "Status", width: 100, min: 60 },
-  { key: "rating", label: "Rating", width: 90, min: 60 },
+  { key: "title", label: "Title", width: 200, min: 80 },
+  { key: "genre", label: "Genre", width: 120, min: 50 },
+  { key: "media", label: "Media", width: 70, min: 50 },
+  { key: "status", label: "Status", width: 90, min: 60 },
+  { key: "rating", label: "Rating", width: 80, min: 60 },
   { key: "notes", label: "Notes", width: 36, min: 28 },
+  { key: "guides", label: "Guides", width: 36, min: 28 },
 ] as const;
 
 export type ColumnKey = (typeof listColumns)[number]["key"];

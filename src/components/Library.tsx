@@ -12,6 +12,7 @@ import { Button } from "@fluentui/react-components";
 import {
   Add20Regular,
   Book16Regular,
+  Book20Regular,
   Note20Regular,
 } from "@fluentui/react-icons";
 import type { Game, Platform, Preferences } from "../types";
@@ -271,7 +272,10 @@ export function Library({
                     />
                   )}
                   <strong>{g.title}</strong>
-                  <span className="muted">
+                  <span className="muted card-platform">
+                    <PlatformIcon
+                      platform={platforms.find((p) => p.id === g.platform_id)}
+                    />
                     {platforms.find((p) => p.id === g.platform_id)?.name}
                   </span>
                   <span className="status">{g.play_status}</span>
@@ -296,6 +300,8 @@ export function Library({
                   <span role="columnheader" key={c.key} className="col-head">
                     {c.key === "notes" ? (
                       <Note20Regular title="Notes" aria-label="Notes" />
+                    ) : c.key === "guides" ? (
+                      <Book20Regular title="Guides" aria-label="Guides" />
                     ) : (
                       c.label
                     )}
@@ -333,13 +339,6 @@ export function Library({
                     />
                   </span>
                   <span role="gridcell" title={g.title}>
-                    {guideGameIds?.has(g.id) && (
-                      <Book16Regular
-                        className="guide-mark"
-                        aria-label="Has a guide"
-                        title="Has a guide"
-                      />
-                    )}
                     {g.title}
                   </span>
                   <span role="gridcell" title={g.genre ?? ""}>
@@ -353,6 +352,11 @@ export function Library({
                   <span role="gridcell">
                     {meaningfulNotes(g.notes_html) && (
                       <Note20Regular aria-label="Has notes" title="Has notes" />
+                    )}
+                  </span>
+                  <span role="gridcell">
+                    {guideGameIds?.has(g.id) && (
+                      <Book20Regular aria-label="Has a guide" title="Has a guide" />
                     )}
                   </span>
                 </div>

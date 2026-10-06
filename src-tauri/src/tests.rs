@@ -528,7 +528,7 @@ fn existing_libraries_upgrade_without_touching_any_game() {
 #[test]
 fn list_column_widths_accept_only_known_columns_and_sane_sizes() {
     let (_dir, c) = database();
-    let good = r#"{"title":300,"genre":120}"#;
+    let good = r#"{"title":300,"genre":120,"guides":40}"#;
     set_preference(&c, "list_columns", good).unwrap();
     assert_eq!(preferences(&c).unwrap()["list_columns"], good);
     for bad in [

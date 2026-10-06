@@ -46,9 +46,13 @@ export function GameDetail({
       tabIndex={0}
     >
       <div className="detail-actions">
-        <Button icon={<Edit20Regular />} onClick={edit}>
-          Edit
-        </Button>
+        <Button
+          title="Edit game"
+          aria-label="Edit"
+          icon={<Edit20Regular />}
+          appearance="subtle"
+          onClick={edit}
+        />
         <Button
           title="Delete game"
           aria-label="Delete game"
