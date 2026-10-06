@@ -726,11 +726,12 @@ fn a_panel_image_is_kept_while_a_game_uses_it_and_is_backed_up() {
     let made = crate::backup::create(dir.path(), &archive).unwrap();
     assert_eq!((made.games, made.images, made.missing_images), (1, 1, 0));
     std::fs::remove_file(&file).unwrap();
+    // Windows will not replace a database file that is still open, so close ours first.
+    drop(c);
     let restored = crate::backup::restore(dir.path(), &archive).unwrap();
     assert_eq!((restored.images, restored.missing_images), (1, 0));
     assert!(file.exists());
     // Once no game uses it, it can be removed (the restore replaced the database file, so reconnect).
-    drop(c);
     let c = Connection::open(dir.path().join("xpiedb.db")).unwrap();
     set_game_panel(&c, game.id, &panel("default", None, "fit")).unwrap();
     assets::remove_unused(&c, dir.path(), &path).unwrap();

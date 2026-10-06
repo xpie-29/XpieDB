@@ -33,6 +33,10 @@ file is what a new session needs to start working safely.
   AppleScript `click at` does not work on the web content. Look at the screenshot after each step, and check
   preference/db effects with `sqlite3` on the sandbox copy. The owner may be using the computer, so tell them
   before taking over the mouse.
+- **Windows testing** is possible through the owner's Windows 11 ARM VM in Parallels, with no way to run commands
+  in it directly (Standard edition): see `scripts/windows-vm/README.md` (shared-folder job runner, build, screenshots,
+  clicks) and `docs/windows-verification-0.2.0.md` for what has been checked. The owner must start the runner
+  (`runner.ps1`) in the VM each session. Tell the owner before taking over the VM's mouse.
 - The shell is zsh: quoting and word-splitting differ from bash. Rust and Node come from Homebrew, and Rust is
   not on the default PATH: use `export PATH="/opt/homebrew/opt/rustup/bin:$PATH"`.
 
@@ -40,10 +44,10 @@ file is what a new session needs to start working safely.
 ```bash
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
-cargo test --manifest-path src-tauri/Cargo.toml --locked     # 175 passed, 4 ignored
-npm test                                                      # 96 passed (node:test, TypeScript type-stripping)
+cargo test --manifest-path src-tauri/Cargo.toml --locked     # 182 passed, 4 ignored
+npm test                                                      # 98 passed (node:test, TypeScript type-stripping)
 npm run build                                                 # tsc + vite
-npm run test:ui                                               # 187 passed (Playwright, Chromium, mocked IPC)
+npm run test:ui                                               # 207 passed (Playwright, Chromium, mocked IPC)
 ```
 Format TypeScript with `npx --no-install prettier --write <files>`; Rust with `cargo fmt`. If the project folder
 is ever moved or renamed, run `cargo clean --manifest-path src-tauri/Cargo.toml` first (Tauri caches absolute
@@ -129,15 +133,16 @@ and Guides.
   count is 0, suspect the IGDB `external_games` source id lookup (`igdb::ClientState::steam_source_id`).
 - **Windows**: the rename from GameVault changed the app-data folder (`com.gamevault.desktop` to
   `com.xpiedb.desktop`) and credential service names, so an old Windows library and saved credentials are not
-  found. No migration exists. Windows was not tested after the macOS work.
+  found. No migration exists. Windows was tested on 2026-10-06 in an ARM64 VM (tests, build, run, file dialog, reader,
+  full screen, About: all fine; see `docs/windows-verification-0.2.0.md`); a real x64 PC and the installer were not.
 - The README "Build on your own Mac" guide has not been followed on a clean Mac; tool installation steps and the
   Intel variant are from documentation, not tested.
 - No code signing or notarization (deliberately skipped, not wanted); a copy moved to another Mac is blocked by
   Gatekeeper, so other people must build their own.
 - PDF reports use bundled DejaVu Sans, so CJK characters print as `?` (counted and reported to the user).
 - Verification docs for milestones 2 to 4 keep the old GameVault name on purpose.
-- **0.2.0 was verified on macOS only.** Not tried on Windows: migrations 5 to 9, the reader's `guidefile` scheme
-  (Tauri uses `http://guidefile.localhost/<id>` there; the CSP already allows it), and full screen.
+- **0.2.0 was verified on macOS, and since 2026-10-06 on Windows ARM64** (migrations 9 to 11, the reader's `guidefile`
+  scheme, full screen, native file dialog, About). Migrations 5 to 8 were only exercised by the Rust tests on Windows.
 - Not seen in a real window (covered by browser tests only): the Hardware add-accessory and sale dialogs, choosing
   photos, the Guides add/edit form, a download from the Internet Archive dialog, and the reader on a PDF with an
   outline, an encrypted PDF, or link annotations. The platform icon colours were only looked at on the dark theme
