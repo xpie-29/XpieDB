@@ -28,7 +28,8 @@ test("guides are listed by title with their game, and the toolbar offers Add Gui
   // A guide for a game that is not in the Library shows the typed name, in muted text.
   await expect(row(page, "Atlas of Somewhere").getByRole("gridcell").nth(2)).toHaveText("Somewhere Quest");
   await expect(row(page, "Atlas of Somewhere").getByRole("gridcell").nth(3)).toHaveText("-");
-  await expect(row(page, "Game 05 Official Guide").getByRole("gridcell").nth(5)).toHaveText("$19.99");
+  // Money and page counts are no longer shown for guides.
+  await expect(page.getByRole("columnheader", { name: "Paid" })).toHaveCount(0);
   await expect(page.getByRole("status")).toHaveText("4 guides");
   await expect(nav(page).getByRole("button", { name: "Add Guide" })).toBeVisible();
   for (const name of ["Backlog", "Reports"])
@@ -79,7 +80,6 @@ test("the detail panel shows the guide and links to its game", async ({ page }) 
   const panel = detail(page);
   await expect(panel).toContainText("Prima");
   await expect(panel).toContainText("J. Smith");
-  await expect(panel).toContainText("$19.99");
   await expect(panel).toContainText("Good");
   await panel.getByRole("button", { name: "Game 05", exact: true }).click();
   // Jumps to the Games collection with that game selected and in view.
@@ -119,7 +119,7 @@ test("Add guide from a game starts linked to it with its platform", async ({ pag
   await expect(page.getByRole("heading", { name: "Add Guide" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: /Game \(from your Library\)/ })).toHaveValue("Game 07");
   await page.getByRole("textbox", { name: /^Title/ }).fill("Game 07 Hints");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(row(page, "Game 07 Hints")).toHaveAttribute("aria-selected", "true");
   await expect(row(page, "Game 07 Hints")).toHaveClass(/just-edited/);
   const saved = (await calls(page)).find((c: any[]) => c[0] === "save");
@@ -137,17 +137,17 @@ test("adding a guide: choose a game by typing, or name one that is not in the Li
   await expect(box).toHaveValue("Game 31");
   // Choosing a game fills the platform from it and hides the typed-name box.
   await expect(page.getByLabel("Or the game's name")).toHaveCount(0);
-  await page.getByLabel("Pages").fill("320");
-  await page.getByLabel("Price paid").fill("12.5");
-  await page.getByRole("button", { name: "Save" }).click();
+  for (const gone of ["Pages", "Purchase date", "Price paid", "Bought from"])
+    await expect(page.getByLabel(gone)).toHaveCount(0);
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   const first = (await calls(page)).find((c: any[]) => c[0] === "save");
-  expect(first[2]).toMatchObject({ title: "Typed Guide", game_id: 31, page_count: 320, purchase_price_cents: 1250 });
+  expect(first[2]).toMatchObject({ title: "Typed Guide", game_id: 31 });
   expect(first[2].platform_id).not.toBeNull();
 
   await nav(page).getByRole("button", { name: "Add Guide" }).click();
   await page.getByRole("textbox", { name: /^Title/ }).fill("Unowned");
   await page.getByLabel("Or the game's name").fill("Some Other Game");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   const second = (await calls(page)).filter((c: any[]) => c[0] === "save")[1];
   expect(second[2]).toMatchObject({ game_id: null, game_title: "Some Other Game" });
 });
@@ -160,23 +160,44 @@ test("typing over a chosen game unlinks it", async ({ page }) => {
   await expect(box).toHaveValue("Game 05");
   await box.fill("Something else");
   await expect(page.getByLabel("Or the game's name")).toBeVisible();
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   const saved = (await calls(page)).find((c: any[]) => c[0] === "save");
   expect(saved[2].game_id).toBeNull();
 });
 
-test("bad numbers are refused before saving", async ({ page }) => {
+test("Add Guide can save and then attach a file, or save and look on the Internet Archive", async ({ page }) => {
   await open(page);
   await nav(page).getByRole("button", { name: "Add Guide" }).click();
-  await page.getByRole("textbox", { name: /^Title/ }).fill("T");
-  await page.getByLabel("Price paid").fill("abc");
-  await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Enter a price like 19.99.");
-  await page.getByLabel("Price paid").fill("");
-  await page.getByLabel("Pages").fill("1.5");
-  await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Enter the page count as a whole number.");
-  expect(await calls(page)).toEqual([]);
+  const attach = page.getByRole("button", { name: "Save and attach PDF or ePub" });
+  const find = page.getByRole("button", { name: "Save and find on Internet Archive" });
+  // A title is needed first, since the guide is saved before the file is chosen.
+  await expect(attach).toBeDisabled();
+  await expect(find).toBeDisabled();
+  await page.getByRole("textbox", { name: /^Title/ }).fill("Fresh Guide");
+  await page.getByLabel("Or the game's name").fill("Some Other Game");
+  await attach.click();
+  await expect(row(page, "Fresh Guide")).toBeVisible();
+  const saved = (await calls(page)).filter((c: any[]) => c[0] === "save");
+  expect(saved).toHaveLength(1);
+  const files = await page.evaluate(() => (window as any).guideFileCalls);
+  expect(files).toHaveLength(1);
+  expect(files[0][0]).toBe("attach");
+  await expect(detail(page).getByText("Attached.pdf")).toBeVisible();
+
+  await nav(page).getByRole("button", { name: "Add Guide" }).click();
+  await page.getByRole("textbox", { name: /^Title/ }).fill("Second Guide");
+  await page.getByLabel("Or the game's name").fill("Another Game");
+  await find.click();
+  await expect(page.getByRole("dialog", { name: "Find on the Internet Archive" })).toBeVisible();
+  await expect(page.getByLabel("Search the Internet Archive")).toHaveValue("Another Game");
+  expect((await calls(page)).filter((c: any[]) => c[0] === "save")).toHaveLength(2);
+});
+
+test("editing a guide offers no save-and-attach buttons", async ({ page }) => {
+  await open(page);
+  await row(page, "Game 05 World Map").click();
+  await page.getByRole("button", { name: "Edit" }).click();
+  await expect(page.getByRole("button", { name: /^Save and / })).toHaveCount(0);
 });
 
 test("Edit saves changes and Cancel leaves the guide alone", async ({ page }) => {
@@ -189,7 +210,7 @@ test("Edit saves changes and Cancel leaves the guide alone", async ({ page }) =>
   expect(await titles(page)).toContain("Game 05 World Map");
   await page.getByRole("button", { name: "Edit" }).click();
   await page.getByRole("textbox", { name: /^Title/ }).fill("Game 05 Big Map");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   expect(await titles(page)).toContain("Game 05 Big Map");
   await expect(row(page, "Game 05 Big Map")).toHaveClass(/just-edited/);
 });

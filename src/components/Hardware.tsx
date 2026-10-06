@@ -416,9 +416,13 @@ function HardwareDetail({
       tabIndex={0}
     >
       <div className="detail-actions">
-        <Button icon={<Edit20Regular />} onClick={edit}>
-          Edit
-        </Button>
+        <Button
+          title="Edit item"
+          aria-label="Edit"
+          icon={<Edit20Regular />}
+          appearance="subtle"
+          onClick={edit}
+        />
         <Button
           title="Delete hardware"
           aria-label="Delete hardware"

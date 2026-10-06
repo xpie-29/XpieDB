@@ -330,13 +330,16 @@ export function App() {
     if (fromGame) openGuide(guide.id);
     else setGuideHighlight(guide.id);
   };
-  const guideSaved = (saved: Guide) => {
+  const guideSaved = (saved: Guide, then?: () => void) => {
     setGuides((current) => [...current.filter((x) => x.id !== saved.id), saved]);
     setGuideSelected(saved.id);
     setGuideHighlight(saved.id);
     setGuideDraft(undefined);
     navigate("library");
-    void refresh().catch((e) => setError(String(e)));
+    // `then` waits for the reload so it cannot be overwritten by an older copy of the list.
+    void refresh()
+      .catch((e) => setError(String(e)))
+      .then(then);
   };
   const editing = view === "add" || view === "edit";
   const hardwareSaved = (saved: Hardware) => {
@@ -433,7 +436,17 @@ export function App() {
                     initial={view === "add" ? guideDraft : undefined}
                     games={games}
                     platforms={platforms}
-                    saved={guideSaved}
+                    saved={(saved) => guideSaved(saved)}
+                    afterSave={(saved, then) =>
+                      guideSaved(saved, () => {
+                        if (then === "attach") void attachFile(saved);
+                        else
+                          setFinder({
+                            query: guideGameName(saved, games) ?? saved.title,
+                            target: { kind: "guide", guide: saved },
+                          });
+                      })
+                    }
                     cancel={() => {
                       setGuideDraft(undefined);
                       navigate("library");

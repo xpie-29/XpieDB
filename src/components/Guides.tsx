@@ -10,7 +10,6 @@ import {
   Search20Regular,
 } from "@fluentui/react-icons";
 import type { Game, Guide, GuideFile, Platform } from "../types";
-import { formatPrice } from "../hardwareQuery";
 import {
   copyLabel,
   fileLabel,
@@ -204,7 +203,6 @@ export function GuidesLibrary({
                 <span role="columnheader">Game</span>
                 <span role="columnheader">Copy</span>
                 <span role="columnheader">Condition</span>
-                <span role="columnheader">Paid</span>
               </div>
               {guides.map((g, i) => (
                 <div
@@ -242,9 +240,6 @@ export function GuidesLibrary({
                   </span>
                   <span role="gridcell">{copyLabel(g)}</span>
                   <span role="gridcell">{g.condition ?? "-"}</span>
-                  <span role="gridcell">
-                    {formatPrice(g.purchase_price_cents)}
-                  </span>
                 </div>
               ))}
             </div>
@@ -313,12 +308,8 @@ function GuideDetail({
     ["Edition", guide.edition],
     ["ISBN", guide.isbn],
     ["Language", guide.language],
-    ["Pages", guide.page_count === null ? null : String(guide.page_count)],
     ["Physical copy", guide.has_physical ? "Yes" : "No"],
     ["Condition", guide.condition],
-    ["Purchase date", guide.purchase_date],
-    ["Price paid", formatPrice(guide.purchase_price_cents)],
-    ["Bought from", guide.purchase_source],
   ];
   return (
     <aside
@@ -328,9 +319,13 @@ function GuideDetail({
       tabIndex={0}
     >
       <div className="detail-actions">
-        <Button icon={<Edit20Regular />} onClick={edit}>
-          Edit
-        </Button>
+        <Button
+          title="Edit guide"
+          aria-label="Edit"
+          icon={<Edit20Regular />}
+          appearance="subtle"
+          onClick={edit}
+        />
         <Button
           title="Delete guide"
           aria-label="Delete guide"

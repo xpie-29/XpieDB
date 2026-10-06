@@ -10,19 +10,18 @@ import {
   Select,
 } from "@fluentui/react-components";
 import {
+  Add20Regular,
   Save20Regular,
+  Search20Regular,
   Dismiss20Regular,
   ImageAdd20Regular,
   Delete20Regular,
 } from "@fluentui/react-icons";
 import type { Game, Guide, GuideInput, Platform } from "../types";
 import { emptyGuide, hardwareConditions } from "../types";
-import { parsePrice } from "../hardwareQuery";
 import { ManagedImage } from "./Shared";
 import { NotesEditor } from "./Notes";
 
-const priceText = (cents: number | null) =>
-  cents === null ? "" : (cents / 100).toFixed(2);
 const MAX_OPTIONS = 60;
 
 export function GuideForm({
@@ -32,6 +31,7 @@ export function GuideForm({
   platforms,
   saved,
   cancel,
+  afterSave,
 }: {
   guide?: Guide;
   /** Starting values for a new guide, e.g. one already linked to a game. */
@@ -40,16 +40,14 @@ export function GuideForm({
   platforms: Platform[];
   saved: (guide: Guide) => void;
   cancel: () => void;
+  /** New guides only: save, then continue with a file or an Internet Archive search for the new guide. */
+  afterSave?: (guide: Guide, then: "attach" | "find") => void;
 }) {
   const [draft, setDraft] = useState<GuideInput>(() =>
     guide ? { ...guide } : (initial ?? emptyGuide()),
   );
   const linked = games.find((g) => g.id === draft.game_id);
   const [query, setQuery] = useState(linked?.title ?? "");
-  const [price, setPrice] = useState(priceText(draft.purchase_price_cents));
-  const [pages, setPages] = useState(
-    draft.page_count === null ? "" : String(draft.page_count),
-  );
   const [imports, setImports] = useState<string[]>(
     initial?.photo_path ? [initial.photo_path] : [],
   );
@@ -95,38 +93,33 @@ export function GuideForm({
       />
     </Field>
   );
+  const save = async (then?: "attach" | "find") => {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await invoke<Guide>("save_guide", {
+        id: guide?.id ?? null,
+        input: draft,
+      });
+      try {
+        await cleanup();
+      } catch (e) {
+        console.warn("Unused image cleanup:", e);
+      }
+      if (then && afterSave) afterSave(result, then);
+      else saved(result);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const needsTitle = !draft.title.trim();
   return (
     <form
-      onSubmit={async (e) => {
+      onSubmit={(e) => {
         e.preventDefault();
-        const cents = parsePrice(price);
-        const count = pages.trim() === "" ? null : Number(pages);
-        if (cents === undefined) {
-          setError("Enter a price like 19.99.");
-          return;
-        }
-        if (count !== null && !(Number.isInteger(count) && count > 0)) {
-          setError("Enter the page count as a whole number.");
-          return;
-        }
-        setBusy(true);
-        setError("");
-        try {
-          const result = await invoke<Guide>("save_guide", {
-            id: guide?.id ?? null,
-            input: { ...draft, purchase_price_cents: cents, page_count: count },
-          });
-          try {
-            await cleanup();
-          } catch (e) {
-            console.warn("Unused image cleanup:", e);
-          }
-          saved(result);
-        } catch (e) {
-          setError(String(e));
-        } finally {
-          setBusy(false);
-        }
+        void save();
       }}
     >
       <header className="page-header">
@@ -163,6 +156,32 @@ export function GuideForm({
         <p role="alert" className="error">
           {error}
         </p>
+      )}
+      {!guide && afterSave && (
+        <section className="guide-file-actions" aria-label="Digital copy">
+          <p className="muted">
+            Have a PDF or ePub? Fill in the title, then save and attach it, or
+            look for one on the Internet Archive. The guide is saved first.
+          </p>
+          <div className="actions">
+            <Button
+              type="button"
+              disabled={busy || needsTitle}
+              icon={<Add20Regular />}
+              onClick={() => void save("attach")}
+            >
+              Save and attach PDF or ePub
+            </Button>
+            <Button
+              type="button"
+              disabled={busy || needsTitle}
+              icon={<Search20Regular />}
+              onClick={() => void save("find")}
+            >
+              Save and find on Internet Archive
+            </Button>
+          </div>
+        </section>
       )}
       <fieldset disabled={busy} inert={busy} className="form-layout">
         <div className="cover-column">
@@ -261,13 +280,6 @@ export function GuideForm({
           {text("edition", "Edition")}
           {text("isbn", "ISBN")}
           {text("language", "Language")}
-          <Field label="Pages">
-            <Input
-              inputMode="numeric"
-              value={pages}
-              onChange={(_, d) => setPages(d.value)}
-            />
-          </Field>
           <div className="span-two checks">
             <Checkbox
               label="I own a physical copy"
@@ -286,22 +298,6 @@ export function GuideForm({
               ))}
             </Select>
           </Field>
-          <Field label="Purchase date">
-            <Input
-              type="date"
-              value={draft.purchase_date ?? ""}
-              onChange={(_, d) => change("purchase_date", d.value || null)}
-            />
-          </Field>
-          <Field label="Price paid">
-            <Input
-              inputMode="decimal"
-              placeholder="0.00"
-              value={price}
-              onChange={(_, d) => setPrice(d.value)}
-            />
-          </Field>
-          {text("purchase_source", "Bought from")}
           <section className="span-two">
             <h2>Notes</h2>
             <NotesEditor
