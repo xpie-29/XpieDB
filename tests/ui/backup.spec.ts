@@ -44,7 +44,7 @@ test("restore asks for confirmation, then reloads the library", async ({
   );
   expect(await calls(page, "backup_restore")).toBe(1);
   // Library data is reloaded, not just the message updated.
-  await page.getByRole("button", { name: "Library", exact: true }).click();
+  await page.getByRole("button", { name: "Games", exact: true }).click();
   await expect(page.getByText("Restored Game").first()).toBeVisible();
 });
 
@@ -58,7 +58,7 @@ test("cancelling the confirmation restores nothing", async ({ page }) => {
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(await calls(page, "backup_restore")).toBe(0);
   expect(await calls(page, "backup_cancel_restore")).toBe(1);
-  await page.getByRole("button", { name: "Library", exact: true }).click();
+  await page.getByRole("button", { name: "Games", exact: true }).click();
   await expect(page.getByText("Original Game").first()).toBeVisible();
 });
 
@@ -91,7 +91,7 @@ test("controls are disabled while a backup is running", async ({ page }) => {
     page.getByRole("button", { name: "Restore from backup..." }),
   ).toBeDisabled();
   await expect(
-    page.getByRole("button", { name: "Library", exact: true }),
+    page.getByRole("button", { name: "Games", exact: true }),
   ).toBeDisabled();
 });
 

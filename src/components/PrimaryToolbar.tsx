@@ -7,6 +7,7 @@ import {
   MenuPopover,
   MenuTrigger,
   Select,
+  SplitButton,
 } from "@fluentui/react-components";
 import {
   Add20Regular,
@@ -40,28 +41,22 @@ const item = (id: Destination, name: string, icon: ReactElement): Item => ({
 const layout: Record<Collection, { before: Item[]; after: Item[] }> = {
   games: {
     before: [
-      item("library", "Library", <Grid20Regular />),
       item("backlog", "Backlog", <TextNumberListLtr20Regular />),
       item("add", "Add Game", <Add20Regular />),
     ],
-    after: [
-      item("reports", "Reports", <DocumentPdf20Regular />),
-      item("settings", "Settings", <Settings20Regular />),
-    ],
+    after: [item("reports", "Reports", <DocumentPdf20Regular />)],
   },
   guides: {
     before: [
-      item("library", "Library", <Grid20Regular />),
       item("add", "Add Guide", <Add20Regular />),
     ],
-    after: [item("settings", "Settings", <Settings20Regular />)],
+    after: [],
   },
   hardware: {
     before: [
-      item("library", "Library", <Grid20Regular />),
       item("add", "Add Hardware", <Add20Regular />),
     ],
-    after: [item("settings", "Settings", <Settings20Regular />)],
+    after: [],
   },
 };
 const collectionIcon: Record<Collection, ReactElement> = {
@@ -86,6 +81,7 @@ export function PrimaryToolbar({
   collection: Collection;
   setCollection: (collection: Collection) => void;
 }) {
+  const name = collections.find((c) => c.id === collection)?.name;
   const button = (d: Item) => (
     <Button
       key={d.id}
@@ -102,24 +98,31 @@ export function PrimaryToolbar({
     <header className="primary-toolbar">
       <div className="brand">XpieDB</div>
       <nav aria-label="Primary">
-        {layout[collection].before.map(button)}
         <Menu
+          positioning="below-start"
           checkedValues={{ collection: [collection] }}
           onCheckedValueChange={(_, d) =>
             setCollection(collectionOf(d.checkedItems[0]))
           }
         >
           <MenuTrigger disableButtonEnhancement>
-            <Button
-              appearance="subtle"
-              disabled={locked}
-              icon={collectionIcon[collection]}
-              iconPosition="before"
-              aria-label={`Collection: ${collections.find((c) => c.id === collection)?.name}`}
-            >
-              {collections.find((c) => c.id === collection)?.name}
-              <ChevronDown16Regular style={{ marginLeft: 6 }} />
-            </Button>
+            {(triggerProps) => (
+              <SplitButton
+                appearance={view === "library" ? "primary" : "subtle"}
+                disabled={locked}
+                icon={collectionIcon[collection]}
+                menuButton={{
+                  ...triggerProps,
+                  "aria-label": `Collection: ${name}`,
+                }}
+                primaryActionButton={{
+                  "aria-current": view === "library" ? "page" : undefined,
+                  onClick: () => navigate("library"),
+                }}
+              >
+                {name}
+              </SplitButton>
+            )}
           </MenuTrigger>
           <MenuPopover>
             <MenuList>
@@ -136,8 +139,10 @@ export function PrimaryToolbar({
             </MenuList>
           </MenuPopover>
         </Menu>
+        {layout[collection].before.map(button)}
         {layout[collection].after.map(button)}
       </nav>
+      <div className="toolbar-end">
       {collection === "games" && view === "library" && (
         <div className="presentation-controls">
           <div className="view-toggle" role="group" aria-label="Library view">
@@ -175,6 +180,16 @@ export function PrimaryToolbar({
           </Select>
         </div>
       )}
+      <Button
+        title="Settings"
+        aria-label="Settings"
+        aria-current={view === "settings" ? "page" : undefined}
+        appearance={view === "settings" ? "primary" : "subtle"}
+        disabled={locked}
+        icon={<Settings20Regular />}
+        onClick={() => navigate("settings")}
+      />
+      </div>
     </header>
   );
 }

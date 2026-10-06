@@ -289,7 +289,7 @@ test("navigation is locked while importing and unlocked afterwards", async ({
     page.getByRole("button", { name: "Backlog", exact: true }),
   ).toBeDisabled();
   await expect(
-    page.getByRole("button", { name: "Library" }).last(),
+    page.getByRole("button", { name: "Games", exact: true }),
   ).toBeDisabled();
   await expect(
     page.getByRole("heading", { name: "Import finished" }),
@@ -357,7 +357,7 @@ test("leaving the import screen forgets the loaded library", async ({
 }) => {
   await openImport(page);
   await load(page);
-  await page.getByRole("button", { name: "Library" }).last().click();
+  await page.getByRole("button", { name: "Games", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Library", exact: true }),
   ).toBeVisible();

@@ -150,7 +150,7 @@ test("navigation and the button are locked while the PDF is being created", asyn
     page.getByRole("button", { name: "Create PDF..." }),
   ).toBeDisabled();
   await expect(
-    page.getByRole("button", { name: "Library", exact: true }),
+    page.getByRole("button", { name: "Games", exact: true }),
   ).toBeDisabled();
 });
 

@@ -12,8 +12,8 @@ test("the toolbar has one collection selector, not three buttons, and no Platfor
 }) => {
   await installMock(page);
   await expect(selector(page)).toHaveAccessibleName("Collection: Games");
-  for (const name of ["Library", "Backlog", "Add Game", "Reports", "Settings"])
-    await expect(nav(page).getByRole("button", { name, exact: true })).toBeVisible();
+  for (const name of ["Games", "Backlog", "Add Game", "Reports", "Settings"])
+    await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
   // Guides and Hardware are only listed inside the menu; Platforms moved to Settings.
   for (const name of ["Guides", "Hardware", "Platforms"])
     await expect(nav(page).getByRole("button", { name, exact: true })).toHaveCount(0);
@@ -65,7 +65,7 @@ test("an unknown saved collection falls back to Games", async ({ page }) => {
 
 test("Platforms is reached from Settings and returns there", async ({ page }) => {
   await installMock(page);
-  await nav(page).getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("button", { name: "Manage platforms" }).click();
   await expect(page.getByRole("heading", { name: "Platforms" })).toBeVisible();
   await page.getByRole("button", { name: "Settings", exact: true }).last().click();

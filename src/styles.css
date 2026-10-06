@@ -75,8 +75,13 @@ p {
   gap: 4px;
   flex-shrink: 0;
 }
-.presentation-controls {
+.toolbar-end {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.presentation-controls {
   padding-left: 16px;
   border-left: 1px solid var(--colorNeutralStroke2);
   display: flex;
