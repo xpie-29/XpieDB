@@ -6200,6 +6200,7 @@ dependencies = [
  "keyring-core",
  "krilla",
  "lopdf",
+ "objc2-app-kit",
  "reqwest",
  "rusqlite",
  "serde",
@@ -6216,6 +6217,7 @@ dependencies = [
  "unicode-normalization",
  "uuid",
  "windows-native-keyring-store",
+ "winreg",
  "zip",
 ]
 

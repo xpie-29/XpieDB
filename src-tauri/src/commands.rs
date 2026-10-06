@@ -74,6 +74,11 @@ pub fn set_game_panel(app: AppHandle, id: i64, panel: catalog::Panel) -> Result<
     }
     Ok(game)
 }
+/// The operating system's accent colour as "#rrggbb", or None where the OS does not offer one.
+#[tauri::command]
+pub fn system_accent() -> Option<String> {
+    crate::system_accent::read()
+}
 #[tauri::command]
 pub fn set_game_hidden(app: AppHandle, id: i64, hidden: bool) -> Result<Game> {
     catalog::set_game_hidden(&connection(&app)?, id, hidden)

@@ -737,3 +737,16 @@ fn a_panel_image_is_kept_while_a_game_uses_it_and_is_backed_up() {
     assets::remove_unused(&c, dir.path(), &path).unwrap();
     assert!(!file.exists());
 }
+
+#[test]
+fn accent_source_accepts_only_app_or_system() {
+    let (_dir, c) = database();
+    for good in ["app", "system"] {
+        set_preference(&c, "accent_source", good).unwrap();
+        assert_eq!(preferences(&c).unwrap()["accent_source"], good);
+    }
+    for bad in ["", "blue", "System", "true"] {
+        assert!(set_preference(&c, "accent_source", bad).is_err(), "{bad}");
+    }
+    assert_eq!(preferences(&c).unwrap()["accent_source"], "system");
+}

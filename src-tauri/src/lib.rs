@@ -12,6 +12,7 @@ mod menu;
 mod report;
 mod steam;
 mod storage;
+mod system_accent;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
@@ -99,6 +100,7 @@ pub fn run() {
             commands::delete_game,
             commands::set_game_hidden,
             commands::set_game_panel,
+            commands::system_accent,
             commands::backlog_set_order,
             commands::backlog_add,
             commands::backlog_remove,
