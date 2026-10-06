@@ -97,6 +97,7 @@ pub fn run() {
             commands::get_game,
             commands::save_game,
             commands::delete_game,
+            commands::set_game_hidden,
             commands::backlog_set_order,
             commands::backlog_add,
             commands::backlog_remove,

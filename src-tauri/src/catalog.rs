@@ -45,6 +45,8 @@ pub struct Game {
     /// Place in the manual backlog order (1 = first); set exactly when the
     /// play status is Backlog.
     pub backlog_position: Option<i64>,
+    /// Kept out of the Library, Backlog and Reports until unhidden.
+    pub hidden: bool,
 }
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Platform {
@@ -154,8 +156,8 @@ fn validate(input: &mut GameInput) -> Result<()> {
 }
 
 pub fn get_game(c: &Connection, id: i64) -> Result<Game> {
-    let mut game = c.query_row("SELECT id,igdb_id,title,platform_id,release_date,genre,developer,publisher,cover_path,media_type,play_status,rating,notes_html,date_added,date_modified,account,backlog_position FROM games WHERE id=?1", [id], |r| Ok(Game {
-        id:r.get(0)?, data:GameInput { igdb_id:r.get(1)?, title:r.get(2)?, platform_id:r.get(3)?, account:r.get(15)?, release_date:r.get(4)?, genre:r.get(5)?, developer:r.get(6)?, publisher:r.get(7)?, cover_path:r.get(8)?, media_type:r.get(9)?, play_status:r.get(10)?, rating:r.get(11)?, notes_html:r.get(12)?, tags:vec![] }, date_added:r.get(13)?, date_modified:r.get(14)?, backlog_position:r.get(16)?
+    let mut game = c.query_row("SELECT id,igdb_id,title,platform_id,release_date,genre,developer,publisher,cover_path,media_type,play_status,rating,notes_html,date_added,date_modified,account,backlog_position,hidden FROM games WHERE id=?1", [id], |r| Ok(Game {
+        id:r.get(0)?, data:GameInput { igdb_id:r.get(1)?, title:r.get(2)?, platform_id:r.get(3)?, account:r.get(15)?, release_date:r.get(4)?, genre:r.get(5)?, developer:r.get(6)?, publisher:r.get(7)?, cover_path:r.get(8)?, media_type:r.get(9)?, play_status:r.get(10)?, rating:r.get(11)?, notes_html:r.get(12)?, tags:vec![] }, date_added:r.get(13)?, date_modified:r.get(14)?, backlog_position:r.get(16)?, hidden:r.get(17)?
     })).optional().map_err(db)?.ok_or("This game no longer exists.")?;
     game.data.notes_html = sanitize_notes(&game.data.notes_html);
     let mut statement = c.prepare("SELECT t.name FROM tags t JOIN game_tags gt ON gt.tag_id=t.id WHERE gt.game_id=? ORDER BY t.name COLLATE NOCASE").map_err(db)?;
@@ -176,6 +178,22 @@ pub fn list_games(c: &Connection) -> Result<Vec<Game>> {
         .collect::<std::result::Result<Vec<i64>, _>>()
         .map_err(db)?;
     ids.into_iter().map(|id| get_game(c, id)).collect()
+}
+/// Games the owner has not hidden: what the Library, Backlog and Reports show.
+pub fn list_shown_games(c: &Connection) -> Result<Vec<Game>> {
+    let mut games = list_games(c)?;
+    games.retain(|g| !g.hidden);
+    Ok(games)
+}
+/// Hides or unhides one game. Nothing else about it changes (not even its modified date).
+pub fn set_game_hidden(c: &Connection, id: i64, hidden: bool) -> Result<Game> {
+    get_game(c, id)?;
+    c.execute(
+        "UPDATE games SET hidden=?1 WHERE id=?2",
+        params![hidden, id],
+    )
+    .map_err(db)?;
+    get_game(c, id)
 }
 pub fn save_game(c: &Connection, id: Option<i64>, mut input: GameInput) -> Result<Game> {
     validate(&mut input)?;

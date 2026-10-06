@@ -285,8 +285,10 @@ fn build_backlog(
     queued.sort_by_key(|g| (g.backlog_position, g.id));
     let rows: Vec<Row> = queued
         .iter()
-        .map(|g| Row {
-            cells: [g.backlog_position.unwrap_or_default().to_string()]
+        .enumerate()
+        .map(|(index, g)| Row {
+            // Numbered by place in the list, so a hidden game does not leave a gap.
+            cells: [(index + 1).to_string()]
                 .into_iter()
                 .chain([g.data.title.clone()])
                 .chain(columns.iter().map(|c| cell(g, platform_name(names, g), *c)))
@@ -378,7 +380,7 @@ pub async fn report_create(app: AppHandle, request: ReportRequest) -> Result<Opt
     }
     tauri::async_runtime::spawn_blocking(move || {
         let connection = commands::connection(&app)?;
-        let games = crate::catalog::list_games(&connection)?;
+        let games = crate::catalog::list_shown_games(&connection)?;
         let platforms = crate::catalog::list_platforms(&connection)?;
         write(&games, &platforms, &request, &date, &dest).map(Some)
     })

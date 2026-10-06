@@ -25,6 +25,7 @@ fn game(id: i64, title: &str, platform: i64) -> Game {
         date_added: String::new(),
         date_modified: String::new(),
         backlog_position: None,
+        hidden: false,
     }
 }
 fn platform(id: i64, name: &str) -> Platform {
@@ -884,4 +885,25 @@ fn backlog_group_deserializes_from_the_frontend() {
     .unwrap();
     assert_eq!(request.group_by, GroupBy::Backlog);
     assert_eq!(columns_for(&request), [Column::Platform]);
+}
+
+#[test]
+fn the_backlog_report_numbers_games_in_order_even_when_one_between_is_missing() {
+    // A hidden game is removed before the report is built, which leaves a gap in the stored places.
+    let mut first = game(1, "First", 1);
+    first.backlog_position = Some(1);
+    let mut third = game(3, "Third", 1);
+    third.backlog_position = Some(3);
+    let report = build(
+        &[first, third],
+        &platforms(),
+        &request(GroupBy::Backlog, &[]),
+        "d",
+    );
+    let numbers: Vec<_> = report.sections[0]
+        .rows
+        .iter()
+        .map(|r| (r.cells[0].as_str(), r.cells[1].as_str()))
+        .collect();
+    assert_eq!(numbers, [("1", "First"), ("2", "Third")]);
 }

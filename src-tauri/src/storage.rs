@@ -59,6 +59,11 @@ const MIGRATIONS: &[Migration] = &[
         name: "reader",
         sql: include_str!("../migrations/009_reader.sql"),
     },
+    Migration {
+        version: 10,
+        name: "hidden_games",
+        sql: include_str!("../migrations/010_hidden_games.sql"),
+    },
 ];
 
 /// Highest schema version this build understands.
@@ -467,6 +472,42 @@ mod tests {
             .unwrap();
         run_migrations(&connection).unwrap();
         assert_eq!(state(&connection), (1, 1));
+    }
+
+    #[test]
+    fn hidden_column_rolls_back_when_bookkeeping_fails_and_keeps_games_visible() {
+        let connection = Connection::open_in_memory().unwrap();
+        apply_migrations(&connection, &MIGRATIONS[..9]).unwrap();
+        connection
+            .execute(
+                "INSERT INTO games(title,platform_id) VALUES ('Existing',1)",
+                [],
+            )
+            .unwrap();
+        connection.execute_batch("CREATE TRIGGER reject_hidden BEFORE INSERT ON schema_migrations WHEN NEW.version=10 BEGIN SELECT RAISE(ABORT,'test failure'); END;").unwrap();
+        assert!(run_migrations(&connection).is_err());
+        let columns = |connection: &Connection| -> i64 {
+            connection
+                .query_row(
+                    "SELECT count(*) FROM pragma_table_info('games') WHERE name='hidden'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap()
+        };
+        assert_eq!(columns(&connection), 0);
+        connection
+            .execute_batch("DROP TRIGGER reject_hidden;")
+            .unwrap();
+        run_migrations(&connection).unwrap();
+        assert_eq!(columns(&connection), 1);
+        let hidden: i64 = connection
+            .query_row("SELECT hidden FROM games WHERE title='Existing'", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        assert_eq!(hidden, 0);
+        assert!(connection.execute("UPDATE games SET hidden=2", []).is_err());
     }
 
     #[test]

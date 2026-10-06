@@ -59,6 +59,10 @@ pub fn delete_game(app: AppHandle, id: i64) -> Result<()> {
     Ok(())
 }
 #[tauri::command]
+pub fn set_game_hidden(app: AppHandle, id: i64, hidden: bool) -> Result<Game> {
+    catalog::set_game_hidden(&connection(&app)?, id, hidden)
+}
+#[tauri::command]
 pub fn backlog_set_order(app: AppHandle, ids: Vec<i64>) -> Result<()> {
     catalog::set_backlog_order(&connection(&app)?, &ids)
 }

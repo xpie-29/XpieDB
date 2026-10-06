@@ -609,3 +609,52 @@ fn reader_preferences_accept_only_sane_values() {
     assert!(set_preference(&c, "reader_night", "maybe").is_err());
     assert_eq!(preferences(&c).unwrap()["reader_zoom"], "2");
 }
+
+#[test]
+fn hiding_a_game_only_changes_whether_it_is_shown() {
+    let (_dir, c) = database();
+    let keep = backlog_game(&c, "Keep", "Not Started");
+    let queued = backlog_game(&c, "Queued", "Backlog");
+    assert!(!queued.hidden);
+    let hidden = set_game_hidden(&c, queued.id, true).unwrap();
+    assert!(hidden.hidden);
+    // Every other field, its backlog place and its modified date are untouched.
+    assert_eq!(hidden.backlog_position, Some(1));
+    assert_eq!(hidden.date_modified, queued.date_modified);
+    assert_eq!(hidden.data.title, "Queued");
+    // The whole library still lists it (imports must still see it), the shown list does not.
+    assert_eq!(list_games(&c).unwrap().len(), 2);
+    let shown: Vec<_> = list_shown_games(&c)
+        .unwrap()
+        .into_iter()
+        .map(|g| g.id)
+        .collect();
+    assert_eq!(shown, [keep.id]);
+    // Editing a hidden game does not unhide it.
+    let mut edit = hidden.data.clone();
+    edit.notes_html = "<p>Changed</p>".into();
+    assert!(save_game(&c, Some(queued.id), edit).unwrap().hidden);
+    // Unhiding brings it back in the same backlog place.
+    let shown_again = set_game_hidden(&c, queued.id, false).unwrap();
+    assert!(!shown_again.hidden);
+    assert_eq!(shown_again.backlog_position, Some(1));
+    assert_eq!(list_shown_games(&c).unwrap().len(), 2);
+    assert!(set_game_hidden(&c, 9999, true).is_err());
+}
+
+#[test]
+fn hidden_games_survive_a_backlog_reorder_and_deletion_renumbering() {
+    let (_dir, c) = database();
+    let a = backlog_game(&c, "A", "Backlog");
+    let b = backlog_game(&c, "B", "Backlog");
+    let d = backlog_game(&c, "C", "Backlog");
+    set_game_hidden(&c, b.id, true).unwrap();
+    // The order must still name every backlog game, hidden ones included.
+    assert!(set_backlog_order(&c, &[d.id, a.id]).is_err());
+    set_backlog_order(&c, &[d.id, b.id, a.id]).unwrap();
+    assert_eq!(
+        backlog(&c),
+        [("C".into(), 1), ("B".into(), 2), ("A".into(), 3)]
+    );
+    assert!(list_games(&c).unwrap().iter().any(|g| g.hidden));
+}
