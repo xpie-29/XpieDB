@@ -189,6 +189,7 @@ async function mock(
         notes_html: "",
         date_added: "2026-01-01",
         date_modified: "2026-01-01",
+        panel: { mode: "default", image: null, fit: "fill" },
       });
       const games = mode === "empty" ? [] : [game(1), game(2)];
       w.reportRequests = [];

@@ -13,6 +13,7 @@ import {
   type GuideInput,
   type Hardware,
   type HardwareInput,
+  type PanelBackground,
   type Platform,
   type Preferences,
 } from "./types";
@@ -154,6 +155,20 @@ export function App() {
       const saved = await invoke<Game>("set_game_hidden", {
         id: target.id,
         hidden,
+      });
+      setGames((current) => current.map((g) => (g.id === saved.id ? saved : g)));
+      return true;
+    } catch (e) {
+      setError(String(e));
+      return false;
+    }
+  };
+  const setPanel = async (target: Game, panel: PanelBackground) => {
+    setError("");
+    try {
+      const saved = await invoke<Game>("set_game_panel", {
+        id: target.id,
+        panel,
       });
       setGames((current) => current.map((g) => (g.id === saved.id ? saved : g)));
       return true;
@@ -638,6 +653,7 @@ export function App() {
                       }}
                       remove={() => setDeleting(true)}
                       hide={() => void hideGame(game)}
+                      setPanel={(panel) => setPanel(game, panel)}
                       guides={guidesForGame(guides, game.id)}
                       openGuide={openGuide}
                       addGuide={() => addGuideFor(game)}

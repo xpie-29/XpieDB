@@ -22,7 +22,24 @@ export type Game = GameInput & {
   backlog_position: number | null;
   /** Kept out of the Library, Backlog and Reports until unhidden (Settings > Hidden games). */
   hidden: boolean;
+  /** How the details panel is backed (Default gray, the cover art, or the owner's own image). */
+  panel: PanelBackground;
 };
+export type PanelMode = "default" | "cover" | "image";
+export type PanelFit = "fill" | "fit" | "stretch" | "center" | "tile";
+export type PanelBackground = {
+  mode: PanelMode;
+  /** A managed image; kept while another mode is chosen so the owner can switch back. */
+  image: string | null;
+  fit: PanelFit;
+};
+export const panelFits: ReadonlyArray<readonly [PanelFit, string]> = [
+  ["fill", "Fill (crop to cover)"],
+  ["fit", "Fit (whole image)"],
+  ["stretch", "Stretch"],
+  ["center", "Center"],
+  ["tile", "Tile"],
+];
 export type Platform = {
   id: number;
   name: string;

@@ -132,6 +132,7 @@ export function sampleGames() {
     backlog_position:
       statuses[i % statuses.length] === "Backlog" ? ++queued : null,
     hidden: false,
+    panel: { mode: "default", image: null, fit: "fill" },
   }));
 }
 
@@ -290,6 +291,7 @@ export async function installMock(page: Page, options: MockOptions = {}) {
           date_modified: "2026-09-21T00:00:00Z",
           backlog_position: backlog ? queue.length + 1 : null,
           hidden: false,
+          panel: { mode: "default", image: null, fit: "fill" },
         });
       };
       w.openedLinks = [];
@@ -315,6 +317,7 @@ export async function installMock(page: Page, options: MockOptions = {}) {
         queue().forEach((g: any, i: number) => (g.backlog_position = i + 1));
       w.readerCalls = [];
       w.hideCalls = [];
+      w.panelCalls = [];
       w.fullscreen = false;
       const bookmarks: any[] = [];
       w.__TAURI_INTERNALS__ = {
@@ -557,7 +560,25 @@ export async function installMock(page: Page, options: MockOptions = {}) {
           }
           if (command === "get_app_data_info")
             return { appDataDir: "Synthetic in-memory catalog" };
-          if (command === "image_data") return null;
+          // Tests that look at pictures set w.imageData to a data URL; otherwise images stay unloaded.
+          if (command === "image_data") return w.imageData ?? null;
+          if (command === "select_image") {
+            w.panelCalls.push(["select", args.kind]);
+            return w.selectedImage ?? null;
+          }
+          if (command === "set_game_panel") {
+            w.panelCalls.push(["set", args.id, args.panel]);
+            const g = games.find((x: any) => x.id === args.id);
+            if (!g) throw "This game no longer exists.";
+            const p = args.panel;
+            if (!["default", "cover", "image"].includes(p.mode) || !["fill", "fit", "stretch", "center", "tile"].includes(p.fit))
+              throw "Choose one of the listed panel backgrounds.";
+            if (p.mode === "image" && !p.image) throw "Choose an image for the panel background.";
+            if (p.mode === "cover" && !g.cover_path) throw "This game has no cover art to use.";
+            if (w.panelFail) throw w.panelFail;
+            g.panel = { mode: p.mode, image: p.image, fit: p.fit };
+            return JSON.parse(JSON.stringify(g));
+          }
           if (command === "igdb_config")
             return { configured: !!w.igdbConfigured };
           if (command === "igdb_save_credentials") {
@@ -709,7 +730,10 @@ export async function installMock(page: Page, options: MockOptions = {}) {
             };
             return JSON.parse(JSON.stringify(games[index]));
           }
-          if (command === "discard_image") return;
+          if (command === "discard_image") {
+            w.panelCalls.push(["discard", args.path]);
+            return;
+          }
           throw `Unexpected mocked command: ${command}`;
         },
       };

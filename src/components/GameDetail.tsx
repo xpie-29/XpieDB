@@ -8,17 +8,19 @@ import {
   EyeOff20Regular,
   Search20Regular,
 } from "@fluentui/react-icons";
-import type { Game, Guide, Platform } from "../types";
+import type { Game, Guide, PanelBackground, Platform } from "../types";
 import { ManagedImage, PlatformIcon } from "./Shared";
 import { meaningfulNotes } from "../notes";
 import { NotesView } from "./NotesView";
 import { StarRating } from "./StarRating";
+import { PanelBackdrop, PanelPicker } from "./PanelBackground";
 export function GameDetail({
   game,
   platform,
   edit,
   remove,
   hide,
+  setPanel,
   guides = [],
   openGuide,
   addGuide,
@@ -31,6 +33,8 @@ export function GameDetail({
   remove: () => void;
   /** Hide the game from the Library, Backlog and Reports. */
   hide?: () => void;
+  /** Saves the panel background for this game; resolves false if refused. */
+  setPanel?: (panel: PanelBackground) => Promise<boolean>;
   guides?: Guide[];
   openGuide?: (id: number) => void;
   addGuide?: () => void;
@@ -38,17 +42,18 @@ export function GameDetail({
   findGuides?: () => void;
   error: (e: string) => void;
 }) {
-  const panel = useRef<HTMLElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (panel.current) panel.current.scrollTop = 0;
   }, [game.id]);
   return (
     <aside
-      ref={panel}
-      className="detail-sidebar"
+      className="detail-sidebar game-panel"
       aria-label="Selected game details"
       tabIndex={0}
     >
+      <PanelBackdrop game={game} />
+      <div className="detail-scroll" ref={panel}>
       <div className="detail-actions">
         <Button
           title="Edit game"
@@ -57,6 +62,9 @@ export function GameDetail({
           appearance="subtle"
           onClick={edit}
         />
+        {setPanel && (
+          <PanelPicker game={game} save={setPanel} fail={error} />
+        )}
         {hide && (
           <Button
             title="Hide from library"
@@ -170,6 +178,7 @@ export function GameDetail({
         Added {new Date(game.date_added).toLocaleDateString()} · Modified{" "}
         {new Date(game.date_modified).toLocaleDateString()}
       </p>
+      </div>
     </aside>
   );
 }

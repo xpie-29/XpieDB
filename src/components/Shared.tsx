@@ -12,15 +12,8 @@ import type { Platform } from "../types";
 import placeholder from "../placeholder.svg";
 import { bundledIconFor } from "../platformIcons";
 
-export function ManagedImage({
-  path,
-  alt,
-  className = "",
-}: {
-  path: string | null;
-  alt: string;
-  className?: string;
-}) {
+/** The data URL of a managed image, or null while it loads or if it is missing. */
+export function useImageData(path: string | null) {
   const [image, setImage] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
@@ -35,6 +28,18 @@ export function ManagedImage({
       live = false;
     };
   }, [path]);
+  return [image, setImage] as const;
+}
+export function ManagedImage({
+  path,
+  alt,
+  className = "",
+}: {
+  path: string | null;
+  alt: string;
+  className?: string;
+}) {
+  const [image, setImage] = useImageData(path);
   return (
     <img
       className={className}

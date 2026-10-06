@@ -1806,3 +1806,31 @@ button:focus-visible,
 .hidden-games li.picked {
   background: var(--colorNeutralBackground1Selected);
 }
+.detail-sidebar.game-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+.detail-scroll {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 16px 19px 28px;
+}
+.detail-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.4;
+  pointer-events: none;
+}
+.detail-backdrop.desaturated {
+  filter: grayscale(0.85);
+}
+.panel-picker {
+  display: grid;
+  gap: 12px;
+  min-width: 240px;
+}

@@ -92,6 +92,7 @@ async function mock(page: Page, mode = "results", add = true) {
                 id: 1,
                 date_added: "2026-01-01",
                 date_modified: "2026-01-01",
+                panel: { mode: "default", image: null, fit: "fill" },
               },
             ]
           : [];
@@ -162,6 +163,7 @@ async function mock(page: Page, mode = "results", add = true) {
               id: 2,
               date_added: "2026-01-01",
               date_modified: "2026-01-01",
+              panel: { mode: "default", image: null, fit: "fill" },
             };
             games = [...games, game];
             return game;
