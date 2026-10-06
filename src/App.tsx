@@ -142,9 +142,21 @@ export function App() {
     [shown, platforms, filters, preferences.library_sort],
   );
   const visibleId = visibleSelection(visible, selected);
+  // In the Backlog the selection is a game in the backlog (the first one when nothing else is chosen).
+  const queued = useMemo(
+    () =>
+      shown
+        .filter((g) => g.backlog_position != null)
+        .sort((a, b) => a.backlog_position! - b.backlog_position!),
+    [shown],
+  );
+  const backlogId = visibleSelection(queued, selected);
   const game =
-    shown.find((g) => g.id === (view === "library" ? visibleId : selected)) ??
-    null;
+    shown.find(
+      (g) =>
+        g.id ===
+        (view === "library" ? visibleId : view === "backlog" ? backlogId : selected),
+    ) ?? null;
   useEffect(() => {
     if (view === "library" && !loading && selected !== visibleId)
       setSelected(visibleId);
@@ -177,10 +189,41 @@ export function App() {
       return false;
     }
   };
+  const gameDetails = (game: Game) => (
+    <GameDetail
+                      game={game}
+                      platform={platforms.find(
+                        (p) => p.id === game.platform_id,
+                      )}
+                      edit={() => {
+                        setSelected(game.id);
+                        setEditReturn(view === "backlog" ? "backlog" : "library");
+                        navigate("edit");
+                      }}
+                      remove={() => setDeleting(true)}
+                      hide={() => void hideGame(game)}
+                      setPanel={(panel) => setPanel(game, panel)}
+                      guides={guidesForGame(guides, game.id)}
+                      openGuide={openGuide}
+                      addGuide={() => addGuideFor(game)}
+                      findGuides={() =>
+                        setFinder({
+                          query: game.title,
+                          target: {
+                            kind: "game",
+                            game,
+                            guides: guidesForGame(guides, game.id),
+                          },
+                        })
+                      }
+                      error={setError}
+                    />
+  );
   const hideGame = async (target: Game) => {
     // Move the selection to a neighbour, as when a game is deleted.
-    const index = visible.findIndex((g) => g.id === target.id);
-    const next = visible[index + 1] ?? visible[index - 1];
+    const near = view === "backlog" ? queued : visible;
+    const index = near.findIndex((g) => g.id === target.id);
+    const next = near[index + 1] ?? near[index - 1];
     if (!(await setHidden(target, true))) return;
     setSelected(next?.id ?? null);
     setNotice({
@@ -639,38 +682,7 @@ export function App() {
                     setSort={(value) => void preference("library_sort", value)}
                   />
                 }
-                details={
-                  game ? (
-                    <GameDetail
-                      game={game}
-                      platform={platforms.find(
-                        (p) => p.id === game.platform_id,
-                      )}
-                      edit={() => {
-                        setSelected(game.id);
-                        setEditReturn("library");
-                        navigate("edit");
-                      }}
-                      remove={() => setDeleting(true)}
-                      hide={() => void hideGame(game)}
-                      setPanel={(panel) => setPanel(game, panel)}
-                      guides={guidesForGame(guides, game.id)}
-                      openGuide={openGuide}
-                      addGuide={() => addGuideFor(game)}
-                      findGuides={() =>
-                        setFinder({
-                          query: game.title,
-                          target: {
-                            kind: "game",
-                            game,
-                            guides: guidesForGame(guides, game.id),
-                          },
-                        })
-                      }
-                      error={setError}
-                    />
-                  ) : null
-                }
+                details={game ? gameDetails(game) : null}
               />
             )}
             {collection === "games" && editing && (
@@ -712,19 +724,24 @@ export function App() {
               </section>
             )}
             {collection === "games" && view === "backlog" && (
-              <section className="page-scroll">
-                <Backlog
-                  games={shown}
-                  everyGame={games}
-                  platforms={platforms}
-                  refresh={refresh}
-                  edit={(id) => {
-                    setSelected(id);
-                    setEditReturn("backlog");
-                    navigate("edit");
-                  }}
-                />
-              </section>
+              <div className="backlog-workspace">
+                <section className="page-scroll">
+                  <Backlog
+                    games={shown}
+                    everyGame={games}
+                    platforms={platforms}
+                    refresh={refresh}
+                    selected={backlogId}
+                    select={setSelected}
+                    edit={(id) => {
+                      setSelected(id);
+                      setEditReturn("backlog");
+                      navigate("edit");
+                    }}
+                  />
+                </section>
+                {game ? gameDetails(game) : null}
+              </div>
             )}
             {collection === "games" && view === "steam" && (
               <section className="page-scroll">
@@ -892,8 +909,9 @@ export function App() {
           confirm={async () => {
             setBusy(true);
             try {
-              const index = visible.findIndex((g) => g.id === game.id);
-              const next = visible[index + 1] ?? visible[index - 1];
+              const near = view === "backlog" ? queued : visible;
+              const index = near.findIndex((g) => g.id === game.id);
+              const next = near[index + 1] ?? near[index - 1];
               await invoke("delete_game", { id: game.id });
               setGames((current) => current.filter((g) => g.id !== game.id));
               setSelected(next?.id ?? null);

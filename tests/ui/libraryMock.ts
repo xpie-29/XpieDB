@@ -692,6 +692,13 @@ export async function installMock(page: Page, options: MockOptions = {}) {
             });
             return;
           }
+          if (command === "delete_game") {
+            const at = games.findIndex((x: any) => x.id === args.id);
+            if (at < 0) throw "This game no longer exists.";
+            games.splice(at, 1);
+            renumber();
+            return;
+          }
           if (command === "set_game_hidden") {
             w.hideCalls.push([args.id, args.hidden]);
             const g = games.find((x: any) => x.id === args.id);

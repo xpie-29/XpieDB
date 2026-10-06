@@ -29,6 +29,8 @@ type Drag = { id: number; from: number; over: number };
 export function Backlog({
   games,
   everyGame,
+  selected,
+  select,
   platforms,
   refresh,
   edit,
@@ -37,6 +39,9 @@ export function Backlog({
   games: Game[];
   /** Every game, hidden ones too: hidden backlog games keep their places when the order is saved. */
   everyGame: Game[];
+  /** The game whose details are shown beside the list. */
+  selected: number | null;
+  select: (id: number) => void;
   platforms: Platform[];
   refresh: () => Promise<void>;
   edit: (id: number) => void;
@@ -250,7 +255,8 @@ export function Backlog({
             return (
               <li
                 key={id}
-                className={`backlog-row${drag?.id === id ? " dragging" : ""}`}
+                className={`backlog-row${drag?.id === id ? " dragging" : ""}${selected === id ? " selected" : ""}`}
+                aria-current={selected === id ? "true" : undefined}
                 data-id={id}
               >
                 <span
@@ -274,7 +280,12 @@ export function Backlog({
                   alt=""
                   className="backlog-cover"
                 />
-                <div className="backlog-main">
+                <button
+                  type="button"
+                  className="backlog-main"
+                  aria-label={`Show details of ${game.title}`}
+                  onClick={() => select(id)}
+                >
                   <span className="backlog-title" title={game.title}>
                     {game.title}
                   </span>
@@ -286,7 +297,7 @@ export function Backlog({
                     )}
                     {game.genre && <span>· {game.genre}</span>}
                   </span>
-                </div>
+                </button>
                 <div className="backlog-actions">
                   <Button
                     appearance="subtle"
